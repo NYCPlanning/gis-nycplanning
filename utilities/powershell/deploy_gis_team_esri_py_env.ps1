@@ -15,6 +15,7 @@ $newEnvName = 'gis-team-default-env'
 $baseEnvName = 'arcgispro-py3'
 $numpyVersion = 1.22
 
+# Check conda version as a proxy to determine if conda is initialized in this shell
 try {
     Write-Output "`r`n>>> Checking conda version..."
     conda --version
@@ -37,6 +38,19 @@ More info: https://www.esri.com/arcgis-blog/products/arcgis-pro/developers/conda
     Write-Output ">>> Error message: " $_
     break 
 }
+
+# Test for existence of env to clone, by activating it
+# Exit script if env can not be found
+try {
+    Write-Output "`r`n>>> Checking for base env: $baseEnvName..."
+    conda activate $baseEnvName
+    conda deactivate
+}
+catch {
+    Write-Output ">>> Existing script since $baseEnvName env could not be found"
+    break
+}
+
 Write-Output "`r`n>>> Cloning $baseEnvName into $newEnvName..."
 conda create --name $newEnvName --clone $baseEnvName
 
@@ -50,4 +64,4 @@ Write-Output "`r`n>>> Dropping numpy version to $numpyVersion to satisfy geopand
 pip install --user numpy==$numpyVersion
 
 Write-Output "`r`n>>> Listing all conda environments..."
-conda env list
+conda info --envs
