@@ -14,10 +14,10 @@
 │   ├─── powershell
 │   ├─── sql
 │   └─── python
-├─── products               --m
-├─── dcpgis
+├─── products               --main files for each product
+├─── dcpgis                 --module(s)
 │   └─── __init__.py
-└─── config
+└─── config                 --config for whole repo
     └─── constants.py
 ```
 
