@@ -8,16 +8,16 @@
 ├─── docs
 │   └─── diagrams
 ├─── templates
-│   ├─── metadata           --XML files
-│   └─── issues             --GH issue MD files
-├─── utilities              --Misc. tools
+│   ├─── metadata       --XML files
+│   └─── issues         --GH issue MD files
+├─── utilities          --Misc. tools
 │   ├─── powershell
 │   ├─── sql
 │   └─── python
-├─── products               --main files for each product
-├─── dcpgis                 --module(s)
+├─── products           --main files for each product
+├─── dcpgis             --module(s)
 │   └─── __init__.py
-└─── config                 --config for whole repo
+└─── config             --config for whole repo
     └─── constants.py
 ```
 
