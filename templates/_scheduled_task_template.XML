@@ -42,7 +42,7 @@
   <Actions Context="Author">
     <Exec>
       <Command>powershell</Command>
-      <Arguments>-NoExit -Command &amp; 'PATH_TO_FILE\trigger_process.ps1' -scriptName REL_PATH_AND_PY_SCRIPT_NAME</Arguments>
+      <Arguments>-NoExit -Command & 'ABSOLUTE_PATH\trigger_process.ps1' -scriptName RELATIVE_PATH\PY_SCRIPT_NAME.py</Arguments>
     </Exec>
   </Actions>
 </Task>

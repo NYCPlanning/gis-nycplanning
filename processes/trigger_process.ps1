@@ -6,13 +6,20 @@
         or can use a user-provided value to call a custom environment.
     Usage:
         Named Parameters:
-            $scriptName - (required) Should be the absolute or relative path and file name
-                of the Python script that will be triggered.
+            $scriptName - (required) Absolute or relative path and file name of the Python 
+                script that will be triggered.
             $envName - (optional) Defaults to the value defined below. Can be overridden by
                 a value provided by user. Should be name of env only, not the full path.
+        Task Scheduler Action settings:
+            Program/script: 
+                powershell
+            Add arguments: 
+                -NoExit -Command & '<ABSOLUTE PATH>\trigger_process.ps1' -scriptName <RELATIVE PATH\PY SCRIPT NAME.py>
     Author: J Rosacker
     Date: 2025-03-06
     Notes:
+        - The "-NoExit" flag is optional, and will keep the terminal open after the script has executed
+        - Make sure to replace all values within <> brackets in the Arguments clause of the scheduled task
         
 #>
 # Get script name and conda env parameters from user input
