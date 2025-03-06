@@ -14,7 +14,7 @@
 │   ├─── powershell
 │   ├─── sql
 │   └─── python
-├─── products           --main files for each product
+├─── processes           --main files for each product/process
 ├─── dcpgis             --module(s)
 │   └─── __init__.py
 └─── config             --config for whole repo
