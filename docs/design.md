@@ -15,11 +15,12 @@
 │   ├─── sql
 │   └─── python
 ├─── processes          --main files for each product/process
-├─── dcpgis             --module(s)
-│   ├─── __init__.py
-│   ├─── utils
-│   ├─── metadata
-│   └─── ... 
+├─── src
+│   └─── dcpgis         --package
+│      ├─── __init__.py
+│      ├─── utils       --module
+│      ├─── metadata    --module
+│      └─── ... 
 └─── config             --config for whole repo
     └─── constants.py
 ```
