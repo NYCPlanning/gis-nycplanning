@@ -63,5 +63,8 @@ pip install geopandas
 Write-Output "`r`n>>> Dropping numpy version to $numpyVersion to satisfy geopandas dependencies..."
 pip install --user numpy==$numpyVersion
 
+Write-Output "`r`n>>> pip installing fiona..."
+pip install fiona
+
 Write-Output "`r`n>>> Listing all conda environments..."
 conda info --envs
