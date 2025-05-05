@@ -1,0 +1,3 @@
+# Environment switch. Value is accessed by a configuration definition
+# function, and used to define which configuration file to use.
+environment: dev
