@@ -1,7 +1,7 @@
 # dev_settings.yml
 environment: dev
 
-open_data_staging: data\GIS\BytesProduction
+open_data_staging_path: data\GIS\BytesProduction
 connection_file_path: connections\arcsdegis
-enterprise_gdb: sde@GISDEV.sde
+connection_file_name: sde@GISDEV.sde
 log_level_override: 
