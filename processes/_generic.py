@@ -1,7 +1,9 @@
+import logging
 from pathlib import Path
+from typing import Union
+
 from dcpgis import config
 from dcpgis import logging as dcp_logging
-import logging
 
 SETTINGS_FILE_PARENT = Path(__file__).parent.parent / "config"
 LOG_FILE_PARENT = Path(__file__).parent.parent / "log"
@@ -22,10 +24,10 @@ settings = config.Config(
 
 logging.info(f"Log level: {logging.getLevelName(logging.root.getEffectiveLevel())}")
 
-OPEN_DATA_STAGING = settings["open_data_staging"]
-CONNECTION_FILE_PATH = settings["connection_file_path"]
-ENTERPRISE_GDB = settings["enterprise_gdb"]
-LOG_LEVEL_OVERRIDE = settings["log_level_override"]
+OPEN_DATA_STAGING_PATH: Path = Path(settings["open_data_staging"])
+CONNECTION_FILE_PATH: Path = Path(settings["connection_file_path"])
+CONNECTION_FILE_NAME: str = settings["enterprise_gdb"]
+LOG_LEVEL_OVERRIDE: Union[str, None] = settings["log_level_override"]
 
 if LOG_LEVEL_OVERRIDE is not None:
     log_level = getattr(logging, LOG_LEVEL_OVERRIDE.upper(), logging.INFO)

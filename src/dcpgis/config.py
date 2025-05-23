@@ -1,9 +1,8 @@
-# To hold environment config switching code currently defined
-# in untracked dev files.
-import yaml
-from typing import Dict
-from pathlib import Path
 import logging
+from pathlib import Path
+from typing import Dict
+
+import yaml
 
 
 class Config:
