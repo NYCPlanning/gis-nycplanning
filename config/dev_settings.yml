@@ -4,3 +4,4 @@ environment: dev
 open_data_staging: data\GIS\BytesProduction
 connection_file_path: connections\arcsdegis
 enterprise_gdb: sde@GISDEV.sde
+log_level_override: 
