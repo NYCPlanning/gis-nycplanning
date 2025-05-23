@@ -10,7 +10,6 @@ ENVIRONMENT = "dev"  # will be provided via cli
 PRODUCT = "testingonly"  # will be "pluto", or similar, provided via cli
 PROCESS = "generic"  # will be "distribute", or similar, provided via cli
 
-print(config.msg())
 
 dcp_logging.initialize_logging(
     log_filename=f"{ENVIRONMENT}_{PROCESS}_{PRODUCT}.log",
