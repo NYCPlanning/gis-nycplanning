@@ -33,7 +33,9 @@ if LOG_LEVEL_OVERRIDE is not None:
     log_level = getattr(logging, LOG_LEVEL_OVERRIDE.upper(), logging.INFO)
     logging.getLogger().setLevel(log_level)
     logging.info(
-        f"Log level overridden, and set to: {logging.getLevelName(logging.root.getEffectiveLevel())}"
+        f"Log level overridden, and set to: {
+            logging.getLevelName(logging.root.getEffectiveLevel())
+        }"
     )
 
 logging.debug(settings)
