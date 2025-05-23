@@ -18,24 +18,27 @@ dcp_logging.initialize_logging(
     log_path=LOG_FILE_PARENT,
 )
 
+logging.info("{delim} Process Starting {delim}".format(delim="=" * 15))
+logging.info(f"ENVIRONMENT: {ENVIRONMENT}")
+logging.info(f"PRODUCT:     {PRODUCT}")
+logging.info(f"PROCESS:     {PROCESS}")
+
 settings = config.Config(
     app_env=ENVIRONMENT, config_file_path=SETTINGS_FILE_PARENT
 ).get_config_from_yaml()
 
 logging.info(f"Log level: {logging.getLevelName(logging.root.getEffectiveLevel())}")
 
-OPEN_DATA_STAGING_PATH: Path = Path(settings["open_data_staging"])
+OPEN_DATA_STAGING_PATH: Path = Path(settings["open_data_staging_path"])
 CONNECTION_FILE_PATH: Path = Path(settings["connection_file_path"])
-CONNECTION_FILE_NAME: str = settings["enterprise_gdb"]
+CONNECTION_FILE_NAME: str = settings["connection_file_name"]
 LOG_LEVEL_OVERRIDE: Union[str, None] = settings["log_level_override"]
 
 if LOG_LEVEL_OVERRIDE is not None:
     log_level = getattr(logging, LOG_LEVEL_OVERRIDE.upper(), logging.INFO)
     logging.getLogger().setLevel(log_level)
     logging.info(
-        f"Log level overridden, and set to: {
-            logging.getLevelName(logging.root.getEffectiveLevel())
-        }"
+        f"Log level overridden, and set to: {logging.getLevelName(logging.root.getEffectiveLevel())}"
     )
 
 logging.debug(settings)
