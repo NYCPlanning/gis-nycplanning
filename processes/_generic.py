@@ -19,9 +19,7 @@ dcp_logging.initialize_logging(
 
 settings = config.Config(
     app_env=ENVIRONMENT, config_file_path=SETTINGS_FILE_PARENT
-).get_yaml_settings()
-
-logging.info(settings)
+).get_config_from_yaml()
 
 logging.info(f"Log level: {logging.getLevelName(logging.root.getEffectiveLevel())}")
 
@@ -36,3 +34,5 @@ if LOG_LEVEL_OVERRIDE is not None:
     logging.info(
         f"Log level overridden, and set to: {logging.getLevelName(logging.root.getEffectiveLevel())}"
     )
+
+logging.debug(settings)
