@@ -1,34 +1,32 @@
 import logging
 from pathlib import Path
 
-print("hello, i'm a logging module")    #temp msg, confirms import during package development
 
-def set_logger(
-    file: Path, mode: str = "a", format: str = "{asctime} - {levelname} - {message}"
+def initialize_logging(
+    log_path: Path,
+    log_filename: str,
+    log_level: str = "INFO",
+    format: str = "%(asctime)s :: %(levelname)s :: %(message)s",
 ):
-    """
-    ***
-    THIS IS A PLACEHOLDER FN, to help with package development.
-    ***
-    
+    """Initialize logging. Output to file and console.
+    source: https://stackoverflow.com/a/46098711
+    source: https://github.com/NYCPlanning/db-template-repo/blob/main/python/run_logging.py
+
     Args:
-        file (Path): _description_
-        mode (str, optional): _description_. Defaults to "a".
-        format (str, optional): _description_. Defaults to "{asctime} - {levelname} - {message}".
-
-    Returns:
-        _type_: _description_
+        log_path (Path): Directory containing log file
+        log_filename (str): Log filename. Do not include containing path
+        log_level (str): Logging level. Defaults to "INFO"
+        format (str): Defines format of log entries. Defaults to "%(asctime)s :: %(levelname)s :: %(message)s"
     """
-    logger = logging.getLogger(__name__)
-    console_handler = logging.StreamHandler()
-    file_handler = logging.FileHandler(file, mode=mode, encoding="utf-8")
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
-    formatter = logging.Formatter(
-        fmt=format,
-        style="{",
-        datefmt="%Y-%m-%d %H:%M",
-    )
 
-    console_handler.setFormatter(formatter)
-    return logger
+    log_file = Path(log_path) / log_filename
+
+    logging.basicConfig(
+        level=log_level,
+        format=format,
+        datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[
+            logging.FileHandler(log_file, encoding="utf-8"),
+            logging.StreamHandler(),
+        ],
+    )
