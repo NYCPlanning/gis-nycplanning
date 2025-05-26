@@ -75,17 +75,14 @@ def main():
     logging.info(f"PROCESS:         {PROCESS}")
     logging.info(f"DESTINATION:     {DESTINATION}")
 
-    primary_config = config.Config(
+    main_config = config.Config(
         app_env=ENVIRONMENT, config_file_path=SETTINGS_FILE_PARENT
     )
 
-    settings = primary_config.get_config_from_yaml()
+    settings = main_config.get_config_from_yaml()
 
     logging.info(f"Log level: {logging.getLevelName(logging.root.getEffectiveLevel())}")
 
-    OPEN_DATA_STAGING_PATH = Path(settings["open_data_staging_path"])
-    CONNECTION_FILE_PATH = Path(settings["connection_file_path"])
-    CONNECTION_FILE_NAME = settings["connection_file_name"]
     LOG_LEVEL_OVERRIDE = settings["log_level_override"]
 
     override_log_level(new_level=LOG_LEVEL_OVERRIDE)
@@ -100,7 +97,7 @@ def main():
 
     if hasattr(process_module, "run"):
         process_module.run(
-            args
+            args, settings
         )
 
 
