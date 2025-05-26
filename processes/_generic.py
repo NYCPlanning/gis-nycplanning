@@ -6,6 +6,8 @@ import importlib
 from dcpgis import config
 from dcpgis import logging as dcp_logging
 
+SETTINGS_FILE_PARENT = Path(__file__).parent.parent / "config"
+LOG_FILE_PARENT = Path(__file__).parent.parent / "log"
 
 def main():
     def get_cli_arguments():
@@ -38,8 +40,6 @@ def main():
 
     args = get_cli_arguments()
 
-    SETTINGS_FILE_PARENT = Path(__file__).parent.parent / "config"
-    LOG_FILE_PARENT = Path(__file__).parent.parent / "log"
 
     ENVIRONMENT = args.env
     PROCESS = args.process
