@@ -19,7 +19,7 @@ def main():
         )
 
         arg_parser.add_argument(
-            "--app-env",
+            "--env",
             required=True,
             choices=("prod", "dev"),
             action="store",
@@ -41,7 +41,7 @@ def main():
     SETTINGS_FILE_PARENT = Path(__file__).parent.parent / "config"
     LOG_FILE_PARENT = Path(__file__).parent.parent / "log"
 
-    ENVIRONMENT = args.app_env
+    ENVIRONMENT = args.env
     PROCESS = args.process
     PRODUCT = args.product
 
