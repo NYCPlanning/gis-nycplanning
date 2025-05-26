@@ -36,6 +36,7 @@ def get_cli_arguments():
         help="Product to process",
     )
 
+    #TODO: consider turning into a subparser of the distribute module
     arg_parser.add_argument(
         "--destination",
         required=True,
