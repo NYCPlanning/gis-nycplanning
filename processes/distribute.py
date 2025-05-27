@@ -25,29 +25,29 @@ def get_product_config_values() -> dict:
 product_distribution_attr: dict = {}
 
 
-def get_data_from_source_location():
+def get_data_from_source_location(placeholder):
     """
     Download and unzip from DO or other, ready to be distributed
     """
 
 
 class EnterpriseGeodatabase:
-    ...
+    def __init__(self):
+        ...
 
-    def disconnect_users() -> None: ...
-    def block_connections() -> None: ...
-    def allow_connections() -> None: ...
-    def list_connections() -> Union(list, dict): ...
-    def is_valid(data_object) -> bool: ...
+    def disconnect_users(self) -> None: ...
+    def block_connections(self) -> None: ...
+    def allow_connections(self) -> None: ...
+    def list_connections(self) -> Union[list, dict]: ...
+    def is_valid(self) -> bool: ...
 
 
-def overwrite_feature_class(): ...
-
+def overwrite_feature_class(dataset):
+    logging.info(dataset)
 
 def run(
     args,
     settings: dict,
-    # process, product, destination
 ):
     announce_module(
         module_name=__name__,
@@ -64,7 +64,7 @@ def run(
 
     get_data_from_source_location(product_distribution_attr)
 
-    if args.product.lower() == "egdb":
+    if args.destination.lower() == "egdb":
         EGDB = EnterpriseGeodatabase()
         EGDB.list_connections()
         EGDB.disconnect_users()
@@ -72,14 +72,14 @@ def run(
 
         try:
             for dataset in product_distribution_attr:
-                overwrite_feature_class(product_distribution_attr)
+                overwrite_feature_class(dataset)
                 
-                EGDB.is_valid(dataset)
+                EGDB.is_valid()
         except arcpy.ExecuteError:
             logging.exception(arcpy.GetMessages())
             logging.exception()
-        except Exception:
-            logging.exception()
+        except Exception as e:
+            logging.exception(e)
         finally:
             EGDB.allow_connections()
 
