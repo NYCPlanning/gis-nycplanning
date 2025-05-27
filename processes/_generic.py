@@ -15,7 +15,7 @@ def get_cli_arguments():
     arg_parser.add_argument(
         "--process",
         action="store",
-        choices=("distribute", "transform"),
+        choices=("distribute", "ingest", "transform"),
         required=True,
         help="Process to initiate (distribute, etc.)",
     )
@@ -40,7 +40,7 @@ def get_cli_arguments():
     arg_parser.add_argument(
         "--destination",
         required=True,
-        choices=("egdb", "ago", "networklocation"),
+        choices=("egdb", "ago", "networkdrive"),
         action="store",
         help="Output location of process. Expects a keyword, and not a path",
     )
