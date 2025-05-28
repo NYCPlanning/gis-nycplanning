@@ -20,6 +20,7 @@ def get_product_config_values() -> dict:
         - which to distribute, which to hold back
     Where, "source" is location to distribute from, like Digital Ocean
     """
+    return {}
 
 
 product_distribution_attr: dict = {}
@@ -31,7 +32,7 @@ def get_data_from_source_location(placeholder):
     """
 
 
-class EnterpriseGeodatabase:
+class EGDB:
     def __init__(self):
         ...
 
@@ -65,23 +66,23 @@ def run(
     get_data_from_source_location(product_distribution_attr)
 
     if args.destination.lower() == "egdb":
-        EGDB = EnterpriseGeodatabase()
-        EGDB.list_connections()
-        EGDB.disconnect_users()
-        EGDB.block_connections()
+        egdb = EGDB()
+        logging.info(egdb.list_connections())
+        egdb.disconnect_users()
+        egdb.block_connections()
 
         try:
             for dataset in product_distribution_attr:
                 overwrite_feature_class(dataset)
                 
-                EGDB.is_valid()
+                egdb.is_valid()
         except arcpy.ExecuteError:
             logging.exception(arcpy.GetMessages())
-            logging.exception()
+            #TODO: add Python exception call as well as arcpy - see arcpy docs
         except Exception as e:
             logging.exception(e)
         finally:
-            EGDB.allow_connections()
+            egdb.allow_connections()
 
     else:
         logging.warning(f"{args.product} can not yet be handled by this code.")

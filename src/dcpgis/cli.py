@@ -6,8 +6,8 @@ import importlib
 from dcpgis import config
 from dcpgis import logging as dcp_logging
 
-SETTINGS_FILE_PARENT = Path(__file__).parent.parent / "config"
-LOG_FILE_PARENT = Path(__file__).parent.parent / "log"
+SETTINGS_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
+LOG_FILE_PARENT = Path(__file__).parent.parent.parent / "log"
 
 
 def get_cli_arguments():
@@ -90,10 +90,12 @@ def main():
 
     logging.debug(settings)
 
+    module = f"dcpgis.processes.{args.process}"
+
     try:
-        process_module = importlib.import_module(args.process)
+        process_module = importlib.import_module(module)
     except ModuleNotFoundError:
-        logging.warning(f"Module {args.process} not found")
+        logging.warning(f"Module {module} not found")
         return
 
     if hasattr(process_module, "run"):
