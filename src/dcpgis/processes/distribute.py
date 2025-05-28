@@ -33,8 +33,7 @@ def get_data_from_source_location(placeholder):
 
 
 class EGDB:
-    def __init__(self):
-        ...
+    def __init__(self): ...
 
     def disconnect_users(self) -> None: ...
     def block_connections(self) -> None: ...
@@ -45,6 +44,7 @@ class EGDB:
 
 def overwrite_feature_class(dataset):
     logging.info(dataset)
+
 
 def run(
     args,
@@ -74,11 +74,11 @@ def run(
         try:
             for dataset in product_distribution_attr:
                 overwrite_feature_class(dataset)
-                
+
                 egdb.is_valid()
         except arcpy.ExecuteError:
             logging.exception(arcpy.GetMessages())
-            #TODO: add Python exception call as well as arcpy - see arcpy docs
+            # TODO: add Python exception call as well as arcpy - see arcpy docs
         except Exception as e:
             logging.exception(e)
         finally:

@@ -36,7 +36,7 @@ def get_cli_arguments():
         help="Product to process",
     )
 
-    #TODO: consider turning into a subparser of the distribute module
+    # TODO: consider turning into a subparser of the distribute module
     arg_parser.add_argument(
         "--destination",
         required=True,
@@ -99,9 +99,7 @@ def main():
         return
 
     if hasattr(process_module, "run"):
-        process_module.run(
-            args, settings
-        )
+        process_module.run(args, settings)
 
 
 if __name__ == "__main__":
