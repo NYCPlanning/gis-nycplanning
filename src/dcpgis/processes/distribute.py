@@ -6,8 +6,7 @@ import arcpy
 
 def announce_module(module_name, process, product, destination):
     logging.info(
-        f"Hi! This is the {module_name} module, ready to {process.upper()} \
-            {product.upper()} to {destination.upper()}"
+        f"Hi! This is the {module_name} module, ready to {process.upper()} {product.upper()} to {destination.upper()}"
     )
 
 
