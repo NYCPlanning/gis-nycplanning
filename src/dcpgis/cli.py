@@ -9,38 +9,47 @@ from dcpgis import logging as dcp_logging
 SETTINGS_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
 LOG_FILE_PARENT = Path(__file__).parent.parent.parent / "log"
 
+process_choices = ["distribute", "ingest", "transform"]
+env_choices = ["prod", "dev"]
+product_choices = ["pluto", "mih", "template"]
+destination_choices = ["egdb", "ago", "networkdrive"]
+
 
 def get_cli_arguments():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument(
+        "-pc",
         "--process",
         action="store",
-        choices=("distribute", "ingest", "transform"),
+        choices=process_choices,
         required=True,
         help="Process to initiate (distribute, etc.)",
     )
 
     arg_parser.add_argument(
+        "-e",
         "--env",
         required=True,
-        choices=("prod", "dev"),
+        choices=env_choices,
         action="store",
         help="Used to specify either prod or dev configuration parameters",
     )
 
     arg_parser.add_argument(
+        "-pd",
         "--product",
         required=True,
-        choices=("pluto", "mih", "template"),
+        choices=product_choices,
         action="store",
         help="Product to process",
     )
 
     # TODO: consider turning into a subparser of the distribute module
     arg_parser.add_argument(
+        "-d",
         "--destination",
         required=True,
-        choices=("egdb", "ago", "networkdrive"),
+        choices=destination_choices,
         action="store",
         help="Output location of process. Expects a keyword, and not a path",
     )
