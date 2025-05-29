@@ -66,7 +66,7 @@ def run(
 
     if args.destination.lower() == "egdb":
         egdb = EGDB()
-        logging.info(egdb.list_connections())
+        logging.info(f"Connections to GDB: {egdb.list_connections()}")
         egdb.disconnect_users()
         egdb.block_connections()
 
