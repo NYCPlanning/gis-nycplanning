@@ -1,114 +1,129 @@
-import logging
-from pathlib import Path
 import argparse
-import importlib
-
-from dcpgis import config
-from dcpgis import logging as dcp_logging
-
-SETTINGS_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
-LOG_FILE_PARENT = Path(__file__).parent.parent.parent / "log"
-
-process_choices = ["distribute", "ingest", "transform"]
-env_choices = ["prod", "dev"]
-product_choices = ["pluto", "mih", "template"]
-destination_choices = ["egdb", "ago", "networkdrive"]
+from dataclasses import dataclass
+from typing import Any, Optional
 
 
-def get_cli_arguments():
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument(
-        "-pc",
-        "--process",
+ENV_CHOICES = ["dev", "prod"]
+PRODUCT_CHOICES = ["pluto", "mih", "template"]
+DESTINATION_CHOICES = ["gisprod", "digital_ocean", "ago", "network_drive"]
+ORIGIN_CHOICES = ["gistrd", "gisgru", "digital_ocean"]
+DATASET_CHOICES = ["all", "partial"]
+
+
+@dataclass
+class CLIArgument:
+    name_or_flag: str
+    required: bool
+    help_msg: str
+    action: Optional[str] = "store"
+    choices: Optional[list[str]] = None
+    default: Optional[Any] = None
+
+
+GLOBAL_ARGS: list = [
+    CLIArgument(
+        name_or_flag="--env",
         action="store",
-        choices=process_choices,
+        choices=ENV_CHOICES,
         required=True,
-        help="Process to initiate (distribute, etc.)",
-    )
+        help_msg="Used to specify either prod or dev configuration parameters.",
+        default="dev",
+    ),
+]
 
-    arg_parser.add_argument(
-        "-e",
-        "--env",
-        required=True,
-        choices=env_choices,
+DISTRIBUTE_ARGS: list = [
+    CLIArgument(
+        name_or_flag="--product",
         action="store",
-        help="Used to specify either prod or dev configuration parameters",
-    )
-
-    arg_parser.add_argument(
-        "-pd",
-        "--product",
+        choices=PRODUCT_CHOICES,
         required=True,
-        choices=product_choices,
+        help_msg="The product to be moved/distributed. Products are datasets, or agreed upon groups of datasets.",
+    ),
+    CLIArgument(
+        name_or_flag="--origin",
         action="store",
-        help="Product to process",
-    )
-
-    # TODO: consider turning into a subparser of the distribute module
-    arg_parser.add_argument(
-        "-d",
-        "--destination",
+        choices=ORIGIN_CHOICES,
         required=True,
-        choices=destination_choices,
+        help_msg="The origin from which data is being moved.",
+    ),
+    CLIArgument(
+        name_or_flag="--destination",
         action="store",
-        help="Output location of process. Expects a keyword, and not a path",
-    )
+        choices=DESTINATION_CHOICES,
+        required=True,
+        help_msg="The destination to which data is being moved.",
+    ),
+    CLIArgument(
+        name_or_flag="--datasets",
+        action="store",
+        choices=DATASET_CHOICES,
+        required=False,
+        help_msg="Which of the constituent datasets composing a product are to be distributed.",
+        default="all",
+    ),
+]
 
-    return arg_parser.parse_args()
+TRANSFORM_ARGS: list = []  # placeholder
 
 
-def override_log_level(new_level: str):
-    if new_level is not None:
-        log_level = getattr(logging, new_level.upper(), logging.INFO)
-        logging.getLogger().setLevel(log_level)
-        logging.info(
-            f"Log level overridden, and set to: {logging.getLevelName(logging.root.getEffectiveLevel())}"
-        )
+class CLI:
+    """
+    A CLI object with default global argument(s)
+    Global args can be overriden upon instantiation, using "default_args"
+    """
+
+    def __init__(
+        self,
+        default_args: list[CLIArgument] = GLOBAL_ARGS,
+    ) -> None:
+        self.default_args = default_args
+        self.parser = argparse.ArgumentParser()
+        self._add_global_args()
+
+    def _add_global_args(self) -> None:
+        for arg in self.default_args:
+            self._add_argument(arg)
+
+    def _add_argument(self, arg: CLIArgument):
+        """Add a single argument to the parser."""
+        kwargs: dict[str, Any] = {
+            "help": arg.help_msg,
+            # 'type': arg.type,     # Placeholder
+            "default": arg.default,
+            "required": arg.required,
+        }
+
+        # Only add non-None values
+        if arg.action:
+            kwargs["action"] = arg.action
+        if arg.choices:
+            kwargs["choices"] = arg.choices
+
+        # Remove type for store_true/store_false actions
+        # Implement if "type" is added as an attribute to CLIArgument in the future
+        # if arg.action in ("store_true", "store_false"):
+        #     kwargs.pop("type", None)
+        #     kwargs.pop("default", None)
+
+        self.parser.add_argument(arg.name_or_flag, **kwargs)
+
+    def add_arguments(self, arguments: list[CLIArgument]) -> None:
+        for arg in arguments:
+            self._add_argument(arg)
+
+    def parse_args(self) -> argparse.Namespace:
+        return self.parser.parse_args()
 
 
+# keeping for limited testing purposes
 def main():
-    args = get_cli_arguments()
+    cli = CLI()
+    cli.add_arguments(DISTRIBUTE_ARGS)
+    args = cli.parse_args()
 
     ENVIRONMENT = args.env
-    PROCESS = args.process
-    PRODUCT = args.product
-    DESTINATION = args.destination
 
-    dcp_logging.initialize_logging(
-        log_filename=f"{ENVIRONMENT}_{PROCESS}_{PRODUCT}.log",
-        log_path=LOG_FILE_PARENT,
-    )
-
-    logging.info("{delim} Process Starting {delim}".format(delim="=" * 15))
-    logging.info(f"ENVIRONMENT:     {ENVIRONMENT}")
-    logging.info(f"PRODUCT:         {PRODUCT}")
-    logging.info(f"PROCESS:         {PROCESS}")
-    logging.info(f"DESTINATION:     {DESTINATION}")
-
-    main_config = config.Config(
-        app_env=ENVIRONMENT, config_file_path=SETTINGS_FILE_PARENT
-    )
-
-    settings = main_config.get_config_from_yaml()
-
-    logging.info(f"Log level: {logging.getLevelName(logging.root.getEffectiveLevel())}")
-
-    LOG_LEVEL_OVERRIDE = settings["log_level_override"]
-
-    override_log_level(new_level=LOG_LEVEL_OVERRIDE)
-
-    logging.debug(settings)
-
-    module = f"dcpgis.processes.{args.process}"
-
-    try:
-        process_module = importlib.import_module(module)
-    except ModuleNotFoundError:
-        logging.warning(f"Module {module} not found")
-        return
-
-    if hasattr(process_module, "run"):
-        process_module.run(args, settings)
+    print(f"ENVIRONMENT:     {ENVIRONMENT}")
 
 
 if __name__ == "__main__":

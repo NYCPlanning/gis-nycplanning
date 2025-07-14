@@ -30,3 +30,12 @@ def initialize_logging(
             logging.StreamHandler(),
         ],
     )
+
+
+def override_log_level(new_level: str):
+    if new_level is not None:
+        log_level = getattr(logging, new_level.upper(), logging.INFO)
+        logging.getLogger().setLevel(log_level)
+        logging.info(
+            f"Log level overridden, and set to: {logging.getLevelName(logging.root.getEffectiveLevel())}"
+        )
