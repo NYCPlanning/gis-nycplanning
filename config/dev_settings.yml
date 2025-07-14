@@ -1,7 +1,14 @@
 # dev_settings.yml
 environment: dev
 
+# Editable Values
+# city council date format: YYYYMMDD
+city_council_date: 
+
+# Permenant Values
+local_staging_path: dev_local\data
 open_data_staging_path: data\GIS\BytesProduction
 connection_file_path: connections\arcsdegis
-connection_file_name: sde@GISDEV.sde
-log_level_override: 
+primary_connection_file_name: sde@GISDEV.sde
+trd_connection_file_name: sde@GISTRD.sde
+log_level_override: DEBUG
