@@ -10,8 +10,7 @@ SETTINGS_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
 LOG_FILE_PARENT = Path(__file__).parent / "log"
 
 env_choices = ["prod", "dev"]
-process_choices = ["ingest"]
-
+process_choices = ["ingest", "transform"]
 
 def get_cli_arguments():
     arg_parser = argparse.ArgumentParser()
@@ -57,17 +56,16 @@ def main():
     logging.info(f"PROCESS:         {PROCESS}")
 
     main_config = config.Config(
-        app_env=ENVIRONMENT, config_file_path=SETTINGS_FILE_PARENT
+        app_env=ENVIRONMENT, config_file_path=SETTINGS_FILE_PARENT,
     )
 
     settings = main_config.get_config_from_yaml()
+    print(f"var settings: {settings}")
 
     logging.info(f"Log level: {logging.getLevelName(logging.root.getEffectiveLevel())}")
 
     LOG_LEVEL_OVERRIDE = settings["log_level_override"]
-
-    override_log_level(new_level=LOG_LEVEL_OVERRIDE)
-    
+    override_log_level(new_level=LOG_LEVEL_OVERRIDE)   
     logging.debug(settings)
 
     module = f"processes.zoning.{args.process}"
