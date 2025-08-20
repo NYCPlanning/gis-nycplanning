@@ -1,5 +1,5 @@
-# dev_settings.yml
-environment: dev
+# template_config.yml
+environment: # dev or prod
 
 # Editable Values
 city_council_date: YYYYMMDD
