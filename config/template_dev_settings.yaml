@@ -2,13 +2,12 @@
 environment: dev
 
 # Editable Values
-#city council date format: YYYYMMDD
-city_council_date_format: 
+city_council_date: YYYYMMDD
+log_level_override: # defaults to INFO when empty
 
 # Permenant Values
 local_staging_path: local repo dev data staging path
 open_data_staging_path: primary open data output location path 
 connection_file_path: path to SDE connection files
-primary_connection_file_name: primary SDE namr #format: sde@SDE_NAME.sde
+primary_connection_file_name: primary SDE name #format: sde@SDE_NAME.sde
 trd_connection_file_name: secondary SDE name   #format: sde@SDE_NAME.sde
-log_level_override: DEBUG
