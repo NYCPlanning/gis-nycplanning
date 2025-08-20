@@ -56,11 +56,10 @@ def main():
     logging.info(f"PROCESS:         {PROCESS}")
 
     main_config = config.Config(
-        app_env=ENVIRONMENT, config_file_path=SETTINGS_FILE_PARENT,
+        app_env=ENVIRONMENT, config_file_path=SETTINGS_FILE_PARENT
     )
 
     settings = main_config.get_config_from_yaml()
-    print(f"var settings: {settings}")
 
     logging.info(f"Log level: {logging.getLevelName(logging.root.getEffectiveLevel())}")
 
