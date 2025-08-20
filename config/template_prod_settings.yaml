@@ -5,7 +5,7 @@ environment: prod
 #city council date format: YYYYMMDD
 city_council_date_format: 
 
-# Permenant Values
+# Permanent Values 
 local_staging_path: local repo dev data staging path
 open_data_staging_path: primary open data output location path 
 connection_file_path: path to SDE connection files
