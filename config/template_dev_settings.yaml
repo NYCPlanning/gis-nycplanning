@@ -1,8 +1,8 @@
 # template_config.yml
-environment: # dev or prod
+environment: template # change to dev or prod
 
 # Editable Values
-city_council_date: YYYYMMDD
+city_council_date: date of the most recent stated meeting #format: YYYYMMDD
 log_level_override: # defaults to INFO when empty
 
 # Permenant Values
