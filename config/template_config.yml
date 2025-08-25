@@ -5,7 +5,7 @@ environment: template # change to dev or prod
 city_council_date: date of the most recent stated meeting #format: YYYYMMDD
 log_level_override: # defaults to INFO when empty
 
-# Permanent Values Permanent
+# Permanent Values
 open_data_staging_path: primary open data output location path 
 connection_file_path: path to SDE connection files
 primary_connection_file_name: primary SDE name #format: sde@SDE_NAME.sde
