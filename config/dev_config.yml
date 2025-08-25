@@ -3,7 +3,7 @@ environment: dev
 
 # Editable Values
 # city council date format: YYYYMMDD
-city_council_date: 
+city_council_date: 20250731
 
 # Permenant Values
 local_staging_path: dev_local\data
