@@ -13,13 +13,11 @@ LOG_FILE_PARENT = Path (__file__).parent / "log"
 print(f"SETTINGS_FILE_PARENT: {CONFIG_FILE_PARENT}")
 print(f"LOG_FILE_PARENT: {LOG_FILE_PARENT}")
 
-#TODO: reinstate CLI functionality once jcr-issue9 merged to main
 def main():
-    #cli = CLI()
-    #args = cli.parse_args()
+    cli = CLI()
+    args = cli.parse_args()
     
-    #ENVIORNMENT = args.env
-    ENVIORNMENT = "dev"
+    ENVIORNMENT = args.env
 
     dcp_logging.initialize_logging(
         log_filename=f"{ENVIORNMENT}_zoning.log",
