@@ -1,4 +1,4 @@
-zoning_naming_conventions = {
+ZONING_CONVENTIONS = {
     "nyco": {
         "trd_source": "DZM_nyco",
         "external_output": "nyc_zoning_commercial_overlays",
@@ -25,7 +25,7 @@ zoning_naming_conventions = {
     },
 }
 
-georef_naming_conventions = {
+GEOREF_CONVENTIONS = {
     "georeferenced_zoning_maps": {
         "trd_source": "NYC_Zoning_Maps",
         "external_output": "nyc_georeferenced_zoning_maps",
