@@ -8,6 +8,8 @@ from dcpgis.utils import config
 from dcpgis.utils import logging as dcp_logging
 from dcpgis.cli import CLI
 
+from _naming_convention import ZONING_CONVENTIONS, GEOREF_CONVENTIONS
+
 CONFIG_FILE_PARENT = Path (__file__).parent.parent.parent / "config"
 LOG_FILE_PARENT = Path (__file__).parent / "log"   
 print(f"SETTINGS_FILE_PARENT: {CONFIG_FILE_PARENT}")
@@ -47,6 +49,8 @@ def main():
     logging.info(f"TRD_CONNECTION_FILE_NAME: {TRD_CONNECTION_FILE_NAME}")
     
     # Zoning process logic goes here
+    print(ZONING_CONVENTIONS)
+    print(GEOREF_CONVENTIONS)
 
 if __name__ == "__main__":
     main()
