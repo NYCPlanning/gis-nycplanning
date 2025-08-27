@@ -4,16 +4,14 @@ import logging
 import utils as zoning_utils
 
 from pathlib import Path
-from dcpgis import config
-from dcpgis import logging as dcp_logging
-#from dcpgis.cli import CLI
+from dcpgis.utils import config
+from dcpgis.utils import logging as dcp_logging
+from dcpgis.cli import CLI
 
 CONFIG_FILE_PARENT = Path (__file__).parent.parent.parent / "config"
 LOG_FILE_PARENT = Path (__file__).parent / "log"   
 print(f"SETTINGS_FILE_PARENT: {CONFIG_FILE_PARENT}")
 print(f"LOG_FILE_PARENT: {LOG_FILE_PARENT}")
-
-zoning_utils.utils_test()
 
 #TODO: reinstate CLI functionality once jcr-issue9 merged to main
 def main():
@@ -51,7 +49,6 @@ def main():
     logging.info(f"TRD_CONNECTION_FILE_NAME: {TRD_CONNECTION_FILE_NAME}")
     
     # Zoning process logic goes here
-
 
 if __name__ == "__main__":
     main()
