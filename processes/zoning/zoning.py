@@ -1,6 +1,6 @@
 import arcpy
 import logging
-#import tempfile
+# import tempfile
 # import utils as zoning_utils
 
 from pathlib import Path
@@ -11,8 +11,9 @@ from dcpgis.cli import CLI
 from _naming_convention import ZONING_CONVENTIONS, GEOREF_CONVENTIONS
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-CONFIG_FILE_PARENT = Path (__file__).parent.parent.parent / "config"
-LOG_FILE_PARENT = Path (__file__).parent / "log"   
+CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
+LOG_FILE_PARENT = Path(__file__).parent / "log"
+
 
 def resolve_path(path_str, base_dir):
     """
@@ -23,6 +24,7 @@ def resolve_path(path_str, base_dir):
     if not path.is_absolute():
         return base_dir / path
     return path
+
 
 def get_latest_date_from_field(feature_class_path: str, date_field: str) -> str:
     """
@@ -36,49 +38,53 @@ def get_latest_date_from_field(feature_class_path: str, date_field: str) -> str:
         str: The latest date in YYYYMMDD format, or None if no date is found.
     """
     latest_date = None
-    with arcpy.da.SearchCursor(in_table=feature_class_path, field_names=[date_field], 
-                               #sql_clause=("TOP 1", f"ORDER BY {date_field} DESC")
-                               ) as cursor:
+    with arcpy.da.SearchCursor(
+        in_table=feature_class_path,
+        field_names=[date_field],
+        # sql_clause=("TOP 1", f"ORDER BY {date_field} DESC")
+    ) as cursor:
         for row in cursor:
             if row[0] is not None:
                 if latest_date is None or row[0] > latest_date:
                     latest_date = row[0]
     return latest_date.strftime("%Y%m%d") if latest_date else None
 
+
 def main():
     cli = CLI()
     args = cli.parse_args()
-    
+
     ENVIORNMENT = args.env
 
     dcp_logging.initialize_logging(
         log_filename=f"{ENVIORNMENT}_zoning.log",
         log_path=LOG_FILE_PARENT,
-        )
+    )
 
     logging.info("{delim} Process Starting {delim}".format(delim="=" * 15))
     logging.info(f"ENVIRONMENT:     {ENVIORNMENT}")
 
     main_config = config.Config(
-        app_env=ENVIORNMENT, 
-        config_file_path=CONFIG_FILE_PARENT
+        app_env=ENVIORNMENT, config_file_path=CONFIG_FILE_PARENT
     )
 
     settings = main_config.get_config_from_yaml()
 
     LOG_LEVEL_OVERRIDE = settings["log_level_override"]
-    OPEN_DATA_STAGING_PATH: Path = Path(resolve_path(path_str=settings["open_data_staging_path"], 
-                                                     base_dir=PROJECT_ROOT))
-    CONNECTION_FILE_PATH: Path = Path(resolve_path(path_str=settings["connection_file_path"],
-                                                   base_dir=PROJECT_ROOT))
+    OPEN_DATA_STAGING_PATH: Path = Path(
+        resolve_path(path_str=settings["open_data_staging_path"], base_dir=PROJECT_ROOT)
+    )
+    CONNECTION_FILE_PATH: Path = Path(
+        resolve_path(path_str=settings["connection_file_path"], base_dir=PROJECT_ROOT)
+    )
     PRIMARY_CONNECTION_FILE_NAME: str = settings["primary_connection_file_name"]
     TRD_CONNECTION_FILE_NAME: str = settings["trd_connection_file_name"]
     COUNCIL_DATE = get_latest_date_from_field(
         feature_class_path=ZONING_CONVENTIONS["nyzma"]["trd_path"],
-        date_field="EFFECTIVE"
-    ) 
-    
-    #TODO : Make dynamic 
+        date_field="EFFECTIVE",
+    )
+
+    # TODO : Make dynamic
     CYCLE_DATE: str = "202507"
 
     dcp_logging.override_log_level(LOG_LEVEL_OVERRIDE)
@@ -90,9 +96,38 @@ def main():
 
     # Append trd_path and output_path to ZONING_CONVENTIONS entries
     for key, value in ZONING_CONVENTIONS.items():
-        value["trd_path"] = str(Path(CONNECTION_FILE_PATH / TRD_CONNECTION_FILE_NAME / 'GISTRD.TRD.Digital_Zoning_Map' / f'GISTRD.TRD.{value["trd_fc_name"]}'))
-        value["output_shp_path"] = str(Path(OPEN_DATA_STAGING_PATH / "zoning" / CYCLE_DATE[:4] / CYCLE_DATE / 'shp' / value["public_output_name"]))  + ".shp"
-        value["output_fc_path"] = str(Path(OPEN_DATA_STAGING_PATH / "zoning" / CYCLE_DATE[:4] / CYCLE_DATE / 'gdb' / 'nyc_zoning_features.gdb' / value["public_output_name"]))
+        value["trd_path"] = str(
+            Path(
+                CONNECTION_FILE_PATH
+                / TRD_CONNECTION_FILE_NAME
+                / "GISTRD.TRD.Digital_Zoning_Map"
+                / f"GISTRD.TRD.{value['trd_fc_name']}"
+            )
+        )
+        value["output_shp_path"] = (
+            str(
+                Path(
+                    OPEN_DATA_STAGING_PATH
+                    / "zoning"
+                    / CYCLE_DATE[:4]
+                    / CYCLE_DATE
+                    / "shp"
+                    / value["public_output_name"]
+                )
+            )
+            + ".shp"
+        )
+        value["output_fc_path"] = str(
+            Path(
+                OPEN_DATA_STAGING_PATH
+                / "zoning"
+                / CYCLE_DATE[:4]
+                / CYCLE_DATE
+                / "gdb"
+                / "nyc_zoning_features.gdb"
+                / value["public_output_name"]
+            )
+        )
 
     for key, value in ZONING_CONVENTIONS.items():
         print(f"{key}:")
@@ -100,25 +135,32 @@ def main():
             print(f"  {subkey}: {subvalue}")
         print("-" * 30)
 
-    #TODO: generalize and establish as function
+    # TODO: generalize and establish as function
     for key, value in ZONING_CONVENTIONS.items():
         trd_fc_name = value["trd_fc_name"]
         trd_fc_path = value["trd_path"]
         public_output_name = value["public_output_name"]
 
-        #TODO: make TRD Digitial_Zoning_Map subfolder path a constant
-        trd_fc_path = str(Path(CONNECTION_FILE_PATH) / TRD_CONNECTION_FILE_NAME / 'GISTRD.TRD.Digital_Zoning_Map' / f'GISTRD.TRD.{trd_fc_name}')
+        # TODO: make TRD Digitial_Zoning_Map subfolder path a constant
+        trd_fc_path = str(
+            Path(CONNECTION_FILE_PATH)
+            / TRD_CONNECTION_FILE_NAME
+            / "GISTRD.TRD.Digital_Zoning_Map"
+            / f"GISTRD.TRD.{trd_fc_name}"
+        )
 
         if arcpy.Exists(trd_fc_path):
             logging.info(f"Exporting {trd_fc_name} to {value['output_fc_path']}")
             arcpy.env.overwriteOutput = True
-            arcpy.conversion.ExportFeatures(in_features=trd_fc_path,
-                                            out_features=value["output_fc_path"])
+            arcpy.conversion.ExportFeatures(
+                in_features=trd_fc_path, out_features=value["output_fc_path"]
+            )
         else:
             logging.error(f"TRD Feature Class does not exist: {trd_fc_name}")
             continue
 
     logging.info(f"Latest Council Date found: {COUNCIL_DATE}")
+
 
 if __name__ == "__main__":
     main()
