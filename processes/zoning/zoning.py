@@ -96,8 +96,10 @@ def main():
             print(f"  {subkey}: {subvalue}")
         print("-" * 30)
 
+    #TODO: generalize and establish as function
     for key, value in ZONING_CONVENTIONS.items():
         trd_fc_name = value["trd_fc_name"]
+        trd_fc_path = value["trd_path"]
         public_output_name = value["public_output_name"]
 
         #TODO: make TRD Digitial_Zoning_Map subfolder path a constant
