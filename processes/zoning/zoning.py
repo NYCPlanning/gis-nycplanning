@@ -73,6 +73,10 @@ def main():
                                                    base_dir=PROJECT_ROOT))
     PRIMARY_CONNECTION_FILE_NAME: str = settings["primary_connection_file_name"]
     TRD_CONNECTION_FILE_NAME: str = settings["trd_connection_file_name"]
+    COUNCIL_DATE = get_latest_date_from_field(
+        feature_class_path=ZONING_CONVENTIONS["nyzma"]["trd_path"],
+        date_field="EFFECTIVE"
+    ) 
     
     #TODO : Make dynamic 
     CYCLE_DATE: str = "202507"
@@ -113,13 +117,8 @@ def main():
         else:
             logging.error(f"TRD Feature Class does not exist: {trd_fc_name}")
             continue
-    
-    council_date = get_latest_date_from_field(
-        feature_class_path=ZONING_CONVENTIONS["nyzma"]["trd_path"],
-        date_field="EFFECTIVE"
-    ) 
 
-    logging.info(f"Latest Council Date found: {council_date}")
+    logging.info(f"Latest Council Date found: {COUNCIL_DATE}")
 
 if __name__ == "__main__":
     main()
