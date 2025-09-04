@@ -15,7 +15,6 @@ def get_latest_date_from_field(feature_class_path: str, date_field: str) -> str:
     with arcpy.da.SearchCursor(
         in_table=feature_class_path,
         field_names=[date_field],
-        # sql_clause=("TOP 1", f"ORDER BY {date_field} DESC")
     ) as cursor:
         for row in cursor:
             if row[0] is not None:
