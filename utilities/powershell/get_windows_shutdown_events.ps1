@@ -11,4 +11,4 @@
 #>
 
 
-Get-EventLog -LogName system -Source user32 | Select-Object TimeGenerated, Message | Sort-Object message | Format-Table -Wrap
+Get-EventLog -LogName system -Source user32 | Select-Object TimeGenerated, Message | Sort-Object TimeGenerated | Format-Table -Wrap
