@@ -17,7 +17,6 @@ LOG_FILE_PARENT = Path(__file__).parent / "log"
 
 # TODO: Data class exploration (pertenant to field mapping)
 
-
 # TODO: scrap project root and use .absolute()  
 def resolve_path(path_str, base_dir):
     """
@@ -54,19 +53,17 @@ def main():
     OPEN_DATA_STAGING_PATH: Path = Path(
         resolve_path(path_str=settings["open_data_staging_path"], base_dir=PROJECT_ROOT)
     )
-    CONNECTION_FILE_PATH: Path = Path(
-        resolve_path(path_str=settings["connection_file_path"], base_dir=PROJECT_ROOT)
-    )
+    CONNECTION_FILE_PATH: Path = Path(settings["connection_file_path"]).absolute()
     PRIMARY_CONNECTION_FILE_NAME: str = settings["primary_connection_file_name"]
     TRD_CONNECTION_FILE_NAME: str = settings["trd_connection_file_name"]
     # TODO : Make dynamic
     CYCLE_DATE: str = "202507"
     
     # Define secondary constants
-    TRD_SDE_PATH = CONNECTION_FILE_PATH / TRD_CONNECTION_FILE_NAME
-    TRD_SDE_DZM_PATH = TRD_SDE_PATH / "GISTRD.TRD.Digital_Zoning_Map"
-    PRIMARY_SDE_PATH = CONNECTION_FILE_PATH / PRIMARY_CONNECTION_FILE_NAME
-    OPEN_DATA_STAGING_CYCLE_PATH = OPEN_DATA_STAGING_PATH / "zoning" / CYCLE_DATE[:4] / CYCLE_DATE
+    TRD_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / TRD_CONNECTION_FILE_NAME)
+    TRD_SDE_DZM_PATH: Path = Path(TRD_SDE_PATH / "GISTRD.TRD.Digital_Zoning_Map")
+    PRIMARY_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / PRIMARY_CONNECTION_FILE_NAME)
+    OPEN_DATA_STAGING_CYCLE_PATH: Path = Path(OPEN_DATA_STAGING_PATH / "zoning" / CYCLE_DATE[:4] / CYCLE_DATE)
 
     dcp_logging.override_log_level(LOG_LEVEL_OVERRIDE)
 
@@ -74,6 +71,8 @@ def main():
         feature_class_path=str(TRD_SDE_DZM_PATH / ZONING_CONVENTIONS["nyzma"]["trd_full_fc_name"]),
         date_field="EFFECTIVE",
     )
+
+    zoning_utils.utils_test()
 
     logging.debug(f"OPEN_DATA_STAGING_PATH: {OPEN_DATA_STAGING_PATH}")
     logging.debug(f"CONNECTION_FILE_PATH: {CONNECTION_FILE_PATH}")
