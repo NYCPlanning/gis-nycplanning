@@ -53,6 +53,7 @@ def main():
     COUNCIL_DATE = date_logic.get_latest_date_from_field(
         feature_class_path=str(TRD_SDE_DZM_PATH / ZONING_CONVENTIONS["nyzma"]["trd_full_fc_name"]),
         date_field="EFFECTIVE",
+        override_config_value=settings["city_council_date"] #defaults to None if blank in config file
     )
 
     zoning_utils.utils_test()
