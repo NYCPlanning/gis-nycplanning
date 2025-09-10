@@ -4,30 +4,16 @@ import logging
 import utils as zoning_utils
 
 from pathlib import Path
+from dcpgis.cli import CLI
 from dcpgis.utils import config
 from dcpgis.utils import logging as dcp_logging
-from dcpgis.cli import CLI
 from dcpgis.utils import date_logic
-
 from _naming_convention import ZONING_CONVENTIONS, GEOREF_CONVENTIONS
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent
 CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
 LOG_FILE_PARENT = Path(__file__).parent / "log"
 
 # TODO: Data class exploration (pertenant to field mapping)
-
-# TODO: scrap project root and use .absolute()  
-def resolve_path(path_str, base_dir):
-    """
-    Resolve a path string to an absolute Path object.
-    If the path is relative, it is resolved against the provided base directory.
-
-    """
-    path = Path(path_str)
-    if not path.is_absolute():
-        return base_dir / path
-    return path
 
 def main():
     cli = CLI()
@@ -50,14 +36,11 @@ def main():
     settings = main_config.get_config_from_yaml()
 
     LOG_LEVEL_OVERRIDE = settings["log_level_override"]
-    OPEN_DATA_STAGING_PATH: Path = Path(
-        resolve_path(path_str=settings["open_data_staging_path"], base_dir=PROJECT_ROOT)
-    )
+    OPEN_DATA_STAGING_PATH: Path = Path(settings["open_data_staging_path"]).absolute()
     CONNECTION_FILE_PATH: Path = Path(settings["connection_file_path"]).absolute()
     PRIMARY_CONNECTION_FILE_NAME: str = settings["primary_connection_file_name"]
     TRD_CONNECTION_FILE_NAME: str = settings["trd_connection_file_name"]
-    # TODO : Make dynamic
-    CYCLE_DATE: str = "202507"
+    CYCLE_DATE: str = date_logic.calc_open_data_cycle_month(settings["open_data_cycle_date"])
     
     # Define secondary constants
     TRD_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / TRD_CONNECTION_FILE_NAME)
@@ -87,26 +70,21 @@ def main():
 
     # # TODO: generalize and establish as function
     # for key, value in ZONING_CONVENTIONS.items():
-    #     trd_fc_name = value["trd_fc_name"]
-    #     trd_fc_path = value["trd_path"]
-    #     public_output_name = value["public_output_name"]
 
     #     # TODO: make TRD Digitial_Zoning_Map subfolder path a constant
     #     trd_fc_path = str(
-    #         Path(CONNECTION_FILE_PATH)
-    #         / TRD_CONNECTION_FILE_NAME
-    #         / "GISTRD.TRD.Digital_Zoning_Map"
-    #         / f"GISTRD.TRD.{trd_fc_name}"
+    #         Path(TRD_SDE_DZM_PATH / value["trd_full_fc_name"])
     #     )
+    #     output_fc_path = str(Path(OPEN_DATA_STAGING_CYCLE_PATH / "gdb" / "nyc_zoning_features.gdb" / value["public_output_name"]))
 
     #     if arcpy.Exists(trd_fc_path):
-    #         logging.info(f"Exporting {trd_fc_name} to {value['output_fc_path']}")
+    #         logging.info(f"Exporting {value['trd_full_fc_name']} to {output_fc_path}")
     #         arcpy.env.overwriteOutput = True
     #         arcpy.conversion.ExportFeatures(
-    #             in_features=trd_fc_path, out_features=value["output_fc_path"]
+    #             in_features=trd_fc_path, out_features=output_fc_path
     #         )
     #     else:
-    #         logging.error(f"TRD Feature Class does not exist: {trd_fc_name}")
+    #         logging.error(f"TRD Feature Class does not exist: {value['trd_full_fc_name']}")
     #         continue
 
 
