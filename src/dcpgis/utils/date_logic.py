@@ -3,27 +3,33 @@ import logging
 from datetime import datetime, date, timedelta
 
 
-def get_latest_date_from_field(feature_class_path: str, date_field: str) -> str:
+def get_latest_date_from_field(feature_class_path: str, date_field: str, override_config_value: str = None) -> str:
     """
     Retrieve the latest date from a specified date field in an ArcGIS feature class.
 
     Args:
         feature_class_path (str): The path to the feature class to search.
         date_field (str): The name of the date field to query for the latest date.
+        override_config_value (str, optional): If provided, this value will be returned instead of querying the feature class.
 
     Returns:
         str: The latest date in YYYYMMDD format, or None if no date is found.
     """
-    latest_date = None
-    with arcpy.da.SearchCursor(
-        in_table=feature_class_path,
-        field_names=[date_field],
-    ) as cursor:
-        for row in cursor:
-            if row[0] is not None:
-                if latest_date is None or row[0] > latest_date:
-                    latest_date = row[0]
-    return latest_date.strftime("%Y%m%d") if latest_date else None
+    if override_config_value is None:
+        latest_date = None
+        with arcpy.da.SearchCursor(
+            in_table=feature_class_path,
+            field_names=[date_field],
+        ) as cursor:
+            for row in cursor:
+                if row[0] is not None:
+                    if latest_date is None or row[0] > latest_date:
+                        latest_date = row[0]
+        return latest_date.strftime("%Y%m%d") if latest_date else None
+    else: 
+        latest_date = override_config_value
+        logging.debug(f"Using override date from config file: {latest_date}")
+        return latest_date.strftime("%Y%m%d") if latest_date else None
 
 def calc_open_data_cycle_month(config_date: str) -> str:
     """
