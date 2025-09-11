@@ -1,6 +1,6 @@
 import arcpy
 import logging
-# import tempfile
+import tempfile
 import utils as zoning_utils
 
 from pathlib import Path
@@ -8,6 +8,7 @@ from dcpgis.cli import CLI
 from dcpgis.utils import config
 from dcpgis.utils import logging as dcp_logging
 from dcpgis.utils import date_logic
+from dcpgis.utils import dir_mgmt
 from _naming_convention import ZONING_CONVENTIONS, GEOREF_CONVENTIONS
 
 CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
@@ -46,7 +47,8 @@ def main():
     TRD_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / TRD_CONNECTION_FILE_NAME)
     TRD_SDE_DZM_PATH: Path = Path(TRD_SDE_PATH / "GISTRD.TRD.Digital_Zoning_Map")
     PRIMARY_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / PRIMARY_CONNECTION_FILE_NAME)
-    OPEN_DATA_STAGING_CYCLE_PATH: Path = Path(OPEN_DATA_STAGING_PATH / "zoning" / CYCLE_DATE[:4] / CYCLE_DATE)
+    OPEN_DATA_STAGING_YEAR_PATH: Path = Path(OPEN_DATA_STAGING_PATH / "zoning" / CYCLE_DATE[:4])
+    OPEN_DATA_STAGING_CYCLE_PATH: Path = Path(OPEN_DATA_STAGING_YEAR_PATH / CYCLE_DATE)
 
     dcp_logging.override_log_level(LOG_LEVEL_OVERRIDE)
 
@@ -56,8 +58,6 @@ def main():
         override_config_value=settings["city_council_date"] #defaults to None if blank in config file
     )
 
-    zoning_utils.utils_test()
-
     logging.debug(f"OPEN_DATA_STAGING_PATH: {OPEN_DATA_STAGING_PATH}")
     logging.debug(f"CONNECTION_FILE_PATH: {CONNECTION_FILE_PATH}")
     logging.debug(f"PRIMARY_CONNECTION_FILE_NAME: {PRIMARY_CONNECTION_FILE_NAME}")
@@ -65,10 +65,24 @@ def main():
     logging.debug(f"TRD_SDE_PATH: {TRD_SDE_PATH}")
     logging.debug(f"TRD_SDE_DZM_PATH: {TRD_SDE_DZM_PATH}")
     logging.debug(f"PRIMARY_SDE_PATH: {PRIMARY_SDE_PATH}")
+    logging.debug(f"OPEN_DATA_STAGING_CYCLE_PATH: {OPEN_DATA_STAGING_YEAR_PATH}")
     logging.debug(f"OPEN_DATA_STAGING_CYCLE_PATH: {OPEN_DATA_STAGING_CYCLE_PATH}")
     logging.info(f"CYCLE_DATE: {CYCLE_DATE}")
     logging.info(f"COUNCIL_DATE: {COUNCIL_DATE}")
 
+    # Create directory structure
+    dir_mgmt.create_dir_if_not_exists(OPEN_DATA_STAGING_YEAR_PATH)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dir_mgmt.create_cycle_dir_with_subdirs(parent_dir_path=temp_dir, cycle_date=CYCLE_DATE)
+        
+        # insert temp processing here
+
+        # Copy temporary cycle directory to open data staging area, overwriting if it already exists
+        temp_cycle_dir = Path(temp_dir) / CYCLE_DATE
+        dir_mgmt.copytree_overwrite(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH)
+        
+        
     # # TODO: generalize and establish as function
     # for key, value in ZONING_CONVENTIONS.items():
 
