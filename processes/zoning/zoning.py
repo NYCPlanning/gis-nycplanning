@@ -1,3 +1,4 @@
+import os
 import arcpy
 import logging
 import tempfile
@@ -71,18 +72,21 @@ def main():
     logging.info(f"COUNCIL_DATE: {COUNCIL_DATE}")
 
     # Create directory structure
-    dir_mgmt.create_dir_if_not_exists(OPEN_DATA_STAGING_YEAR_PATH)
+    dir_mgmt.create_dir_if_not_exists(dir_path=OPEN_DATA_STAGING_YEAR_PATH)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         dir_mgmt.create_cycle_dir_with_subdirs(parent_dir_path=temp_dir, cycle_date=CYCLE_DATE)
+        temp_cycle_dir = Path(temp_dir) / CYCLE_DATE
         
+        arcpy.management.CreateFileGDB(out_folder_path=os.path.join(temp_cycle_dir, "gdb"),
+                                       out_name="zoning.gdb")
         # insert temp processing here
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
-        temp_cycle_dir = Path(temp_dir) / CYCLE_DATE
+        
         dir_mgmt.copytree_overwrite(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH)
         
-        
+
     # # TODO: generalize and establish as function
     # for key, value in ZONING_CONVENTIONS.items():
 
