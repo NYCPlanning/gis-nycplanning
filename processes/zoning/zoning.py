@@ -72,39 +72,29 @@ def main():
     logging.info(f"COUNCIL_DATE: {COUNCIL_DATE}")
 
     # Create directory structure
-    dir_mgmt.create_dir_if_not_exists(dir_path=OPEN_DATA_STAGING_YEAR_PATH)
+    os.makedirs(name=OPEN_DATA_STAGING_YEAR_PATH,
+                exist_ok=True)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         dir_mgmt.create_cycle_dir_with_subdirs(parent_dir_path=temp_dir, cycle_date=CYCLE_DATE)
         temp_cycle_dir = Path(temp_dir) / CYCLE_DATE
         
+        # Create gdb and set workspace
         arcpy.management.CreateFileGDB(out_folder_path=os.path.join(temp_cycle_dir, "gdb"),
-                                       out_name="zoning.gdb")
-        # insert temp processing here
+                                       out_name="nyc_zoning_features.gdb")
+        arcpy.env.workspace = os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb')
+
+        # Export zoning fcs to gdb workspace
+        zoning_utils.export_features_using_dict(src=TRD_SDE_DZM_PATH,
+                                     dst=os.path.join(temp_cycle_dir, "gdb", "nyc_zoning_features.gdb"),
+                                     dict_name=ZONING_CONVENTIONS,
+                                     src_key="trd_full_fc_name",
+                                     dst_key="public_output_name")
+        
+        # ALL PROCESSING HERE
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
-        
         dir_mgmt.copytree_overwrite(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH)
-        
-
-    # # TODO: generalize and establish as function
-    # for key, value in ZONING_CONVENTIONS.items():
-
-    #     # TODO: make TRD Digitial_Zoning_Map subfolder path a constant
-    #     trd_fc_path = str(
-    #         Path(TRD_SDE_DZM_PATH / value["trd_full_fc_name"])
-    #     )
-    #     output_fc_path = str(Path(OPEN_DATA_STAGING_CYCLE_PATH / "gdb" / "nyc_zoning_features.gdb" / value["public_output_name"]))
-
-    #     if arcpy.Exists(trd_fc_path):
-    #         logging.info(f"Exporting {value['trd_full_fc_name']} to {output_fc_path}")
-    #         arcpy.env.overwriteOutput = True
-    #         arcpy.conversion.ExportFeatures(
-    #             in_features=trd_fc_path, out_features=output_fc_path
-    #         )
-    #     else:
-    #         logging.error(f"TRD Feature Class does not exist: {value['trd_full_fc_name']}")
-    #         continue
 
 
 if __name__ == "__main__":
