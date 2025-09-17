@@ -10,7 +10,9 @@ from dcpgis.utils import config
 from dcpgis.utils import logging as dcp_logging
 from dcpgis.utils import date_logic
 from dcpgis.utils import dir_mgmt
+
 from _naming_convention import ZONING_CONVENTIONS, GEOREF_CONVENTIONS
+from dcpgis.constants import OPEN_DATA_SUB_DIRS
 
 CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
 LOG_FILE_PARENT = Path(__file__).parent / "log"
@@ -76,8 +78,10 @@ def main():
                 exist_ok=True)
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        dir_mgmt.create_cycle_dir_with_subdirs(parent_dir_path=temp_dir, cycle_date=CYCLE_DATE)
         temp_cycle_dir = Path(temp_dir) / CYCLE_DATE
+        dir_mgmt.create_dir_with_subdirs(parent_dir_path=temp_cycle_dir, 
+                                        sub_dirs=OPEN_DATA_SUB_DIRS
+                                        )
         
         # Create gdb and set workspace
         arcpy.management.CreateFileGDB(out_folder_path=os.path.join(temp_cycle_dir, "gdb"),
@@ -92,6 +96,7 @@ def main():
                                      dst_key="public_output_name")
         
         # ALL PROCESSING HERE
+
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
         dir_mgmt.copytree_overwrite(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH)

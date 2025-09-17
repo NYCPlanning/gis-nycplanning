@@ -2,23 +2,18 @@ from pathlib import Path
 import shutil
 import os
 
-def create_cycle_dir_with_subdirs(parent_dir_path: str, cycle_date: str) -> None:
-    # TODO: use makedirs 
-    # TODO: subdirs as importable object
+def create_dir_with_subdirs(parent_dir_path: Path, sub_dirs: list) -> None:
     """
-    Create standard sub-directory structure for open data staging area. 
+    Creates a parent directory and desired sub-directories.
     Args:
-        parent_dir (Path): The parent directory under which to create the sub-directories
-        cycle_date (str): The cycle date in YYYYMM format
+        parent_dir_path (Path): The parent directory under which to create the sub-directories
+        sub_dirs (List): The cycle date in YYYYMM format
     Returns:    
         None        
     """
-    sub_dirs = ["raw_data", "metadata", "shp", "gdb", 'web']
-    cycle_dir = Path(parent_dir_path) / cycle_date
-    cycle_dir.mkdir(parents=True, exist_ok=True)
     for sub_dir in sub_dirs:
-        dir_path = cycle_dir / sub_dir
-        dir_path.mkdir(parents=True, exist_ok=True)
+        dir_path = Path(parent_dir_path / sub_dir)
+        os.makedirs(dir_path)
 
 
 def copytree_overwrite(src: Path, dst: Path) -> None:
