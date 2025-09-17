@@ -7,7 +7,7 @@ ZONING_CONVENTIONS = {
     "nylh": {
         "trd_fc_name": "DZM_nylh",
         "trd_full_fc_name": "GISTRD.TRD.DZM_nylh",
-        "public_output_name": "nyc_zoning_limit_height",
+        "public_output_name": "nyc_zoning_limited_height",
     },
     "nysp": {
         "trd_fc_name": "DZM_nysp",
