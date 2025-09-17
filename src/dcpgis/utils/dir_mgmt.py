@@ -1,20 +1,10 @@
 from pathlib import Path
 import shutil
-
-def create_dir_if_not_exists(dir_path: Path) -> None:
-    """
-    Create given directory if it does not already exist.
-    Args:
-        dir_path (Path): The directory to create if it does not exist.
-"""
-    if not dir_path.exists():
-        dir_path.mkdir(parents=True, exist_ok=True)
-    else:
-        pass
-
+import os
 
 def create_cycle_dir_with_subdirs(parent_dir_path: str, cycle_date: str) -> None:
-    
+    # TODO: use makedirs 
+    # TODO: subdirs as importable object
     """
     Create standard sub-directory structure for open data staging area. 
     Args:
