@@ -11,7 +11,7 @@ from dcpgis.utils import logging as dcp_logging
 from dcpgis.utils import date_logic
 from dcpgis.utils import dir_mgmt
 
-from processes.zoning.constants import ZONING_CONVENTIONS, GEOREF_CONVENTIONS
+from constants import ZONING_CONVENTIONS, GEOREF_CONVENTIONS
 from dcpgis.constants import OPEN_DATA_SUB_DIRS
 
 CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
@@ -96,11 +96,17 @@ def main():
                                      dst_key="public_output_name")
         
         # ALL PROCESSING HERE
-
+        #TODO: decide on whether to alter/remove aliases (not present in current gdb ouputs)
+        logging.debug("Removing internal-only fields from FCs.")
+        for zoning_key, zoning_value in ZONING_CONVENTIONS.items():
+            if zoning_value["keep_fields"]:
+                zoning_utils.keep_fields(workspace=os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb'),
+                                         feature_class=zoning_value["public_output_name"],
+                                         keep_fields=zoning_value["keep_fields"])
+        
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
         dir_mgmt.copytree_overwrite(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH)
-
 
 if __name__ == "__main__":
     main()
