@@ -89,23 +89,25 @@ def main():
         arcpy.env.workspace = os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb')
 
         # Export zoning fcs to gdb workspace
+        logging.info("Exporting zoning features from source ...")
         zoning_utils.export_features_using_dict(src=TRD_SDE_DZM_PATH,
-                                     dst=os.path.join(temp_cycle_dir, "gdb", "nyc_zoning_features.gdb"),
-                                     dict_name=ZONING_CONVENTIONS,
-                                     src_key="trd_full_fc_name",
-                                     dst_key="public_output_name")
+                                                dst=os.path.join(temp_cycle_dir, "gdb", "nyc_zoning_features.gdb"),
+                                                dict_name=ZONING_CONVENTIONS,
+                                                src_key="trd_full_fc_name",
+                                                dst_key="public_output_name",
+                                                sql_key="sql_expression")
         
         # ALL PROCESSING HERE
         #TODO: decide on whether to alter/remove aliases (not present in current gdb ouputs)
-        logging.debug("Removing internal-only fields from FCs.")
+        logging.info("Removing internal-only fields from Feature Classes ...")
         for zoning_key, zoning_value in ZONING_CONVENTIONS.items():
             if zoning_value["keep_fields"]:
                 zoning_utils.keep_fields(workspace=os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb'),
                                          feature_class=zoning_value["public_output_name"],
-                                         keep_fields=zoning_value["keep_fields"])
-        
+                                         keep_fields=zoning_value["keep_fields"])      
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
+        logging.info("Copying cycle directory to production location ...")
         dir_mgmt.copytree_overwrite(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH)
 
 if __name__ == "__main__":
