@@ -18,6 +18,7 @@ CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
 LOG_FILE_PARENT = Path(__file__).parent / "log"
 
 # TODO: Data class exploration (pertenant to field mapping)
+# TODO: Update NYZMA metadata to no longer include "since 2002" language
 
 def main():
     cli = CLI()
@@ -105,6 +106,22 @@ def main():
                 zoning_utils.keep_fields(workspace=os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb'),
                                          feature_class=zoning_value["public_output_name"],
                                          keep_fields=zoning_value["keep_fields"])      
+                
+        logging.info("Dissolving Special Districts ... ")
+        zoning_utils.dissolve_in_place(workspace=os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb'),
+                                       feature_class=ZONING_CONVENTIONS["nysp"]["public_output_name"],
+                                       dissolve_field=["SDNAME"],
+                                       statistics_fields=ZONING_CONVENTIONS["nysp"]["statistics_fields"]
+                                       )
+
+        logging.info("Exporting FCs to Shapefiles...")
+        zoning_utils.export_features_using_dict(src=os.path.join(temp_cycle_dir, "gdb", "nyc_zoning_features.gdb"),
+                                                dst=os.path.join(temp_cycle_dir, "shp"),
+                                                dict_name=ZONING_CONVENTIONS, 
+                                                src_key="public_output_name",
+                                                dst_key="public_shp_name",
+                                                )
+
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
         logging.info("Copying cycle directory to production location ...")
