@@ -64,6 +64,7 @@ ZONING_CONVENTIONS = {
 GEOREF_CONVENTIONS = {
     "georeferenced_zoning_maps": {
         "trd_fc_name": "NYC_Zoning_Maps",
+        "trd_full_fc_name": "GISTRD.TRD.NYC_Zoning_Maps",
         "public_output_name": "nyc_georeferenced_zoning_maps",
     }
 }
