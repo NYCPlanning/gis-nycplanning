@@ -84,9 +84,14 @@ def main():
                                         sub_dirs=OPEN_DATA_SUB_DIRS
                                         )
         
-        # Create gdb and set workspace
+        # Create Zoning GeoDatabases
+        logging.info("Creating GeoDatabases...")
         arcpy.management.CreateFileGDB(out_folder_path=os.path.join(temp_cycle_dir, "gdb"),
                                        out_name="nyc_zoning_features.gdb")
+        arcpy.management.CreateFileGDB(out_folder_path=os.path.join(temp_cycle_dir, "gdb"),
+                                      out_name="nyc_georeferenced_zoning_maps.gdb")
+        
+        # Set workspace
         arcpy.env.workspace = os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb')
 
         # Export zoning fcs to gdb workspace
@@ -122,6 +127,12 @@ def main():
                                                 dst_key="public_shp_name",
                                                 )
 
+        logging.info("Exporting Georeferenced Zoning Map raster...")
+        src_raster_path = os.path.join(TRD_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_full_fc_name"])
+        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georeferenced_zoning_maps.gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
+        arcpy.management.CopyRaster(in_raster=src_raster_path,
+                                    out_rasterdataset=dst_raster_path
+                                    )
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
         logging.info("Copying cycle directory to production location ...")
