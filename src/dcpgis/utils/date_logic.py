@@ -2,7 +2,6 @@ import arcpy
 import logging
 from datetime import datetime, date, timedelta
 
-
 def get_latest_date_from_field(feature_class_path: str, date_field: str, override_config_value: str = None) -> str:
     """
     Retrieve the latest date from a specified date field in an ArcGIS feature class.
@@ -29,9 +28,10 @@ def get_latest_date_from_field(feature_class_path: str, date_field: str, overrid
     else: 
         latest_date = override_config_value
         logging.debug(f"Using override date from config file: {latest_date}")
-        return latest_date.strftime("%Y%m%d") if latest_date else None
+        return str(latest_date) if latest_date else None
 
-def calc_open_data_cycle_month(config_date: str) -> str:
+
+def calc_open_data_cycle_month(config_date: int) -> str:
     """
     Calculate a YYYYMM date string representing the open data cycle month
     Can override this calculation by entering a YYYYMM date string into the config file
