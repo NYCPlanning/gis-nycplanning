@@ -177,3 +177,4 @@ cython_debug/
 .pypirc
 
 config/prod_*.yml
+config/dev_*.yml
