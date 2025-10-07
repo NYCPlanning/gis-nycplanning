@@ -130,7 +130,8 @@ def main():
                                                 dst=os.path.join(temp_cycle_dir, "shp"),
                                                 dict_name=ZONING_CONVENTIONS, 
                                                 src_key="public_output_name",
-                                                dst_key="public_shp_name",
+                                                dst_key="public_output_name",
+                                                export_as_shapefile=True
                                                 )
 
         # logging.info("Exporting Georeferenced Zoning Map raster...")
