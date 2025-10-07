@@ -2,6 +2,7 @@ import os
 import arcpy
 import logging
 import tempfile
+import re
 import utils as zoning_utils
 
 from pathlib import Path
@@ -43,21 +44,25 @@ def main():
     LOG_LEVEL_OVERRIDE = settings["log_level_override"]
     OPEN_DATA_STAGING_PATH: Path = Path(settings["open_data_staging_path"]).absolute()
     CONNECTION_FILE_PATH: Path = Path(settings["connection_file_path"]).absolute()
-    PRIMARY_CONNECTION_FILE_NAME: str = settings["primary_connection_file_name"]
-    TRD_CONNECTION_FILE_NAME: str = settings["trd_connection_file_name"]
+    PRIMARY_CONNECTION_FILE_NAME: str = settings["primary_connection_file"]["name"]
+    TRD_CONNECTION_FILE_NAME: str = settings["trd_connection_file"]["name"]
+    PRIMARY_SCHEMA: str = settings["primary_connection_file"]["primary_schema"]
+    TRD_SCHEMA: str = settings["trd_connection_file"]["primary_schema"]
     CYCLE_DATE: str = date_logic.calc_open_data_cycle_month(settings["open_data_cycle_date"])
     
     # Define secondary constants
     TRD_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / TRD_CONNECTION_FILE_NAME)
-    TRD_SDE_DZM_PATH: Path = Path(TRD_SDE_PATH / "GISTRD.TRD.Digital_Zoning_Map")
+    TRD_SDE_PREFIX: str = "GIS" + re.sub(r'^sde@GIS(.*)\.sde$', r'\1', TRD_CONNECTION_FILE_NAME) + f".{TRD_SCHEMA}."
+    TRD_SDE_DZM_PATH: Path = Path(TRD_SDE_PATH / f"{TRD_SDE_PREFIX}Digital_Zoning_Map")
     PRIMARY_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / PRIMARY_CONNECTION_FILE_NAME)
+    PRIMARY_SDE_PREFIX: str = "GIS" + re.sub(r'^sde@GIS(.*)\.sde$', r'\1', PRIMARY_CONNECTION_FILE_NAME) + f".{PRIMARY_SCHEMA}."
     OPEN_DATA_STAGING_YEAR_PATH: Path = Path(OPEN_DATA_STAGING_PATH / "zoning" / CYCLE_DATE[:4])
     OPEN_DATA_STAGING_CYCLE_PATH: Path = Path(OPEN_DATA_STAGING_YEAR_PATH / CYCLE_DATE)
 
     dcp_logging.override_log_level(LOG_LEVEL_OVERRIDE)
 
     COUNCIL_DATE = date_logic.get_latest_date_from_field(
-        feature_class_path=str(TRD_SDE_DZM_PATH / ZONING_CONVENTIONS["nyzma"]["trd_full_fc_name"]),
+        feature_class_path=str(TRD_SDE_DZM_PATH / f"{TRD_SDE_PREFIX}{ZONING_CONVENTIONS['nyzma']['trd_fc_name']}"),
         date_field="EFFECTIVE",
         override_config_value=settings["city_council_date"] #defaults to None if blank in config file
     )
@@ -69,7 +74,7 @@ def main():
     logging.debug(f"TRD_SDE_PATH: {TRD_SDE_PATH}")
     logging.debug(f"TRD_SDE_DZM_PATH: {TRD_SDE_DZM_PATH}")
     logging.debug(f"PRIMARY_SDE_PATH: {PRIMARY_SDE_PATH}")
-    logging.debug(f"OPEN_DATA_STAGING_CYCLE_PATH: {OPEN_DATA_STAGING_YEAR_PATH}")
+    logging.debug(f"OPEN_DATA_STAGING_YEAR_PATH: {OPEN_DATA_STAGING_YEAR_PATH}")
     logging.debug(f"OPEN_DATA_STAGING_CYCLE_PATH: {OPEN_DATA_STAGING_CYCLE_PATH}")
     logging.info(f"CYCLE_DATE: {CYCLE_DATE}")
     logging.info(f"COUNCIL_DATE: {COUNCIL_DATE}")
@@ -99,7 +104,8 @@ def main():
         zoning_utils.export_features_using_dict(src=TRD_SDE_DZM_PATH,
                                                 dst=os.path.join(temp_cycle_dir, "gdb", "nyc_zoning_features.gdb"),
                                                 dict_name=ZONING_CONVENTIONS,
-                                                src_key="trd_full_fc_name",
+                                                src_prefix=TRD_SDE_PREFIX,
+                                                src_key="trd_fc_name",
                                                 dst_key="public_output_name",
                                                 sql_key="sql_expression")
         
@@ -107,10 +113,10 @@ def main():
         #TODO: decide on whether to alter/remove aliases (not present in current gdb ouputs)
         logging.info("Removing internal-only fields from Feature Classes ...")
         for zoning_key, zoning_value in ZONING_CONVENTIONS.items():
-            if zoning_value["keep_fields"]:
-                zoning_utils.keep_fields(workspace=os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb'),
+            if zoning_value["desired_fields"]:
+                zoning_utils.drop_fields_from_fc(workspace=os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb'),
                                          feature_class=zoning_value["public_output_name"],
-                                         keep_fields=zoning_value["keep_fields"])      
+                                         keep_fields=zoning_value["desired_fields"])      
                 
         logging.info("Dissolving Special Districts ... ")
         zoning_utils.dissolve_in_place(workspace=os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb'),
@@ -127,12 +133,12 @@ def main():
                                                 dst_key="public_shp_name",
                                                 )
 
-        logging.info("Exporting Georeferenced Zoning Map raster...")
-        src_raster_path = os.path.join(TRD_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_full_fc_name"])
-        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georeferenced_zoning_maps.gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
-        arcpy.management.CopyRaster(in_raster=src_raster_path,
-                                    out_rasterdataset=dst_raster_path
-                                    )
+        # logging.info("Exporting Georeferenced Zoning Map raster...")
+        # src_raster_path = os.path.join(TRD_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
+        # dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georeferenced_zoning_maps.gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
+        # arcpy.management.CopyRaster(in_raster=src_raster_path,
+        #                             out_rasterdataset=dst_raster_path
+        #                             )
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
         logging.info("Copying cycle directory to production location ...")
