@@ -12,7 +12,7 @@ from dcpgis.utils import logging as dcp_logging
 from dcpgis.utils import date_logic
 from dcpgis.utils import dir_mgmt
 
-from constants import ZONING_CONVENTIONS, GEOREF_CONVENTIONS
+from constants import ZONING_CONVENTIONS, GEOREF_CONVENTIONS, ZONING_PACKAGING
 from dcpgis.constants import OPEN_DATA_SUB_DIRS
 
 CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
