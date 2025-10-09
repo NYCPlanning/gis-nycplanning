@@ -50,3 +50,31 @@ GEOREF_CONVENTIONS = {
         "public_output_name": "nyc_georeferenced_zoning_maps",
     }
 }
+
+ZONING_PACKAGING= {
+    "zip_files": {
+        "zoning_features_gdb": {
+            "src_parent_dir": "gdb",
+            "name": "nyc_zoning_features_gdb.zip",
+            "contents":["nyc_zoning_features.gdb"]
+        },
+        "georeferenced_gdb": {
+            "src_parent_dir": "gdb",
+            "name": "nyc_georeferenced_zoning_maps_gdb.zip",
+            "contents":["nyc_georeferenced_zoning_maps.gdb"]
+        },
+        "zoning_features_shp": {
+            "src_parent_dir": "shp",
+            "name": "nyc_zoning_features_shp.zip",
+            "contents":["nyc_zoning_commercial_overlays.*",
+                        "nyc_zoning_districts.*",
+                        "nyc_zoning_limited_height.*",
+                        "nyc_zoning_map_amendments.*",
+                        "nyc_zoning_special_districts.*",
+                        "nyc_zoning_special_subdistricts.*",
+                        ]
+        },
+    },
+    "metadata": {
+    }
+}
