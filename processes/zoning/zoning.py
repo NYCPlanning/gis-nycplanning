@@ -134,12 +134,12 @@ def main():
                                                 export_as_shapefile=True
                                                 )
 
-        # logging.info("Exporting Georeferenced Zoning Map raster...")
-        # src_raster_path = os.path.join(TRD_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
-        # dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georeferenced_zoning_maps.gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
-        # arcpy.management.CopyRaster(in_raster=src_raster_path,
-        #                             out_rasterdataset=dst_raster_path
-        #                             )
+        logging.info("Exporting Georeferenced Zoning Map raster...")
+        src_raster_path = os.path.join(TRD_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
+        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georeferenced_zoning_maps.gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
+        arcpy.management.CopyRaster(in_raster=src_raster_path,
+                                    out_rasterdataset=dst_raster_path
+                                    )
 
         zoning_utils.web_packaging(parent_dir=temp_cycle_dir,
                                    packaging_dict=ZONING_PACKAGING
