@@ -141,6 +141,10 @@ def main():
         #                             out_rasterdataset=dst_raster_path
         #                             )
 
+        zoning_utils.web_packaging(parent_dir=temp_cycle_dir,
+                                   packaging_dict=ZONING_PACKAGING
+                                   )
+
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
         logging.info("Copying cycle directory to production location ...")
         dir_mgmt.copytree_overwrite(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH)
