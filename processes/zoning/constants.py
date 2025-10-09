@@ -76,5 +76,9 @@ ZONING_PACKAGING= {
         },
     },
     "metadata": {
+        "zd": {
+            "src_parent_dir": "metadata",
+            "name": "nyc_zoning_districts_metadata.xlsx",
+        }
     }
 }
