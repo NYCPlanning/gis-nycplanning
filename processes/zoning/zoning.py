@@ -18,7 +18,6 @@ from dcpgis.constants import OPEN_DATA_SUB_DIRS
 CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
 LOG_FILE_PARENT = Path(__file__).parent / "log"
 
-# TODO: Data class exploration (pertenant to field mapping)
 # TODO: Update NYZMA metadata to no longer include "since 2002" language
 
 def main():
