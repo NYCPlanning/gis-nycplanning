@@ -1,3 +1,5 @@
+#TODO: Add docstring documentation
+
 ZONING_CONVENTIONS = {
     "nyco": {
         "trd_fc_name": "DZM_nyco",
@@ -81,4 +83,24 @@ ZONING_PACKAGING= {
             "name": "nyc_zoning_districts_metadata.xlsx",
         }
     }
+}
+
+METADATA_XML_VALUES = {
+    "crea_date": "20151216",
+    "pub_date": "", 
+    "council_date": "",
+    "crea_time": "00000000",
+    "arcgis_format": "1.0",
+    "sync_once": "TRUE",
+    "item_name": "",
+    "item_name_sync": "TRUE",
+    "ims_content_type": "002",
+    "ims_content_type_sync": "TRUE",
+    "min_scale": "150000000",
+    "max_scale": "5000",
+    "arcgis_profile": "ISO19139",
+    "res_title": "",
+    "scope_value": "005",
+    "md_date_st": "19261122",
+    "md_date_st_sync": "TRUE",
 }
