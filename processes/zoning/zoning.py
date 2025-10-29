@@ -109,7 +109,7 @@ def main():
                                                 sql_key="sql_expression")
         
         # ALL PROCESSING HERE
-        #TODO: decide on whether to alter/remove aliases (not present in current gdb ouputs)
+        #TODO: decide on whether to alter/remove field aliases (not present in current gdb ouputs)
         logging.info("Removing internal-only fields from Feature Classes ...")
         for zoning_key, zoning_value in ZONING_CONVENTIONS.items():
             if zoning_value["desired_fields"]:
@@ -140,6 +140,7 @@ def main():
                                     out_rasterdataset=dst_raster_path
                                     )
 
+        logging.info("Packaging data for web distribution...")
         zoning_utils.web_packaging(parent_dir=temp_cycle_dir,
                                    packaging_dict=ZONING_PACKAGING
                                    )
