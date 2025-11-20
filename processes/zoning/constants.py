@@ -7,6 +7,7 @@ ZONING_CONVENTIONS = {
         "desired_fields": ["OBJECTID", "Shape", "OVERLAY", "Shape_Length", "Shape_Area"],
         "sql_expression":None,
         "statistics_fields":[],
+        "meta_res_title": "NYC Commercial Overlays (NYCO)",
     },
     "nylh": {
         "trd_fc_name": "DZM_nylh",
@@ -14,6 +15,7 @@ ZONING_CONVENTIONS = {
         "desired_fields": ["OBJECTID", "Shape", "LHNAME", "LHLBL","Shape_Length", "Shape_Area"],
         "sql_expression":None,
         "statistics_fields":[],
+        "meta_res_title": "NYC Limited Height Districts (NYLH)",
     },
     "nysp": {
         "trd_fc_name": "DZM_nysp",
@@ -21,14 +23,15 @@ ZONING_CONVENTIONS = {
         "desired_fields": ["OBJECTID", "Shape", "SDNAME", "SDLBL", "Shape_Length", "Shape_Area"],
         "sql_expression":None,
         "statistics_fields":[["SDLBL", "FIRST"]],
+        "meta_res_title": "NYC Special Purpose Districts (NYSP)",
     },
     "nysp_sd": {
         "trd_fc_name": "DZM_nysp_sd",
         "public_output_name": "nyc_zoning_special_subdistricts",
         "desired_fields": ["OBJECTID", "Shape", "SPNAME", "SPLBL", "SUBDIST", "SUBDIST_LBL", "SUBAREA_LBL", "SUBAREA_OTR","Shape_Length", "Shape_Area"],
-            
         "sql_expression":"SUBDIST IS NOT NULL",
         "statistics_fields":[],
+        "meta_res_title": "NYC Special Purpose Sub-Districts (NYSP_SD)",
     },
     "nyzd": {
         "trd_fc_name": "DZM_nyzd",
@@ -36,6 +39,7 @@ ZONING_CONVENTIONS = {
         "desired_fields": ["OBJECTID", "Shape", "ZONEDIST", "Shape_Length", "Shape_Area"],
         "sql_expression":None,
         "statistics_fields":[],
+        "meta_res_title": "NYC Zoning Districts (NYZD)",
     },
     "nyzma": {
         "trd_fc_name": "DZM_nyzi",
@@ -43,6 +47,7 @@ ZONING_CONVENTIONS = {
         "desired_fields": ["OBJECTID", "Shape", "EFFECTIVE", "STATUS", "ULURPNO", "LUCATS", "PROJECT_NAME", "Shape_Length", "Shape_Area"],
         "sql_expression":"INITIATIVE_TYPE = '1' AND (STATUS = '1' OR STATUS = '2')",
         "statistics_fields":[],
+        "meta_res_title": "NYC Zoning Map Amendments (NYZMA)",
     },
 }
 
@@ -98,7 +103,7 @@ METADATA_XML_VALUES = {
     "ims_content_type_sync": "TRUE",
     "min_scale": "150000000",
     "max_scale": "5000",
-    "arcgis_profile": "ISO19139",
+    "arcgis_profile": "ISO 19139 Metadata Implementation Specification",
     "res_title": "",
     "scope_value": "005",
     "md_date_st": "19261122",

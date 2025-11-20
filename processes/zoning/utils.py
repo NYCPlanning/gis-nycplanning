@@ -142,9 +142,53 @@ def web_packaging(parent_dir: str, packaging_dict: dict):
                     zf.write(file_path, arcname=file_path.name)
         logging.debug(f"Created {zip_name}")
 
-def schema_print(path):
-    fc_fields=arcpy.ListFields(path)
+#TODO: add YYYYMMDD -> Month DD, YYYY conversion for City Council Date
+def update_metadata_values(base_dict: dict, feature_info: dict, cycle_date: str, council_date:str) -> dict:
+    """
+    Creates an updated metadata dictionary for a specific feature.
     
-    logging.debug(f"Fields in {path}:")
-    for field in fc_fields:
-        logging.debug(f"    Field Name: {field.name}, Field Type: {field.type}")
+    Args:
+        base_dict (dict): Base metadata dictionary with default values
+        feature_info (dict): Dictionary containing feature-specific information
+        cycle_date (str): Publication date for the dataset
+        council_date (str): Council approval date
+    
+    Returns:
+        dict: Updated metadata dictionary for this feature
+    """
+    metadata_values = base_dict.copy()
+
+    # Update with feature-specific values
+    updates = {
+        "pub_date": cycle_date if cycle_date else "",
+        "council_date": council_date if council_date else "",
+        "item_name": feature_info["meta_res_title"],
+        "res_title": feature_info["meta_res_title"]
+    }
+
+    metadata_values.update(updates)
+    return metadata_values    
+
+def update_xml_via_dictionary(input_xml_path: str, output_xml_path: str, metadata_dict: dict):
+    """
+    Updates an XML file's elements based on a provided dictionary.
+
+    Args:
+        input_xml_path (str): Path to the XML file template.
+        output_xml_path (str): Path to the desired XML output.
+        metadata_dict (dict): Dictionary containing metadata values to insert.
+    """
+    
+    # Read the XML as text
+    with open(input_xml_path, 'r') as f:
+        xml_content = f.read()
+
+    # Replace placeholders with values
+    for key, value in metadata_dict.items():
+        placeholder = '{' + key + '}'
+        xml_content = xml_content.replace(placeholder, value)
+
+    # Write the modified content
+    with open(output_xml_path, 'w', encoding='utf-8') as f:
+        f.write(xml_content)
+
