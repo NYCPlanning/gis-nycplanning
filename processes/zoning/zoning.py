@@ -12,7 +12,7 @@ from dcpgis.utils import logging as dcp_logging
 from dcpgis.utils import date_logic
 from dcpgis.utils import dir_mgmt
 
-from constants import ZONING_CONVENTIONS, GEOREF_CONVENTIONS, ZONING_PACKAGING
+from constants import ZONING_CONVENTIONS, GEOREF_CONVENTIONS, ZONING_PACKAGING, METADATA_XML_VALUES
 from dcpgis.constants import OPEN_DATA_SUB_DIRS
 
 CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
@@ -24,18 +24,18 @@ def main():
     cli = CLI()
     args = cli.parse_args()
 
-    ENVIORNMENT = args.env
+    ENVIRONMENT = args.env
 
     dcp_logging.initialize_logging(
-        log_filename=f"{ENVIORNMENT}_zoning.log",
+        log_filename=f"{ENVIRONMENT}_zoning.log",
         log_path=LOG_FILE_PARENT,
     )
 
     logging.info("{delim} Process Starting {delim}".format(delim="=" * 15))
-    logging.info(f"ENVIRONMENT:     {ENVIORNMENT}")
+    logging.info(f"ENVIRONMENT:     {ENVIRONMENT}")
 
     main_config = config.Config(
-        app_env=ENVIORNMENT, config_file_path=CONFIG_FILE_PARENT
+        app_env=ENVIRONMENT, config_file_path=CONFIG_FILE_PARENT
     )
 
     settings = main_config.get_config_from_yaml()
@@ -57,6 +57,7 @@ def main():
     PRIMARY_SDE_PREFIX: str = "GIS" + re.sub(r'^sde@GIS(.*)\.sde$', r'\1', PRIMARY_CONNECTION_FILE_NAME) + f".{PRIMARY_SCHEMA}."
     OPEN_DATA_STAGING_YEAR_PATH: Path = Path(OPEN_DATA_STAGING_PATH / "zoning" / CYCLE_DATE[:4])
     OPEN_DATA_STAGING_CYCLE_PATH: Path = Path(OPEN_DATA_STAGING_YEAR_PATH / CYCLE_DATE)
+    XML_TEMPLATES_PATH: Path = Path(__file__).parent / "templates" / "metadata"
 
     dcp_logging.override_log_level(LOG_LEVEL_OVERRIDE)
 
@@ -75,6 +76,7 @@ def main():
     logging.debug(f"PRIMARY_SDE_PATH: {PRIMARY_SDE_PATH}")
     logging.debug(f"OPEN_DATA_STAGING_YEAR_PATH: {OPEN_DATA_STAGING_YEAR_PATH}")
     logging.debug(f"OPEN_DATA_STAGING_CYCLE_PATH: {OPEN_DATA_STAGING_CYCLE_PATH}")
+    logging.info(f"XML_TEMPLATES_PATH: {XML_TEMPLATES_PATH}")
     logging.info(f"CYCLE_DATE: {CYCLE_DATE}")
     logging.info(f"COUNCIL_DATE: {COUNCIL_DATE}")
 
@@ -133,12 +135,12 @@ def main():
                                                 export_as_shapefile=True
                                                 )
 
-        logging.info("Exporting Georeferenced Zoning Map raster...")
-        src_raster_path = os.path.join(TRD_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
-        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georeferenced_zoning_maps.gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
-        arcpy.management.CopyRaster(in_raster=src_raster_path,
-                                    out_rasterdataset=dst_raster_path
-                                    )
+        # logging.info("Exporting Georeferenced Zoning Map raster...")
+        # src_raster_path = os.path.join(TRD_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
+        # dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georeferenced_zoning_maps.gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
+        # arcpy.management.CopyRaster(in_raster=src_raster_path,
+        #                             out_rasterdataset=dst_raster_path
+        #                             )
 
         logging.info("Packaging data for web distribution...")
         zoning_utils.web_packaging(parent_dir=temp_cycle_dir,
@@ -148,6 +150,25 @@ def main():
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
         logging.info("Copying cycle directory to production location ...")
         dir_mgmt.copytree_overwrite(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH)
+
+        # Update metadata XML files
+        logging.info("Updating metadata XML files...")
+        for feature_key, feature_info in ZONING_CONVENTIONS.items():
+            # Get fresh metadata values for this feature
+            feature_metadata = zoning_utils.update_metadata_values(
+                base_dict=METADATA_XML_VALUES,
+                feature_info=feature_info,
+                cycle_date=CYCLE_DATE,
+                council_date=COUNCIL_DATE
+            )
+            print(feature_metadata)
+
+            # Update the XML for this feature
+            zoning_utils.update_xml_via_dictionary(
+                input_xml_path=XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.shp.xml",
+                output_xml_path=OPEN_DATA_STAGING_CYCLE_PATH / "metadata" / f"{feature_info['public_output_name']}.shp.xml",
+                metadata_dict=feature_metadata
+            )
 
 if __name__ == "__main__":
     main()
