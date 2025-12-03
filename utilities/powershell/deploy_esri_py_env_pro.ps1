@@ -11,7 +11,7 @@
         numpy version to satisfy geopandas is 1.22. These will change as we upgrade to higher 
         versions of ArcGIS Pro.
 #>
-$newEnvName = 'gis-team-default-env'
+$newEnvName = 'gis-env'
 $baseEnvName = 'arcgispro-py3'
 $numpyVersion = 1.22
 
@@ -65,6 +65,10 @@ pip install --user numpy==$numpyVersion
 
 Write-Output "`r`n>>> pip installing fiona..."
 pip install fiona
+
+# install items to satisfy mypy and type-hinting requirements
+Write-Output "`r`n>>> Installing mypy package stubs..."
+conda install pandas-stubs
 
 Write-Output "`r`n>>> Listing all conda environments..."
 conda info --envs
