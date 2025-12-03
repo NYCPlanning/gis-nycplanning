@@ -9,3 +9,7 @@ version = "0.0.1"
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["dcpgis*"]
+
+[[tool.mypy.overrides]]
+module = ["arcpy.*"]
+follow_untyped_imports = true
