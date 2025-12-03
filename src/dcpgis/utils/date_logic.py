@@ -47,3 +47,16 @@ def calc_open_data_cycle_month(config_date: int) -> str:
     else:
         logging.debug("Pulling YYYYMM date from date field in config file")
         return str(config_date)
+    
+def reformat_date_str_to_written_month(date_string: str) -> str:
+    """
+    Reformats a date string in YYYYMMDD format to a written month format (e.g., 'January 1, 2020').
+
+    Args:
+        date_string (str): The date string in YYYYMMDD format.
+    Returns:
+        str: The reformatted date string in 'Month Day, Year' format.
+    """
+    date_obj = datetime.strptime(date_string, "%Y%m%d")
+    written_month = date_obj.strftime("%B %d, %Y")
+    return written_month
