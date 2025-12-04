@@ -135,12 +135,43 @@ def main():
                                                 export_as_shapefile=True
                                                 )
 
-        # logging.info("Exporting Georeferenced Zoning Map raster...")
-        # src_raster_path = os.path.join(TRD_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
-        # dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georeferenced_zoning_maps.gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
-        # arcpy.management.CopyRaster(in_raster=src_raster_path,
-        #                             out_rasterdataset=dst_raster_path
-        #                             )
+        logging.info("Exporting Georeferenced Zoning Map raster...")
+        src_raster_path = os.path.join(TRD_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
+        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georeferenced_zoning_maps.gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
+        arcpy.management.CopyRaster(in_raster=src_raster_path,
+                                    out_rasterdataset=dst_raster_path
+                                    )
+
+        # Update metadata XML files and apply to features according to feature and metadata dictionaries
+        logging.info("Updating and applying metadata...")
+        for feature_key, feature_info in ZONING_CONVENTIONS.items():
+            feature_metadata = zoning_utils.update_metadata_values(
+                base_dict=METADATA_XML_VALUES,
+                feature_info=feature_info,
+                cycle_date=CYCLE_DATE,
+                council_date=date_logic.reformat_date_str_to_written_month(COUNCIL_DATE)
+            )
+            print(feature_info['public_output_name'])
+            xml_template_path = XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.shp.xml"
+            updated_xml_path = temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml"
+            fc_path = temp_cycle_dir / "fgdb" / "nyc_zoning_features.gdb" / f"{feature_info['public_output_name']}"
+            shp_path = temp_cycle_dir / "shp" / f"{feature_info['public_output_name']}.shp"
+
+            fc_path = str(fc_path)
+            updated_xml_path = str(updated_xml_path)
+            shp_path = str(shp_path)
+
+            # Update XML 
+            zoning_utils.update_xml_via_dictionary(
+                input_xml_path=XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.shp.xml",
+                output_xml_path=temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml",
+                metadata_dict=feature_metadata
+            )
+
+            zoning_utils.import_and_clean_feature_metadata(in_feature=fc_path,
+                                                            md_template_file=updated_xml_path)
+            zoning_utils.import_and_clean_feature_metadata(in_feature=shp_path,
+                                                            md_template_file=updated_xml_path)
 
         logging.info("Packaging data for web distribution...")
         zoning_utils.web_packaging(parent_dir=temp_cycle_dir,
@@ -151,24 +182,6 @@ def main():
         logging.info("Copying cycle directory to production location ...")
         dir_mgmt.copytree_overwrite(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH)
 
-        # Update metadata XML files
-        logging.info("Updating metadata XML files...")
-        for feature_key, feature_info in ZONING_CONVENTIONS.items():
-            # Get fresh metadata values for this feature
-            feature_metadata = zoning_utils.update_metadata_values(
-                base_dict=METADATA_XML_VALUES,
-                feature_info=feature_info,
-                cycle_date=CYCLE_DATE,
-                council_date=COUNCIL_DATE
-            )
-            print(feature_metadata)
-
-            # Update the XML for this feature
-            zoning_utils.update_xml_via_dictionary(
-                input_xml_path=XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.shp.xml",
-                output_xml_path=OPEN_DATA_STAGING_CYCLE_PATH / "metadata" / f"{feature_info['public_output_name']}.shp.xml",
-                metadata_dict=feature_metadata
-            )
 
 if __name__ == "__main__":
     main()
