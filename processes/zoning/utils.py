@@ -4,6 +4,8 @@ import arcpy
 import os
 import zipfile
 
+from arcpy import metadata as md
+
 def utils_test():
     logging.debug("Utils test is functioning properly.")
 
@@ -142,7 +144,7 @@ def web_packaging(parent_dir: str, packaging_dict: dict):
                     zf.write(file_path, arcname=file_path.name)
         logging.debug(f"Created {zip_name}")
 
-#TODO: add YYYYMMDD -> Month DD, YYYY conversion for City Council Date
+
 def update_metadata_values(base_dict: dict, feature_info: dict, cycle_date: str, council_date:str) -> dict:
     """
     Creates an updated metadata dictionary for a specific feature.
@@ -169,6 +171,7 @@ def update_metadata_values(base_dict: dict, feature_info: dict, cycle_date: str,
     metadata_values.update(updates)
     return metadata_values    
 
+
 def update_xml_via_dictionary(input_xml_path: str, output_xml_path: str, metadata_dict: dict):
     """
     Updates an XML file's elements based on a provided dictionary.
@@ -192,3 +195,35 @@ def update_xml_via_dictionary(input_xml_path: str, output_xml_path: str, metadat
     with open(output_xml_path, 'w', encoding='utf-8') as f:
         f.write(xml_content)
 
+
+def import_and_clean_feature_metadata(in_feature: str, md_template_file: str):
+    """_summary_
+
+    Args:
+        in_feature (str): _description_
+        md_template_file (str): _description_
+    """
+    logging.info(f"Importing and cleaning metadata for {in_feature}")
+    item_md = md.Metadata(in_feature)
+
+    # upgrade md
+    item_md.upgrade("ESRI_ISO")
+    logging.debug(f"Upgrading metadata for {in_feature}")
+
+    # synchronize md (NOTE: doesn't play well w/ template - room for improvement)
+    # item_md.synchronize("SELECTIVE")
+    # logging.debug(f"synchronizing metadata for {in_feature}")
+
+    # import from metadata template
+    item_md.importMetadata(
+        sourceUri=md_template_file, #metadata_import_option="ISO19139"
+    )
+    logging.debug(f"Importing metadata from {md_template_file}")
+
+    # TODO: assign thumbnail from template @ templates\_template_{product}_thumbnail.jpg
+
+    # delete gp etc
+    item_md.deleteContent("GPHISTORY")
+    logging.debug(f"Deleting GP history from metadata for {in_feature}")
+
+    item_md.save()
