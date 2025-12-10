@@ -58,6 +58,83 @@ SSMS requires administrative access to install, but DBeaver and DuckDB can both 
 #### Add Git Bash to your Terminal
 Bash is not native to Windows, but a limited version of bash is added when Git is installed. This version of bash can be used in the IDE, or directly in Terminal, but the latter requires some configuration, described [here.](https://superuser.com/a/1834543) 
 
+## Workflows
+
+### git
+
+The GIS Team uses:
+- A rebase and merge workflow, rather than a merge commit workflow, to maintain a clean git history
+  - Historically, we have used a merge commit approach, which can be found in older repos/commits
+- GitHub as the git remote
+- `main` rather than `master`
+- A "gis-*" prefixed repo naming convention, with some exceptions like the fast tracker application repo
+
+#### Keeping development branches up to date
+When working on local development branches, other teammates may be rebasing and merging their development code into the remote main branch, meaning that local dev branches will get out of date. We use the following commands to maintain parity between local dev branches and main.
+
+Scenario: You are getting started for the day, or you are getting ready to push a PR, or just want to make sure your local branches are up to date with the remote. This is especially relevant for long-lived development branches.
+
+**Important:** If you have an open PR that's under review, coordinate with reviewers before rebasing, as it will rewrite the branch history.
+
+
+Workflow:
+1. Fetch latest changes
+   - Purpose: Download the latest changes from the remote repository without merging them into your local branches
+   - Command(s): `git checkout <dev-branch>` and `git fetch origin`
+2. (optional) View differences between active branch and main
+   - Command(s): `git log --oneline HEAD..origin/main`
+   - Notes:
+     - This can be aliased to `git new`
+3. Update your dev branch with any changes made to the remote
+   - Purpose: Incorporates any changes that exist on main into your dev branch
+   - Command(s): `git rebase origin/main`
+   - Notes:
+     - This step may result in conflicts that will have to be resolved. Refer to online documentation for this step if it occurs.
+4. Push your updated dev branch to the remote
+   - Purpose: If you update the local dev branch and not the remote, the two branch histories will have diverged. Updating the remote is required in order to maintain parity between the two.
+   - Command(s): `git checkout <dev-branch>` and `git push --force-with-lease`
+   - Notes:
+     - Obviously, checking out your dev branch is only required if it isn't already active from an earlier step
+     - `--force-with-lease` permits git to rewrite the remote history of the dev branch, but will not overwrite any changes another user has made to the remote dev branch, if they exist. Just `--force` should not be used.
+
+
+#### Rebasing and merging
+We use the interactive rebase and merge method to keep our git histories clear and linear. This has not always been the case, so some older repos may have a messier git history through use of merge commits.
+
+Scenario: You have been working locally, making periodic commits to your development branch. You have pushed your branch to GitHub, and gotten your PR approved. Now, you want to make sure:
+1. your `dev-branch` git history is clean (consists of a single commit for the work encompassed by the PR)
+2. your `dev-branch` is up to date with `main`
+3. your `dev-branch` is rebased and merged back into `main`
+
+Workflow:
+1. Perform interactive rebase on local dev branch
+   - Purpose: Squash complex dev branch commit history into a single commit
+   - Command(s): `git checkout <dev-branch>` then `git rebase -i <commit hash>`
+   - Notes:
+     - `<commit hash>` should be the commit you want to squash back into. So if your dev branch has three commits, (example hashes: `a1`, `a2`, `a3`), where `a1` is the hash of the first commit that diverges from main, your git command would be `git rebase -i a1`
+     - After running the command, an editor will open showing your commits. Change all commits except the first from `pick` to `squash` (or `s`), then save and close. You'll then be prompted to edit the final commit message.
+     - Generally, we will be squashing into a single commit. If a PR addressed two distinct items that should be kept distinct in the git history, it is possible to pick multiple commits and squash selectively into them.
+2. Update/refresh main, locally
+   - Purpose: Ensure that any changes on remote main are also reflected locally
+   - Command(s): `git checkout main` then `git pull`
+3. Rebase dev branch onto main, locally
+   - Purpose: Move your nice clean dev commit history onto local main
+   - Command(s): `git checkout <dev-branch>` then `git rebase main`
+   - Notes:
+     - This step may result in conflicts that will have to be resolved. Refer to online documentation for this step if it occurs.
+4. Push cleaned up dev branch to remote
+   - Purpose: Push your dev branch with its re-written history to the remote, using `--force-with-lease` to gracefully overwrite the remote history
+   - Command(s): `git checkout <dev-branch>` then `git push --force-with-lease`
+   - Notes: 
+     - Take note of your PR page on GitHub before and after running this command. All dev commits will be shown on the page prior to pushing, while only the single squashed commit will appear once you've pushed.
+     - `--force-with-lease` permits git to rewrite the remote history of the dev branch, but will not overwrite any changes another user has made to the remote dev branch, if they exist. Just `--force` should not be used.
+5. Rebase and merge in GitHub
+   - Purpose: Combine the dev branch with main on the remote. This is the step that finally closes your PR, updates main, and allows for the dev branch to be deleted.
+   - Command(s): Click the green "Rebase and merge" button on the GitHub PR page
+6. Delete any dev branches, as needed
+
+
+
 ## Concept Illustration
 
 ### The BBL (Borough, Block, Lot)
