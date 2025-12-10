@@ -107,21 +107,21 @@ Scenario: You have been working locally, making periodic commits to your develop
 3. your `dev-branch` is rebased and merged back into `main`
 
 Workflow:
-1. Perform interactive rebase on local dev branch
-   - Purpose: Squash complex dev branch commit history into a single commit
-   - Command(s): `git checkout <dev-branch>` then `git rebase -i <commit hash>`
-   - Notes:
-     - `<commit hash>` should be the commit you want to squash back into. So if your dev branch has three commits, (example hashes: `a1`, `a2`, `a3`), where `a1` is the hash of the first commit that diverges from main, your git command would be `git rebase -i a1`
-     - After running the command, an editor will open showing your commits. Change all commits except the first from `pick` to `squash` (or `s`), then save and close. You'll then be prompted to edit the final commit message.
-     - Generally, we will be squashing into a single commit. If a PR addressed two distinct items that should be kept distinct in the git history, it is possible to pick multiple commits and squash selectively into them.
-2. Update/refresh main, locally
+1. Update/refresh main, locally
    - Purpose: Ensure that any changes on remote main are also reflected locally
    - Command(s): `git checkout main` then `git pull`
-3. Rebase dev branch onto main, locally
-   - Purpose: Move your nice clean dev commit history onto local main
+2. Rebase dev branch onto main, locally
+   - Purpose: Move your dev commit history onto local main
    - Command(s): `git checkout <dev-branch>` then `git rebase main`
    - Notes:
      - This step may result in conflicts that will have to be resolved. Refer to online documentation for this step if it occurs.
+3. Perform interactive rebase on local dev branch
+   - Purpose: Squash complex dev branch commit history into a single commit
+   - Command(s): `git checkout <dev-branch>` then `git rebase -i <commit hash>`
+   - Notes:
+     - `<commit hash>`should be the hash of the commit immediately BEFORE your first dev commit (i.e., the last commit from main) (example dev hashes: `d1`, `d2`, `d3`, `m120`), where `d1` is the hash of the first commit that diverges from main and `m120` is the most recent commit on main, your git command would be `git rebase -i m120`
+     - After running the command, an editor will open showing your commits. Change all commits except the first from `pick` to `squash` (or `s`), then save and close. You'll then be prompted to edit the final commit message.
+     - Generally, we will be squashing into a single commit. If a PR addressed two distinct items that should be kept distinct in the git history, it is possible to pick multiple commits and squash selectively into them.
 4. Push cleaned up dev branch to remote
    - Purpose: Push your dev branch with its re-written history to the remote, using `--force-with-lease` to gracefully overwrite the remote history
    - Command(s): `git checkout <dev-branch>` then `git push --force-with-lease`
