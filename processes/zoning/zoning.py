@@ -151,7 +151,7 @@ def main():
                 cycle_date=CYCLE_DATE,
                 council_date=date_logic.reformat_date_str_to_written_month(COUNCIL_DATE)
             )
-            print(feature_info['public_output_name'])
+            
             xml_template_path = XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.shp.xml"
             updated_xml_path = temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml"
             fc_path = temp_cycle_dir / "fgdb" / "nyc_zoning_features.gdb" / f"{feature_info['public_output_name']}"
@@ -172,7 +172,8 @@ def main():
                                                             md_template_file=updated_xml_path)
             zoning_utils.import_and_clean_feature_metadata(in_feature=shp_path,
                                                             md_template_file=updated_xml_path)
-
+        
+        # Not including yet-to-be-produced data dictionaries
         logging.info("Packaging data for web distribution...")
         zoning_utils.web_packaging(parent_dir=temp_cycle_dir,
                                    packaging_dict=ZONING_PACKAGING
