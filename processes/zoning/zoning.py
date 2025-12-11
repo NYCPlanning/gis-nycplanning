@@ -3,6 +3,7 @@ import arcpy
 import logging
 import tempfile
 import re
+import shutil
 import utils as zoning_utils
 
 from pathlib import Path
@@ -181,7 +182,7 @@ def main():
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
         logging.info("Copying cycle directory to production location ...")
-        dir_mgmt.copytree_overwrite(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH)
+        shutil.copytree(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH, dirs_exist_ok=True)
 
 
 if __name__ == "__main__":
