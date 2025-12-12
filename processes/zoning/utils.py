@@ -34,7 +34,7 @@ def export_features_using_dict(src: str, dst: str, dict_name: dict, src_key: str
     
     Args:
         src (str): The source path where the feature classes are located.   
-        dst (str): The destination path where the feature classes will be exported.
+        dst (str): The destination path where the feature classes will be exported. Destination can be a gdb or dir. If dst is a dir, set export_as_shapefile=True.
         dict_name (dict): A dictionary containing the parameters for each feature class to be exported.
         src_key (str): The key in the dictionary that contains the source feature class name.
         dst_key (str): The key in the dictionary that contains the destination feature class name.  
