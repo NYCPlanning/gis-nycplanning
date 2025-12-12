@@ -13,4 +13,4 @@ def create_dir_with_subdirs(parent_dir_path: Path, sub_dirs: list) -> None:
     """
     for sub_dir in sub_dirs:
         dir_path = Path(parent_dir_path / sub_dir)
-        os.makedirs(dir_path)
+        Path.mkdir(parents=True, exist_ok=True)
