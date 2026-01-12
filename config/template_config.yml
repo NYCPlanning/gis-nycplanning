@@ -9,9 +9,3 @@ log_level_override: # defaults to INFO when empty
 # Permanent Values
 open_data_staging_path: primary open data output location path 
 connection_file_path: path to SDE connection files
-primary_connection_file: 
-  name: primary SDE name    #format: sde@SDE_NAME.sde
-  primary_schema: XXX # hint: if SDE_NAME.XXX. is the prefix to feature classes, primary_schema is XXX
-trd_connection_file:
-  name: secondary SDE name  #format: sde@SDE_NAME.sde
-  primary_schema: XXX # hint: if SDE_NAME.XXX. is the prefix to feature classes, primary_schema is XXX
