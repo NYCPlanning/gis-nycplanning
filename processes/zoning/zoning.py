@@ -17,6 +17,7 @@ from constants import ZONING_CONVENTIONS, GEOREF_CONVENTIONS, ZONING_PACKAGING, 
 from dcpgis.constants import OPEN_DATA_SUB_DIRS
 
 CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
+PRODUCT_CONFIG_FILE_PARENT = Path(__file__).parent / "config"
 LOG_FILE_PARENT = Path(__file__).parent / "log"
 
 # TODO: Update NYZMA metadata to no longer include "since 2002" language
@@ -35,6 +36,18 @@ def main():
     logging.info("{delim} Process Starting {delim}".format(delim="=" * 15))
     logging.info(f"ENVIRONMENT:     {ENVIRONMENT}")
 
+    # Product Config values
+    product_config = config.Config(
+        app_env=ENVIRONMENT, config_file_path=PRODUCT_CONFIG_FILE_PARENT
+    )
+    settings = product_config.get_config_from_yaml()
+
+    SOURCE_CONNECTION_FILE_NAME: str = settings["source_connection_file"]["name"]
+    SOURCE_SCHEMA: str = settings["source_connection_file"]["schema"]
+    DESTINATION_CONNECTION_FILE_NAME: str = settings["destination_connection_file"]["name"]
+    DESTINATION_SCHEMA: str = settings["destination_connection_file"]["schema"]
+    
+    # Global Config values
     main_config = config.Config(
         app_env=ENVIRONMENT, config_file_path=CONFIG_FILE_PARENT
     )
@@ -44,18 +57,14 @@ def main():
     LOG_LEVEL_OVERRIDE = settings["log_level_override"]
     OPEN_DATA_STAGING_PATH: Path = Path(settings["open_data_staging_path"]).absolute()
     CONNECTION_FILE_PATH: Path = Path(settings["connection_file_path"]).absolute()
-    PRIMARY_CONNECTION_FILE_NAME: str = settings["primary_connection_file"]["name"]
-    TRD_CONNECTION_FILE_NAME: str = settings["trd_connection_file"]["name"]
-    PRIMARY_SCHEMA: str = settings["primary_connection_file"]["primary_schema"]
-    TRD_SCHEMA: str = settings["trd_connection_file"]["primary_schema"]
     CYCLE_DATE: str = date_logic.calc_open_data_cycle_month(settings["open_data_cycle_date"])
     
     # Define secondary constants
-    TRD_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / TRD_CONNECTION_FILE_NAME)
-    TRD_SDE_PREFIX: str = "GIS" + re.sub(r'^sde@GIS(.*)\.sde$', r'\1', TRD_CONNECTION_FILE_NAME) + f".{TRD_SCHEMA}."
-    TRD_SDE_DZM_PATH: Path = Path(TRD_SDE_PATH / f"{TRD_SDE_PREFIX}Digital_Zoning_Map")
-    PRIMARY_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / PRIMARY_CONNECTION_FILE_NAME)
-    PRIMARY_SDE_PREFIX: str = "GIS" + re.sub(r'^sde@GIS(.*)\.sde$', r'\1', PRIMARY_CONNECTION_FILE_NAME) + f".{PRIMARY_SCHEMA}."
+    SOURCE_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / SOURCE_CONNECTION_FILE_NAME)
+    SOURCE_SDE_PREFIX: str = "GIS" + re.sub(r'^sde@GIS(.*)\.sde$', r'\1', SOURCE_CONNECTION_FILE_NAME) + f".{SOURCE_SCHEMA}."
+    SOURCE_SDE_DZM_PATH: Path = Path(SOURCE_SDE_PATH / f"{SOURCE_SDE_PREFIX}Digital_Zoning_Map")
+    DESTINATION_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / DESTINATION_CONNECTION_FILE_NAME)
+    DESTINATION_SDE_SDE_PREFIX: str = "GIS" + re.sub(r'^sde@GIS(.*)\.sde$', r'\1', DESTINATION_CONNECTION_FILE_NAME) + f".{DESTINATION_SCHEMA}."
     OPEN_DATA_STAGING_YEAR_PATH: Path = Path(OPEN_DATA_STAGING_PATH / "zoning" / CYCLE_DATE[:4])
     OPEN_DATA_STAGING_CYCLE_PATH: Path = Path(OPEN_DATA_STAGING_YEAR_PATH / CYCLE_DATE)
     XML_TEMPLATES_PATH: Path = Path(__file__).parent / "templates" / "metadata"
@@ -63,18 +72,18 @@ def main():
     dcp_logging.override_log_level(LOG_LEVEL_OVERRIDE)
 
     COUNCIL_DATE = date_logic.get_latest_date_from_field(
-        feature_class_path=str(TRD_SDE_DZM_PATH / f"{TRD_SDE_PREFIX}{ZONING_CONVENTIONS['nyzma']['trd_fc_name']}"),
+        feature_class_path=str(SOURCE_SDE_DZM_PATH / f"{SOURCE_SDE_PREFIX}{ZONING_CONVENTIONS['nyzma']['trd_fc_name']}"),
         date_field="EFFECTIVE",
         override_config_value=settings["city_council_date"] #defaults to None if blank in config file
     )
 
     logging.debug(f"OPEN_DATA_STAGING_PATH: {OPEN_DATA_STAGING_PATH}")
     logging.debug(f"CONNECTION_FILE_PATH: {CONNECTION_FILE_PATH}")
-    logging.debug(f"PRIMARY_CONNECTION_FILE_NAME: {PRIMARY_CONNECTION_FILE_NAME}")
-    logging.debug(f"TRD_CONNECTION_FILE_NAME: {TRD_CONNECTION_FILE_NAME}")
-    logging.debug(f"TRD_SDE_PATH: {TRD_SDE_PATH}")
-    logging.debug(f"TRD_SDE_DZM_PATH: {TRD_SDE_DZM_PATH}")
-    logging.debug(f"PRIMARY_SDE_PATH: {PRIMARY_SDE_PATH}")
+    logging.debug(f"SOURCE_CONNECTION_FILE_NAME: {SOURCE_CONNECTION_FILE_NAME}")
+    logging.debug(f"DESTINATION_CONNECTION_FILE_NAME: {DESTINATION_CONNECTION_FILE_NAME}")
+    logging.debug(f"SOURCE_SDE_PATH: {SOURCE_SDE_PATH}")
+    logging.debug(f"SOURCE_SDE_DZM_PATH: {SOURCE_SDE_DZM_PATH}")
+    logging.debug(f"DESTINATION_SDE_PATH: {DESTINATION_SDE_PATH}")
     logging.debug(f"OPEN_DATA_STAGING_YEAR_PATH: {OPEN_DATA_STAGING_YEAR_PATH}")
     logging.debug(f"OPEN_DATA_STAGING_CYCLE_PATH: {OPEN_DATA_STAGING_CYCLE_PATH}")
     logging.info(f"XML_TEMPLATES_PATH: {XML_TEMPLATES_PATH}")
@@ -88,7 +97,7 @@ def main():
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_cycle_dir = Path(temp_dir) / CYCLE_DATE
         dir_mgmt.create_dir_with_subdirs(parent_dir_path=temp_cycle_dir, 
-                                        sub_dirs=OPEN_DATA_SUB_DIRS
+                                        sub_dirs=OPEN_DATA_SUB_DIRS,
                                         )
         
         # Create Zoning GeoDatabases
@@ -103,10 +112,10 @@ def main():
 
         # Export zoning fcs to gdb workspace
         logging.info("Exporting zoning features from source ...")
-        zoning_utils.export_features_using_dict(src=TRD_SDE_DZM_PATH,
+        zoning_utils.export_features_using_dict(src=SOURCE_SDE_DZM_PATH,
                                                 dst=os.path.join(temp_cycle_dir, "gdb", "nyc_zoning_features.gdb"),
                                                 dict_name=ZONING_CONVENTIONS,
-                                                src_prefix=TRD_SDE_PREFIX,
+                                                src_prefix=SOURCE_SDE_PREFIX,
                                                 src_key="trd_fc_name",
                                                 dst_key="public_output_name",
                                                 sql_key="sql_expression")
@@ -136,12 +145,12 @@ def main():
                                                 export_as_shapefile=True
                                                 )
 
-        logging.info("Exporting Georeferenced Zoning Map raster...")
-        src_raster_path = os.path.join(TRD_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
-        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georeferenced_zoning_maps.gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
-        arcpy.management.CopyRaster(in_raster=src_raster_path,
-                                    out_rasterdataset=dst_raster_path
-                                    )
+        # logging.info("Exporting Georeferenced Zoning Map raster...")
+        # src_raster_path = os.path.join(SOURCE_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
+        # dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georeferenced_zoning_maps.gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
+        # arcpy.management.CopyRaster(in_raster=src_raster_path,
+        #                             out_rasterdataset=dst_raster_path
+        #                             )
 
         # Update metadata XML files and apply to features according to feature and metadata dictionaries
         logging.info("Updating and applying metadata...")
@@ -173,7 +182,33 @@ def main():
                                                             md_template_file=updated_xml_path)
             zoning_utils.import_and_clean_feature_metadata(in_feature=shp_path,
                                                             md_template_file=updated_xml_path)
-        
+
+        # # Georeferenced Zoning Maps metadata
+        # # TODO: This logic is all very redundant--only difference is output gdb. Perhaps gdb name should be part of feature dict and georef and zoning convention dicts could be combined.        for feature_key, feature info in GEOREF_CONVENTIONS.items():
+        #     feature_metadata = zoning_utils.update_metadata_values(
+        #         base_dict=METADATA_XML_VALUES,
+        #         feature_info=feature_info,
+        #         cycle_date=CYCLE_DATE,
+        #         Council_date=date_logic.reformat_date_str_to_written_month(COUNCIL_DATE)
+        #     )
+
+        #     xml_template_path = XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.xml"
+        #     updated_xml_path = temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml"
+        #     fc_path = temp_cycle_dir / "fgdb" / "nyc_georeferenced_zoning_maps.gdb" / f"{feature_info['public_output_name']}"
+
+        #     fc_path = str(fc_path)
+        #     updated_xml_path = str(updated_xml_path)
+
+        #     # Update XML 
+        #     zoning_utils.update_xml_via_dictionary(
+        #         input_xml_path=XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.xml",
+        #         output_xml_path=temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml",
+        #         metadata_dict=feature_metadata
+        #     )
+
+        #     zoning_utils.import_and_clean_feature_metadata(in_feature=fc_path,
+        #                                                     md_template_file=updated_xml_path)
+                                            
         # Not including yet-to-be-produced data dictionaries
         logging.info("Packaging data for web distribution...")
         zoning_utils.web_packaging(parent_dir=temp_cycle_dir,
