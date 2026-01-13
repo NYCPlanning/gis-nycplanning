@@ -9,25 +9,11 @@ from arcpy import metadata as md
 def utils_test():
     logging.debug("Utils test is functioning properly.")
 
-
-def get_record_count_comparison(in_feature: str, out_feature: str): 
-    """
-    Compares the record count of an input feature class to an output feature class and logs a debug message if they differ.
-    
-    Args:
-        in_feature (str): The path to the input feature class.
-        out_feature (str): The path to the output feature class.
-    """
-    in_result=arcpy.management.GetCount(in_feature)
-    in_count=int(in_result[0])
-
-    out_result=arcpy.management.GetCount(out_feature)
-    out_count=int(out_result[0])
-
-    if out_count != in_count:
-        logging.debug(f"Record count of {os.path.basename(out_feature)} changed from {in_count} to {out_count} during processing")
+#TODO actually return 2 ints rather than log statement!!
+#TODO move to general 
 
 
+#TODO: Incorporate updated record comparison as log statement 
 def export_features_using_dict(src: str, dst: str, dict_name: dict, src_key: str, dst_key: str, src_prefix: str= "", sql_key:str=None, export_as_shapefile: bool=False): 
     """
     Exports feature classes from a source to a destination using a dictionary to define parameters. 
@@ -61,9 +47,11 @@ def export_features_using_dict(src: str, dst: str, dict_name: dict, src_key: str
                                             )
             
         
-        get_record_count_comparison(in_feature=src_path,
-                                    out_feature=dst_path)
+        in_count, out_count = get_record_count_comparison(in_feature=src_path,
+                                                        out_feature=dst_path)
         
+        if out_count != in_count:
+            logging.debug(f"Record count of {os.path.basename(dst_path)} changed from {in_count} to {out_count} during processing")
 
 def drop_fields_from_fc(workspace: str, feature_class: str, keep_fields: list):
     """Drops all fields from a feature class except those specified in keep_fields.
