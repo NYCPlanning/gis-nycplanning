@@ -2,7 +2,7 @@ from pytest import fixture
 import shutil
 import zipfile
 import os
-from utilities.python import inspect_data
+from dcpgis.utils import inspect_data
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
