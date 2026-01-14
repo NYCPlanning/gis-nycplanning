@@ -2,7 +2,6 @@ import os
 import arcpy
 import logging
 import tempfile
-import re
 import shutil
 import utils as zoning_utils
 
@@ -61,10 +60,12 @@ def main():
     
     # Define secondary constants
     SOURCE_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / SOURCE_CONNECTION_FILE_NAME)
-    SOURCE_SDE_PREFIX: str = "GIS" + re.sub(r'^sde@GIS(.*)\.sde$', r'\1', SOURCE_CONNECTION_FILE_NAME) + f".{SOURCE_SCHEMA}."
+    source_middle = SOURCE_CONNECTION_FILE_NAME.removeprefix("sde@GIS").removesuffix(".sde")
+    SOURCE_SDE_PREFIX: str = f"GIS{source_middle}.{SOURCE_SCHEMA}."
     SOURCE_SDE_DZM_PATH: Path = Path(SOURCE_SDE_PATH / f"{SOURCE_SDE_PREFIX}Digital_Zoning_Map")
     DESTINATION_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / DESTINATION_CONNECTION_FILE_NAME)
-    DESTINATION_SDE_SDE_PREFIX: str = "GIS" + re.sub(r'^sde@GIS(.*)\.sde$', r'\1', DESTINATION_CONNECTION_FILE_NAME) + f".{DESTINATION_SCHEMA}."
+    dest_middle = DESTINATION_CONNECTION_FILE_NAME.removeprefix("sde@GIS").removesuffix(".sde")
+    DESTINATION_SDE_SDE_PREFIX: str = f"GIS{dest_middle}.{DESTINATION_SCHEMA}."
     OPEN_DATA_STAGING_YEAR_PATH: Path = Path(OPEN_DATA_STAGING_PATH / "zoning" / CYCLE_DATE[:4])
     OPEN_DATA_STAGING_CYCLE_PATH: Path = Path(OPEN_DATA_STAGING_YEAR_PATH / CYCLE_DATE)
     XML_TEMPLATES_PATH: Path = Path(__file__).parent / "templates" / "metadata"
