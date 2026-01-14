@@ -1,0 +1,7 @@
+# Database
+source_connection_file: 
+  name: source SDE name    #format: sde@SDE_NAME.sde
+  schema: XXX # hint: if SDE_NAME.XXX. is the prefix to feature classes, schema is XXX
+destination_connection_file:
+  name: secondary SDE name  #format: sde@SDE_NAME.sde
+  schema: XXX # hint: if SDE_NAME.XXX. is the prefix to feature classes, schema is XXX
