@@ -43,8 +43,8 @@ def export_features_using_dict(src: str, dst: str, dict_name: dict, src_key: str
                                             )
             
         
-        in_count, out_count = inspect_data.get_record_count_comparison(in_feature=src_path,
-                                                        out_feature=dst_path)
+        in_count, out_count = inspect_data.get_record_count_comparison(dataset_1=src_path,
+                                                        dataset_2=dst_path)
         
         if out_count != in_count:
             logging.debug(f"Record count of {os.path.basename(dst_path)} changed from {in_count} to {out_count} during processing")
@@ -86,8 +86,8 @@ def dissolve_in_place(workspace: str, feature_class: str, dissolve_field: list, 
                               statistics_fields=statistics_fields,
                             )
     
-    in_count, out_count = inspect_data.get_record_count_comparison(in_feature=f"{feature_class}_UNDISSOLVED",
-                                                                    out_feature=feature_class)
+    in_count, out_count = inspect_data.get_record_count_comparison(dataset_1=f"{feature_class}_UNDISSOLVED",
+                                                                    dataset_2=feature_class)
     if out_count != in_count:
             logging.debug(f"Record count of {feature_class} changed from {in_count} to {out_count} during processing")
     
