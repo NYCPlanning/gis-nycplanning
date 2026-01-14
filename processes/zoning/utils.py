@@ -4,16 +4,12 @@ import arcpy
 import os
 import zipfile
 
+from dcpgis.utils import inspect_data
 from arcpy import metadata as md
 
 def utils_test():
     logging.debug("Utils test is functioning properly.")
 
-#TODO actually return 2 ints rather than log statement!!
-#TODO move to general 
-
-
-#TODO: Incorporate updated record comparison as log statement 
 def export_features_using_dict(src: str, dst: str, dict_name: dict, src_key: str, dst_key: str, src_prefix: str= "", sql_key:str=None, export_as_shapefile: bool=False): 
     """
     Exports feature classes from a source to a destination using a dictionary to define parameters. 
@@ -47,7 +43,7 @@ def export_features_using_dict(src: str, dst: str, dict_name: dict, src_key: str
                                             )
             
         
-        in_count, out_count = get_record_count_comparison(in_feature=src_path,
+        in_count, out_count = inspect_data.get_record_count_comparison(in_feature=src_path,
                                                         out_feature=dst_path)
         
         if out_count != in_count:
@@ -90,8 +86,10 @@ def dissolve_in_place(workspace: str, feature_class: str, dissolve_field: list, 
                               statistics_fields=statistics_fields,
                             )
     
-    get_record_count_comparison(in_feature=f"{feature_class}_UNDISSOLVED",
-                                out_feature=feature_class)
+    in_count, out_count = inspect_data.get_record_count_comparison(in_feature=f"{feature_class}_UNDISSOLVED",
+                                                                    out_feature=feature_class)
+    if out_count != in_count:
+            logging.debug(f"Record count of {feature_class} changed from {in_count} to {out_count} during processing")
     
     # Drop statistics type prefix from field name to retain original schema
     fields_in_fc = [f.name for f in arcpy.ListFields(feature_class)]
