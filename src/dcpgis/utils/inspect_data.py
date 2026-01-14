@@ -3,8 +3,6 @@ import pandas as pd
 import arcpy
 from typing import Union
 
-
-# TODO - add to dcpgis package
 def get_dataset_schema(dataset: Union[Path, str]) -> pd.DataFrame:
     """Take a path to an Esri feature class or shapefile, and return a pandas dataframe
     showing the dataset schema.
@@ -26,18 +24,18 @@ def get_dataset_schema(dataset: Union[Path, str]) -> pd.DataFrame:
         list(zip(fnames, ftypes, flength)), columns=["name", "type", "length"]
     )
 
-def get_record_count_comparison(in_feature: str, out_feature: str) -> int: 
+def get_record_count_comparison(dataset_1: str, dataset_2: str) -> int: 
     """
-    Compares the record count of an input feature class to an output feature class and logs a debug message if they differ.
+    Compares the record count of an input feature class or shapefile to an output feature class and logs a debug message if they differ.
     
     Args:
-        in_feature (str): The path to the input feature class.
-        out_feature (str): The path to the output feature class.
+        in_feature (str): The path to the input feature class or shapefile.
+        out_feature (str): The path to the output feature class or shapefile.
     """
-    in_result=arcpy.management.GetCount(in_feature)
-    in_count=int(in_result[0])
+    dataset_1_result=arcpy.management.GetCount(dataset_1)
+    dataset_1_count=int(dataset_1_result[0])
 
-    out_result=arcpy.management.GetCount(out_feature)
-    out_count=int(out_result[0])
+    dataset_2_result=arcpy.management.GetCount(dataset_2)
+    dataset_2_count=int(dataset_2_result[0])
 
-    return in_count, out_count
+    return dataset_1_count, dataset_2_count
