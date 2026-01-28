@@ -3,7 +3,7 @@ import shutil
 import zipfile
 import os
 from dcpgis.utils import date_logic
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
 
 GDB_ZIP = "geodatabase_zoning_data.zip"
 
