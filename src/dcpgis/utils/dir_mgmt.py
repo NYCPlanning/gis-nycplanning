@@ -1,6 +1,4 @@
 from pathlib import Path
-import shutil
-import os
 
 def create_dir_with_subdirs(parent_dir_path: Path, sub_dirs: list) -> None:
     """
