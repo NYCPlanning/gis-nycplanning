@@ -41,7 +41,7 @@
          <minScale>{min_scale}</minScale>
          <maxScale>{max_scale}</maxScale>
       </scaleRange>
-      <ArcGISProfile>FGDC</ArcGISProfile>
+      <ArcGISProfile>{arcgis_profile}</ArcGISProfile>
    </Esri>
    <mdLang>
       <languageCode value="eng" />
