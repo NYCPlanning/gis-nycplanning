@@ -196,15 +196,15 @@ def import_and_clean_feature_metadata(in_feature: str, md_template_file: str):
     item_md.upgrade("ESRI_ISO")
     logging.debug(f"Upgrading metadata for {in_feature}")
 
-    # synchronize md (NOTE: doesn't play well w/ template - room for improvement)
-    # item_md.synchronize("SELECTIVE")
-    # logging.debug(f"synchronizing metadata for {in_feature}")
-
     # import from metadata template
     item_md.importMetadata(
         sourceUri=md_template_file, #metadata_import_option="ISO19139"
     )
     logging.debug(f"Importing metadata from {md_template_file}")
+
+    # # synchronize md (NOTE: doesn't play well w/ template - room for improvement)
+    # item_md.synchronize("ALWAYS")
+    # logging.debug(f"Synchronizing metadata for {in_feature}")
 
     # TODO: assign thumbnail from template @ templates\_template_{product}_thumbnail.jpg
 
