@@ -4,6 +4,7 @@ import logging
 import tempfile
 import shutil
 import utils as zoning_utils
+from arcpy import metadata as md
 
 from pathlib import Path
 from dcpgis.cli import CLI
@@ -165,7 +166,7 @@ def main():
             
             xml_template_path = XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.shp.xml"
             updated_xml_path = temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml"
-            fc_path = temp_cycle_dir / "fgdb" / "nyc_zoning_features.gdb" / f"{feature_info['public_output_name']}"
+            fc_path = temp_cycle_dir / "gdb" / "nyc_zoning_features.gdb" / f"{feature_info['public_output_name']}"
             shp_path = temp_cycle_dir / "shp" / f"{feature_info['public_output_name']}.shp"
 
             fc_path = str(fc_path)
@@ -181,6 +182,9 @@ def main():
 
             zoning_utils.import_and_clean_feature_metadata(in_feature=fc_path,
                                                             md_template_file=updated_xml_path)
+            item_md = md.Metadata(fc_path)
+            item_md.synchronize("ALWAYS")
+            
             zoning_utils.import_and_clean_feature_metadata(in_feature=shp_path,
                                                             md_template_file=updated_xml_path)
 
