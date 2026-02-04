@@ -1,5 +1,4 @@
 #TODO: Add docstring documentation
-
 ZONING_CONVENTIONS = {
     "nyco": {
         "trd_fc_name": "DZM_nyco",
@@ -28,7 +27,7 @@ ZONING_CONVENTIONS = {
     "nysp_sd": {
         "trd_fc_name": "DZM_nysp_sd",
         "public_output_name": "nyc_zoning_special_subdistricts",
-        "desired_fields": ["OBJECTID", "Shape", "SPNAME", "SPLBL", "SUBDIST", "SUBDIST_LBL", "SUBAREA_LBL", "SUBAREA_OTR","Shape_Length", "Shape_Area"],
+        "desired_fields": ["OBJECTID", "Shape", "SDNAME", "SDLBL", "SUBDIST", "SUBDIST_LBL", "SUBAREA_LBL", "SUBAREA_OTR","Shape_Length", "Shape_Area"],
         "sql_expression":"SUBDIST IS NOT NULL",
         "statistics_fields":[],
         "meta_res_title": "NYC Special Purpose Sub-Districts (NYSP_SD)",
@@ -55,6 +54,7 @@ GEOREF_CONVENTIONS = {
     "georeferenced_zoning_maps": {
         "trd_fc_name": "NYC_Zoning_Maps",
         "public_output_name": "nyc_georeferenced_zoning_maps",
+        "meta_res_title": "NYC Georeferenced Zoning Maps",
     }
 }
 
@@ -90,6 +90,7 @@ ZONING_PACKAGING= {
     }
 }
 
+#TODO: Confirm all zoning features have the same crea_date
 METADATA_XML_VALUES = {
     "crea_date": "20151216",
     "pub_date": "", 
