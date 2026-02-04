@@ -20,7 +20,7 @@
             </nativeExtBox>
             <itemLocation>
                <linkage Sync="FALSE">withheld</linkage>
-               <protocol Sync="TRUE">Local Area Network</protocol>
+               <protocol Sync="FALSE">Local Area Network</protocol>
             </itemLocation>
             <imsContentType Sync="{ims_content_type_sync}">{ims_content_type}</imsContentType>
             <itemSize Sync="TRUE">0.000</itemSize>
@@ -41,7 +41,7 @@
          <minScale>{min_scale}</minScale>
          <maxScale>{max_scale}</maxScale>
       </scaleRange>
-      <ArcGISProfile>FGDC</ArcGISProfile>
+      <ArcGISProfile>{arcgis_profile}</ArcGISProfile>
    </Esri>
    <mdLang>
       <languageCode value="eng" />
