@@ -4,10 +4,10 @@
       <CreaDate>{crea_date}</CreaDate>
       <CreaTime>{crea_time}</CreaTime>
       <SyncOnce>{sync_once}</SyncOnce>
-      <SyncDate>20250303</SyncDate>
-      <SyncTime>16090100</SyncTime>
-      <ModDate>20251120</ModDate>
-      <ModTime>14565000</ModTime>
+      <SyncDate>20260204</SyncDate>
+      <SyncTime>11121900</SyncTime>
+      <ModDate>20260204</ModDate>
+      <ModTime>11121900</ModTime>
       <DataProperties>
          <itemProps>
             <itemName Sync="{item_name_sync}">{item_name}</itemName>
@@ -18,21 +18,14 @@
                <northBL Sync="TRUE">272940.861976</northBL>
                <exTypeCode Sync="TRUE">1</exTypeCode>
             </nativeExtBox>
-            <itemLocation>
-               <linkage Sync="FALSE">withheld</linkage>
-               <protocol Sync="TRUE">Local Area Network</protocol>
-            </itemLocation>
             <imsContentType Sync="{ims_content_type_sync}">{ims_content_type}</imsContentType>
-            <itemSize Sync="TRUE">0.000</itemSize>
          </itemProps>
          <coordRef>
             <type Sync="TRUE">Projected</type>
             <geogcsn Sync="TRUE">GCS_North_American_1983</geogcsn>
             <csUnits Sync="TRUE">Linear Unit: Foot_US (0.304801)</csUnits>
             <projcsn Sync="TRUE">NAD_1983_StatePlane_New_York_Long_Island_FIPS_3104_Feet</projcsn>
-            <peXml Sync="TRUE">&lt;ProjectedCoordinateSystem xsi:type='typens:ProjectedCoordinateSystem'
-                    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xmlns:xs='http://www.w3.org/2001/XMLSchema'
-                    xmlns:typens='http://www.esri.com/schemas/ArcGIS/10.8'&gt;&lt;WKT&gt;PROJCS[&amp;quot;NAD_1983_StatePlane_New_York_Long_Island_FIPS_3104_Feet&amp;quot;,GEOGCS[&amp;quot;GCS_North_American_1983&amp;quot;,DATUM[&amp;quot;D_North_American_1983&amp;quot;,SPHEROID[&amp;quot;GRS_1980&amp;quot;,6378137.0,298.257222101]],PRIMEM[&amp;quot;Greenwich&amp;quot;,0.0],UNIT[&amp;quot;Degree&amp;quot;,0.0174532925199433]],PROJECTION[&amp;quot;Lambert_Conformal_Conic&amp;quot;],PARAMETER[&amp;quot;False_Easting&amp;quot;,984250.0],PARAMETER[&amp;quot;False_Northing&amp;quot;,0.0],PARAMETER[&amp;quot;Central_Meridian&amp;quot;,-74.0],PARAMETER[&amp;quot;Standard_Parallel_1&amp;quot;,40.66666666666666],PARAMETER[&amp;quot;Standard_Parallel_2&amp;quot;,41.03333333333333],PARAMETER[&amp;quot;Latitude_Of_Origin&amp;quot;,40.16666666666666],UNIT[&amp;quot;Foot_US&amp;quot;,0.3048006096012192],AUTHORITY[&amp;quot;EPSG&amp;quot;,2263]]&lt;/WKT&gt;&lt;XOrigin&gt;-120039300&lt;/XOrigin&gt;&lt;YOrigin&gt;-96540300&lt;/YOrigin&gt;&lt;XYScale&gt;37212589.015695661&lt;/XYScale&gt;&lt;ZOrigin&gt;-100000&lt;/ZOrigin&gt;&lt;ZScale&gt;10000&lt;/ZScale&gt;&lt;MOrigin&gt;-100000&lt;/MOrigin&gt;&lt;MScale&gt;10000&lt;/MScale&gt;&lt;XYTolerance&gt;0.0032808333333333331&lt;/XYTolerance&gt;&lt;ZTolerance&gt;0.001&lt;/ZTolerance&gt;&lt;MTolerance&gt;0.001&lt;/MTolerance&gt;&lt;HighPrecision&gt;true&lt;/HighPrecision&gt;&lt;WKID&gt;102718&lt;/WKID&gt;&lt;LatestWKID&gt;2263&lt;/LatestWKID&gt;&lt;/ProjectedCoordinateSystem&gt;</peXml>
+            <peXml Sync="TRUE">&lt;ProjectedCoordinateSystem xsi:type='typens:ProjectedCoordinateSystem' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xmlns:xs='http://www.w3.org/2001/XMLSchema' xmlns:typens='http://www.esri.com/schemas/ArcGIS/10.8'&gt;&lt;WKT&gt;PROJCS[&amp;quot;NAD_1983_StatePlane_New_York_Long_Island_FIPS_3104_Feet&amp;quot;,GEOGCS[&amp;quot;GCS_North_American_1983&amp;quot;,DATUM[&amp;quot;D_North_American_1983&amp;quot;,SPHEROID[&amp;quot;GRS_1980&amp;quot;,6378137.0,298.257222101]],PRIMEM[&amp;quot;Greenwich&amp;quot;,0.0],UNIT[&amp;quot;Degree&amp;quot;,0.0174532925199433]],PROJECTION[&amp;quot;Lambert_Conformal_Conic&amp;quot;],PARAMETER[&amp;quot;False_Easting&amp;quot;,984250.0],PARAMETER[&amp;quot;False_Northing&amp;quot;,0.0],PARAMETER[&amp;quot;Central_Meridian&amp;quot;,-74.0],PARAMETER[&amp;quot;Standard_Parallel_1&amp;quot;,40.66666666666666],PARAMETER[&amp;quot;Standard_Parallel_2&amp;quot;,41.03333333333333],PARAMETER[&amp;quot;Latitude_Of_Origin&amp;quot;,40.16666666666666],UNIT[&amp;quot;Foot_US&amp;quot;,0.3048006096012192],AUTHORITY[&amp;quot;EPSG&amp;quot;,2263]]&lt;/WKT&gt;&lt;XOrigin&gt;-120039300&lt;/XOrigin&gt;&lt;YOrigin&gt;-96540300&lt;/YOrigin&gt;&lt;XYScale&gt;3048.0060960121928&lt;/XYScale&gt;&lt;ZOrigin&gt;-100000&lt;/ZOrigin&gt;&lt;ZScale&gt;10000&lt;/ZScale&gt;&lt;MOrigin&gt;-100000&lt;/MOrigin&gt;&lt;MScale&gt;10000&lt;/MScale&gt;&lt;XYTolerance&gt;0.0032808333333333331&lt;/XYTolerance&gt;&lt;ZTolerance&gt;0.001&lt;/ZTolerance&gt;&lt;MTolerance&gt;0.001&lt;/MTolerance&gt;&lt;HighPrecision&gt;true&lt;/HighPrecision&gt;&lt;WKID&gt;102718&lt;/WKID&gt;&lt;LatestWKID&gt;2263&lt;/LatestWKID&gt;&lt;/ProjectedCoordinateSystem&gt;</peXml>
          </coordRef>
       </DataProperties>
       <ArcGISFormat>{arcgis_format}</ArcGISFormat>
@@ -63,10 +56,9 @@
          <onLineSrc>
             <linkage>https://www1.nyc.gov/site/planning/data-maps/open-data.page</linkage>
          </onLineSrc>
-         <transSize Sync="TRUE">0.000</transSize>
       </distTranOps>
       <distFormat>
-         <formatName Sync="TRUE">Shapefile</formatName>
+         <formatName Sync="TRUE">File Geodatabase Feature Class</formatName>
       </distFormat>
    </distInfo>
    <dataIdInfo>
@@ -119,10 +111,7 @@
       </searchKeys>
       <resConst>
          <LegConsts>
-            <othConsts>The data is freely available to all New York City agencies and the public. Notice To Users:
-                    1. Zoning data changes frequently! The downloadable zoning data will be updated on the last Monday
-                    of every month. Updates will include recent zoning changes adopted by City Council. 2. These
-                    features are not intended for determining zoning at the individual tax lot level.</othConsts>
+            <othConsts>The data is freely available to all New York City agencies and the public. Notice To Users: 1. Zoning data changes frequently! The downloadable zoning data will be updated on the last Monday of every month. Updates will include recent zoning changes adopted by City Council. 2. These features are not intended for determining zoning at the individual tax lot level.</othConsts>
          </LegConsts>
          <Consts>
             <useLimit>&lt;DIV STYLE="text-align:Left;"&gt;&lt;DIV&gt;&lt;DIV&gt;&lt;P&gt;&lt;SPAN&gt;1. Zoning data changes frequently. The downloadable zoning data will be updated monthly. Updates will include recent zoning changes adopted by City Council.&lt;/SPAN&gt;&lt;/P&gt;&lt;P&gt;&lt;SPAN&gt;2. These features are not intended for determining zoning at the individual tax lot level.&lt;/SPAN&gt;&lt;/P&gt;&lt;P&gt;&lt;SPAN&gt;3. This dataset is being provided by the Department of City Planning (DCP) on DCP's website for informational purposes only. DCP does not warranty the completeness, accuracy, content, or fitness for any particular purpose or use of the dataset, nor are any such warranties to be implied or inferred with respect to the dataset as furnished on the website. DCP and the City are not liable for any deficiencies in the completeness, accuracy, content, or fitness for any particular purpose or use the dataset, or applications utilizing the dataset, provided by any third party.&lt;/SPAN&gt;&lt;/P&gt;&lt;/DIV&gt;&lt;/DIV&gt;&lt;/DIV&gt;</useLimit>
@@ -136,10 +125,13 @@
          <exDesc>publication date</exDesc>
       </dataExt>
       <suppInfo>The date of the most recent City Council adoptions included in this data is {council_date}.</suppInfo>
-      <envirDesc Sync="FALSE">Microsoft Windows 10; Esri ArcGIS 10.6</envirDesc>
+      <envirDesc Sync="FALSE">Esri ArcGIS 10.6</envirDesc>
       <dataChar>
          <CharSetCd value="004" />
       </dataChar>
+      <tpCat>
+         <TopicCatCd value="015" />
+      </tpCat>
       <spatRpType>
          <SpatRepTypCd value="001" Sync="TRUE" />
       </spatRpType>
@@ -154,9 +146,6 @@
             </GeoBndBox>
          </geoEle>
       </dataExt>
-      <tpCat>
-         <TopicCatCd value="015" />
-      </tpCat>
    </dataIdInfo>
    <mdMaint>
       <maintFreq>
@@ -170,9 +159,7 @@
          </scpLvl>
       </dqScope>
       <report type="DQAbsExtPosAcc" dimension="horizontal">
-         <measDesc>The data were developed using DCP's Tax Block Base Map Files, DOITT's NYCMap planimetric street
-                centerlines and 2006 orthophotos as reference sources. Measurements and dimensions for location of
-                zoning features were obtained from DCP zoning maps. The estimated horizontal accuracy is +/- 20 feet.</measDesc>
+         <measDesc>The data were developed using DCP's Tax Block Base Map Files, DOITT's NYCMap planimetric street centerlines and 2006 orthophotos as reference sources. Measurements and dimensions for location of zoning features were obtained from DCP zoning maps. The estimated horizontal accuracy is +/- 20 feet.</measDesc>
       </report>
    </dqInfo>
    <eainfo>
@@ -191,8 +178,8 @@
             <attscale Sync="TRUE">0</attscale>
          </attr>
          <attr>
-            <attrlabl Sync="TRUE">FID</attrlabl>
-            <attalias Sync="TRUE">FID</attalias>
+            <attrlabl Sync="TRUE">OBJECTID</attrlabl>
+            <attalias Sync="TRUE">OBJECTID</attalias>
             <attrtype Sync="TRUE">OID</attrtype>
             <attwidth Sync="TRUE">4</attwidth>
             <atprecis Sync="TRUE">0</atprecis>
@@ -218,18 +205,23 @@
             <enttypc Sync="TRUE">0</enttypc>
          </enttyp>
          <attr>
-            <attrlabl Sync="TRUE">Shape_Leng</attrlabl>
-            <attalias Sync="TRUE">Shape_Leng</attalias>
+            <attrlabl Sync="TRUE">Shape_Length</attrlabl>
+            <attalias Sync="TRUE">Shape_Length</attalias>
             <attrtype Sync="TRUE">Double</attrtype>
-            <attwidth Sync="TRUE">19</attwidth>
+            <attwidth Sync="TRUE">8</attwidth>
             <atprecis Sync="TRUE">0</atprecis>
             <attscale Sync="TRUE">0</attscale>
+            <attrdef Sync="TRUE">Length of feature in internal units.</attrdef>
+            <attrdefs Sync="TRUE">Esri</attrdefs>
+            <attrdomv>
+               <udom Sync="TRUE">Positive real numbers that are automatically generated.</udom>
+            </attrdomv>
          </attr>
          <attr>
             <attrlabl Sync="TRUE">SHAPE_area</attrlabl>
             <attalias Sync="TRUE">Shape_Area</attalias>
             <attrtype Sync="TRUE">Double</attrtype>
-            <attwidth Sync="TRUE">19</attwidth>
+            <attwidth Sync="TRUE">8</attwidth>
             <attrdef Sync="TRUE">Area of feature in internal units squared.</attrdef>
             <attrdefs Sync="TRUE">ESRI</attrdefs>
             <attrdomv>
@@ -270,7 +262,7 @@
             <efeageom code="4" Sync="TRUE" />
             <esritopo Sync="TRUE">FALSE</esritopo>
             <efeacnt Sync="TRUE">0</efeacnt>
-            <spindex Sync="TRUE">FALSE</spindex>
+            <spindex Sync="TRUE">TRUE</spindex>
             <linrefer Sync="TRUE">FALSE</linrefer>
          </esriterm>
       </ptvctinf>
