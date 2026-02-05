@@ -27,7 +27,7 @@ ZONING_CONVENTIONS = {
     "nysp_sd": {
         "trd_fc_name": "DZM_nysp_sd",
         "public_output_name": "nyc_zoning_special_subdistricts",
-        "desired_fields": ["OBJECTID", "Shape", "SDNAME", "SDLBL", "SUBDIST", "SUBDIST_LBL", "SUBAREA_LBL", "SUBAREA_OTR","Shape_Length", "Shape_Area"],
+        "desired_fields": ["OBJECTID", "Shape", "SDNAME", "SDLBL", "SUBDIST", "SUB_AREA_NM", "SUBDIST_LBL", "SUBAREA_LBL", "SUBAREA_OTR","Shape_Length", "Shape_Area"],
         "sql_expression":"SUBDIST IS NOT NULL",
         "statistics_fields":[],
         "meta_res_title": "NYC Special Purpose Sub-Districts (NYSP_SD)",
