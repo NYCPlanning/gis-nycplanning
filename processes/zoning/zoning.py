@@ -182,11 +182,24 @@ def main():
 
             zoning_utils.import_and_clean_feature_metadata(in_feature=fc_path,
                                                             md_template_file=updated_xml_path)
+            
+            # Sync metadata outside of import_and_clean_feature_metadata() to ensure updates are applied correctly
             item_md = md.Metadata(fc_path)
             item_md.synchronize("ALWAYS")
             
             zoning_utils.import_and_clean_feature_metadata(in_feature=shp_path,
                                                             md_template_file=updated_xml_path)
+
+            # =====================================
+            # TODO: Resolve path removal for shp metadata
+            # Resource: https://pro.arcgis.com/en/pro-app/latest/arcpy/metadata/migrating-from-arcmap-to-arcgis-pro.htm#:~:text=Remove%20content%20from%20an%20item%27s%20metadata
+            
+            ##### NOT CURRENTLY WORKING #####
+            item_md = md.Metadata(shp_path)
+
+            output_filtered = f"{shp_path}test.xml"
+            item_md.saveAsXML(output_filtered, "REMOVE_MACHINE_NAMES")
+            # =====================================
 
         # # Georeferenced Zoning Maps metadata
         # # TODO: This logic is all very redundant--only difference is output gdb. Perhaps gdb name should be part of feature dict and georef and zoning convention dicts could be combined.        for feature_key, feature info in GEOREF_CONVENTIONS.items():
