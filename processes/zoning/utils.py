@@ -214,12 +214,12 @@ def import_and_clean_feature_metadata(in_feature: str, md_template_file: str):
     logging.debug(f"Deleting GP history from metadata for {in_feature}")
 
     item_md.save()
-    #test_output_path = r'C:\MyFiles\gis-nycplanning\dev_local\data\GIS\BytesProduction\zoning\2026\202601\metadata\test.xml'
+
+    # Overwrite XML with metadata cleaned of machine names
     item_md.saveAsXML(md_template_file, "REMOVE_MACHINE_NAMES")
     
+    # Create metadata object for cleaned XML and copy back to feature
     updated_md = md.Metadata(md_template_file)
 
-    item_md.copy(updated_md)
+    item_md.copy(updated_md) # copy as opposed to importMetadata prevents paths from being reintroduced
     item_md.save()
-    # item_md.deleteContent("GPHISTORY")
-    # item_md.save()
