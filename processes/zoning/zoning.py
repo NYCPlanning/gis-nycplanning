@@ -158,6 +158,8 @@ def main():
         # Update metadata XML files and apply to features according to feature and metadata dictionaries
         logging.info("Updating and applying metadata...")
         for _, feature_info in ZONING_CONVENTIONS.items():
+            
+            # Populate METADATA_XML_VALUES with feature-specific and cycle-specific values; these will be used to update the metadata XML template before importing to features
             feature_metadata = zoning_utils.update_metadata_values(
                 base_dict=METADATA_XML_VALUES,
                 feature_info=feature_info,
@@ -174,20 +176,22 @@ def main():
             updated_xml_path = str(updated_xml_path)
             shp_path = str(shp_path)
 
-            # Update XML 
+            # Update XML template with feature-specific and cycle-specific metadata values 
             zoning_utils.update_xml_via_dictionary(
                 input_xml_path=xml_template_path,
                 output_xml_path=updated_xml_path,
                 metadata_dict=feature_metadata
             )
 
+            # Import updated metadata into feature class
             zoning_utils.import_and_clean_feature_metadata(in_feature=fc_path,
                                                             md_template_file=updated_xml_path)
             
-            # Sync metadata outside of import_and_clean_feature_metadata() to ensure updates are applied correctly
+            # Sync metadata outside of import_and_clean_feature_metadata() to ensure updates are applied correctly. Only for FCs
             item_md = md.Metadata(fc_path)
             item_md.synchronize("ALWAYS")
             
+            # Import updated metadata into shapefile
             zoning_utils.import_and_clean_feature_metadata(in_feature=shp_path,
                                                             md_template_file=updated_xml_path)
 
@@ -209,7 +213,6 @@ def main():
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
         logging.info("Copying cycle directory to production location ...")
         shutil.copytree(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH, dirs_exist_ok=True)
-
 
 if __name__ == "__main__":
     main()
