@@ -165,7 +165,7 @@ def main():
                 council_date=date_logic.reformat_date_str_to_written_month(COUNCIL_DATE)
             )
             
-            xml_template_path = XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.shp.xml"
+            xml_template_path = XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.xml"
             updated_xml_path = temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml"
             fc_path = temp_cycle_dir / "gdb" / "nyc_zoning_features.gdb" / f"{feature_info['public_output_name']}"
             shp_path = temp_cycle_dir / "shp" / f"{feature_info['public_output_name']}.shp"
