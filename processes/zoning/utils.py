@@ -184,11 +184,15 @@ def update_xml_via_dictionary(input_xml_path: str, output_xml_path: str, metadat
 
 
 def import_and_clean_feature_metadata(in_feature: str, md_template_file: str):
-    """_summary_
+    """
+    Imports metadata from a template into a feature class and removes machine-specific information.
+    
+    Upgrades metadata to ESRI ISO 19139 format, imports template metadata, removes geoprocessing history,
+    and cleans the metadata of machine names before syncing back to the feature class.
 
     Args:
-        in_feature (str): _description_
-        md_template_file (str): _description_
+        in_feature (str): Path to the feature class to update with metadata.
+        md_template_file (str): Path to the metadata XML template file to import.
     """
     logging.info(f"Importing and cleaning metadata for {in_feature}")
     item_md = md.Metadata(in_feature)
