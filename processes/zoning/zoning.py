@@ -148,12 +148,12 @@ def main():
                                                 export_as_shapefile=True
                                                 )
 
-        # logging.info("Exporting Georeferenced Zoning Map raster...")
-        # src_raster_path = os.path.join(SOURCE_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
-        # dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georeferenced_zoning_maps.gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
-        # arcpy.management.CopyRaster(in_raster=src_raster_path,
-        #                             out_rasterdataset=dst_raster_path
-        #                             )
+        logging.info("Exporting Georeferenced Zoning Map raster...")
+        src_raster_path = os.path.join(SOURCE_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
+        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georeferenced_zoning_maps.gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
+        arcpy.management.CopyRaster(in_raster=src_raster_path,
+                                    out_rasterdataset=dst_raster_path
+                                    )
 
         # Update metadata XML files and apply to features according to feature and metadata dictionaries
         logging.info("Updating and applying metadata...")
@@ -191,14 +191,14 @@ def main():
             zoning_utils.import_and_clean_feature_metadata(in_feature=shp_path,
                                                             md_template_file=updated_xml_path)
 
-        # # Georeferenced Zoning Maps metadata
-        # # TODO: This logic is all very redundant--only difference is output gdb. Perhaps gdb name should be part of feature dict and georef and zoning convention dicts could be combined.        for feature_key, feature info in GEOREF_CONVENTIONS.items():
-        #     feature_metadata = zoning_utils.update_metadata_values(
-        #         base_dict=METADATA_XML_VALUES,
-        #         feature_info=feature_info,
-        #         cycle_date=CYCLE_DATE,
-        #         council_date=date_logic.reformat_date_str_to_written_month(COUNCIL_DATE)
-        #     )
+        # Georeferenced Zoning Maps metadata
+        # TODO: This logic is all very redundant--only difference is output gdb. Perhaps gdb name should be part of feature dict and georef and zoning convention dicts could be combined.        for feature_key, feature info in GEOREF_CONVENTIONS.items():
+            feature_metadata = zoning_utils.update_metadata_values(
+                base_dict=METADATA_XML_VALUES,
+                feature_info=feature_info,
+                cycle_date=CYCLE_DATE,
+                council_date=date_logic.reformat_date_str_to_written_month(COUNCIL_DATE)
+            )
                                             
         # Not including yet-to-be-produced data dictionaries
         logging.info("Packaging data for web distribution...")
