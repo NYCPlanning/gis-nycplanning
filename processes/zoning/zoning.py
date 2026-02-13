@@ -125,11 +125,12 @@ def main():
         # ALL PROCESSING HERE
         #TODO: decide on whether to alter/remove field aliases (not present in current gdb ouputs)
         logging.info("Removing internal-only fields from Feature Classes ...")
-        for zoning_key, zoning_value in ZONING_CONVENTIONS.items():
+        for _, zoning_value in ZONING_CONVENTIONS.items():
             if zoning_value["desired_fields"]:
                 zoning_utils.drop_fields_from_fc(workspace=os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb'),
                                          feature_class=zoning_value["public_output_name"],
-                                         keep_fields=zoning_value["desired_fields"])      
+                                         keep_fields=zoning_value["desired_fields"]
+                                         )      
                 
         logging.info("Dissolving Special Districts ... ")
         zoning_utils.dissolve_in_place(workspace=os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb'),
@@ -156,7 +157,7 @@ def main():
 
         # Update metadata XML files and apply to features according to feature and metadata dictionaries
         logging.info("Updating and applying metadata...")
-        for feature_key, feature_info in ZONING_CONVENTIONS.items():
+        for _, feature_info in ZONING_CONVENTIONS.items():
             feature_metadata = zoning_utils.update_metadata_values(
                 base_dict=METADATA_XML_VALUES,
                 feature_info=feature_info,
@@ -175,8 +176,8 @@ def main():
 
             # Update XML 
             zoning_utils.update_xml_via_dictionary(
-                input_xml_path=XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.shp.xml",
-                output_xml_path=temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml",
+                input_xml_path=xml_template_path,
+                output_xml_path=updated_xml_path,
                 metadata_dict=feature_metadata
             )
 
@@ -190,42 +191,14 @@ def main():
             zoning_utils.import_and_clean_feature_metadata(in_feature=shp_path,
                                                             md_template_file=updated_xml_path)
 
-            # =====================================
-            # TODO: Resolve path removal for shp metadata
-            # Resource: https://pro.arcgis.com/en/pro-app/latest/arcpy/metadata/migrating-from-arcmap-to-arcgis-pro.htm#:~:text=Remove%20content%20from%20an%20item%27s%20metadata
-            
-            ##### NOT CURRENTLY WORKING #####
-            item_md = md.Metadata(shp_path)
-
-            output_filtered = f"{shp_path}test.xml"
-            item_md.saveAsXML(output_filtered, "REMOVE_MACHINE_NAMES")
-            # =====================================
-
         # # Georeferenced Zoning Maps metadata
         # # TODO: This logic is all very redundant--only difference is output gdb. Perhaps gdb name should be part of feature dict and georef and zoning convention dicts could be combined.        for feature_key, feature info in GEOREF_CONVENTIONS.items():
         #     feature_metadata = zoning_utils.update_metadata_values(
         #         base_dict=METADATA_XML_VALUES,
         #         feature_info=feature_info,
         #         cycle_date=CYCLE_DATE,
-        #         Council_date=date_logic.reformat_date_str_to_written_month(COUNCIL_DATE)
+        #         council_date=date_logic.reformat_date_str_to_written_month(COUNCIL_DATE)
         #     )
-
-        #     xml_template_path = XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.xml"
-        #     updated_xml_path = temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml"
-        #     fc_path = temp_cycle_dir / "fgdb" / "nyc_georeferenced_zoning_maps.gdb" / f"{feature_info['public_output_name']}"
-
-        #     fc_path = str(fc_path)
-        #     updated_xml_path = str(updated_xml_path)
-
-        #     # Update XML 
-        #     zoning_utils.update_xml_via_dictionary(
-        #         input_xml_path=XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.xml",
-        #         output_xml_path=temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml",
-        #         metadata_dict=feature_metadata
-        #     )
-
-        #     zoning_utils.import_and_clean_feature_metadata(in_feature=fc_path,
-        #                                                     md_template_file=updated_xml_path)
                                             
         # Not including yet-to-be-produced data dictionaries
         logging.info("Packaging data for web distribution...")

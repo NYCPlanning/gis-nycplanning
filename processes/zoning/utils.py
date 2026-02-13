@@ -172,7 +172,8 @@ def update_xml_via_dictionary(input_xml_path: str, output_xml_path: str, metadat
     with open(input_xml_path, 'r') as f:
         xml_content = f.read()
 
-    # Replace placeholders with values
+    # TODO: Compare against Alex's implementation of xml updates
+    # # Replace placeholders with values
     for key, value in metadata_dict.items():
         placeholder = '{' + key + '}'
         xml_content = xml_content.replace(placeholder, value)
@@ -213,3 +214,12 @@ def import_and_clean_feature_metadata(in_feature: str, md_template_file: str):
     logging.debug(f"Deleting GP history from metadata for {in_feature}")
 
     item_md.save()
+    #test_output_path = r'C:\MyFiles\gis-nycplanning\dev_local\data\GIS\BytesProduction\zoning\2026\202601\metadata\test.xml'
+    item_md.saveAsXML(md_template_file, "REMOVE_MACHINE_NAMES")
+    
+    updated_md = md.Metadata(md_template_file)
+
+    item_md.copy(updated_md)
+    item_md.save()
+    # item_md.deleteContent("GPHISTORY")
+    # item_md.save()
