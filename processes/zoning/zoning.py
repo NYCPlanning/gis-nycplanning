@@ -159,7 +159,7 @@ def main():
         logging.info("Updating and applying metadata...")
         for _, feature_info in ZONING_CONVENTIONS.items():
             
-            # Populate METADATA_XML_VALUES with feature-specific and cycle-specific values; these will be used to update the metadata XML template before importing to features
+            # Create feature_metadata dict using static METADATA_XML_VALUES dict updated with feature-specific and cycle-specific values from ZONING_CONVENTIONS; these will be used to update the metadata XML template before importing to features
             feature_metadata = zoning_utils.update_metadata_values(
                 base_dict=METADATA_XML_VALUES,
                 feature_info=feature_info,
@@ -197,13 +197,36 @@ def main():
 
         # Georeferenced Zoning Maps metadata
         # TODO: This logic is all very redundant--only difference is output gdb. Perhaps gdb name should be part of feature dict and georef and zoning convention dicts could be combined.        for feature_key, feature info in GEOREF_CONVENTIONS.items():
+        for _, feature_info in GEOREF_CONVENTIONS.items():    
             feature_metadata = zoning_utils.update_metadata_values(
                 base_dict=METADATA_XML_VALUES,
                 feature_info=feature_info,
                 cycle_date=CYCLE_DATE,
                 council_date=date_logic.reformat_date_str_to_written_month(COUNCIL_DATE)
             )
+
+            xml_template_path = XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.xml"
+            updated_xml_path = temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml"
+            fc_path = temp_cycle_dir / "gdb" / "nyc_georeferenced_zoning_maps.gdb" / f"{feature_info['public_output_name']}"
                                             
+            fc_path = str(fc_path)
+            updated_xml_path = str(updated_xml_path)
+
+            # Update XML template with feature-specific and cycle-specific metadata values 
+            zoning_utils.update_xml_via_dictionary(
+                input_xml_path=xml_template_path,
+                output_xml_path=updated_xml_path,
+                metadata_dict=feature_metadata
+            )
+
+            # Import updated metadata into feature class
+            zoning_utils.import_and_clean_feature_metadata(in_feature=fc_path,
+                                                            md_template_file=updated_xml_path)
+            
+            # Sync metadata outside of import_and_clean_feature_metadata() to ensure updates are applied correctly. Only for FCs
+            item_md = md.Metadata(fc_path)
+            item_md.synchronize("ALWAYS")
+
         # Not including yet-to-be-produced data dictionaries
         logging.info("Packaging data for web distribution...")
         zoning_utils.web_packaging(parent_dir=temp_cycle_dir,
