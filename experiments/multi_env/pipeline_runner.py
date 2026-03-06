@@ -22,10 +22,10 @@ def remove_esri_data_dir(dir: Path):
 
 def main():
 
-    item_path = DATA_DIR / "temp.shp"
+    shp_path = DATA_DIR / "temp.shp"
 
     # Part A, called from arcpy/conda env
-    input_file = part_a(data_dir=DATA_DIR, shp_name=item_path)
+    input_file = part_a(data_dir=DATA_DIR, shp_name=shp_path.name)
 
     # Part B, called from dcpy env
     subprocess.run(
@@ -36,7 +36,7 @@ def main():
     )
 
     # Part C, called from arcpy/conda env again
-    part_c(item_path=item_path)
+    part_c(item_path=shp_path)
 
     remove_esri_data_dir(DATA_DIR)  # comment me out to examine temp.shp.xml outputs
 
