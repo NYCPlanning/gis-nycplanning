@@ -10,6 +10,28 @@ from arcpy import metadata as md
 def utils_test():
     logging.debug("Utils test is functioning properly.")
 
+def metadata_processing_generator(conventions_dict, temp_cycle_dir, gdb_name, apply_to_shapefile=False):
+    """
+    Yields enriched feature info with resolved paths for metadata processing.
+    
+    Args:
+        conventions_dict (dict): Dictionary of feature conventions (e.g., ZONING_CONVENTIONS, GEOREF_CONVENTIONS)
+        temp_cycle_dir (Path): Temporary cycle directory path
+        gdb_name (str): Name of the geodatabase (e.g., "nyc_zoning_features.gdb")
+        apply_to_shapefile (bool): Whether to apply metadata to shapefiles. Defaults to False.
+        
+    Yields:
+        dict: Enriched feature info with resolved paths for fc_path, shp_path, gdb_name, and apply_to_shapefile
+    """
+    for key, feature_info in conventions_dict.items():
+        yield {
+            **feature_info,
+            "gdb_name": gdb_name,
+            "apply_to_shapefile": apply_to_shapefile,
+            "fc_path": str(temp_cycle_dir / "gdb" / gdb_name / feature_info["public_output_name"]),
+            "shp_path": str(temp_cycle_dir / "shp" / f"{feature_info['public_output_name']}.shp"),
+        }
+
 def export_features_using_dict(src: str, dst: str, dict_name: dict, src_key: str, dst_key: str, src_prefix: str= "", sql_key:str=None, export_as_shapefile: bool=False): 
     """
     Exports feature classes from a source to a destination using a dictionary to define parameters. 
