@@ -7,6 +7,9 @@ ZONING_CONVENTIONS = {
         "sql_expression":None,
         "statistics_fields":[],
         "meta_res_title": "NYC Commercial Overlays (NYCO)",
+        "gdb_name": "nyc_zoning_features.gdb",
+        "apply_to_shapefile": True,
+        "type": "vector",
     },
     "nylh": {
         "trd_fc_name": "DZM_nylh",
@@ -15,6 +18,9 @@ ZONING_CONVENTIONS = {
         "sql_expression":None,
         "statistics_fields":[],
         "meta_res_title": "NYC Limited Height Districts (NYLH)",
+        "gdb_name": "nyc_zoning_features.gdb",
+        "apply_to_shapefile": True,
+        "type": "vector",
     },
     "nysp": {
         "trd_fc_name": "DZM_nysp",
@@ -23,6 +29,9 @@ ZONING_CONVENTIONS = {
         "sql_expression":None,
         "statistics_fields":[["SDLBL", "FIRST"]],
         "meta_res_title": "NYC Special Purpose Districts (NYSP)",
+        "gdb_name": "nyc_zoning_features.gdb",
+        "apply_to_shapefile": True,
+        "type": "vector",
     },
     "nysp_sd": {
         "trd_fc_name": "DZM_nysp_sd",
@@ -31,6 +40,9 @@ ZONING_CONVENTIONS = {
         "sql_expression":"SUBDIST IS NOT NULL",
         "statistics_fields":[],
         "meta_res_title": "NYC Special Purpose Sub-Districts (NYSP_SD)",
+        "gdb_name": "nyc_zoning_features.gdb",
+        "apply_to_shapefile": True,
+        "type": "vector",
     },
     "nyzd": {
         "trd_fc_name": "DZM_nyzd",
@@ -39,6 +51,9 @@ ZONING_CONVENTIONS = {
         "sql_expression":None,
         "statistics_fields":[],
         "meta_res_title": "NYC Zoning Districts (NYZD)",
+        "gdb_name": "nyc_zoning_features.gdb",
+        "apply_to_shapefile": True,
+        "type": "vector",
     },
     "nyzma": {
         "trd_fc_name": "DZM_nyzi",
@@ -47,6 +62,9 @@ ZONING_CONVENTIONS = {
         "sql_expression":"INITIATIVE_TYPE = '1' AND (STATUS = '1' OR STATUS = '2')",
         "statistics_fields":[],
         "meta_res_title": "NYC Zoning Map Amendments (NYZMA)",
+        "gdb_name": "nyc_zoning_features.gdb",
+        "apply_to_shapefile": True,
+        "type": "vector",
     },
 }
 
@@ -55,6 +73,8 @@ GEOREF_CONVENTIONS = {
         "trd_fc_name": "NYC_Zoning_Maps",
         "public_output_name": "nyc_georeferenced_zoning_maps",
         "meta_res_title": "NYC Georeferenced Zoning Maps",
+        "gdb_name": "nyc_georeferenced_zoning_maps.gdb",
+        "apply_to_shapefile": False,
     }
 }
 
