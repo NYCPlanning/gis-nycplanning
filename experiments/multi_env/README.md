@@ -14,7 +14,7 @@ Some benefits include being able to call tools from different Python versions, b
 Alternate approaches could use a more mature orchestration tool that calls different Python interpreters for different tasks, or simply using bash/PowerShell to orchestrate the pipeline.
 
 ## Execution
- (assumes that the repo root is the current workinf directory)
+ (assumes that the repo root is the current working directory)
 
 - Create the non-conda virtual envirnment by running `build.ps1`
 
