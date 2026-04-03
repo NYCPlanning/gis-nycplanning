@@ -5,20 +5,28 @@
         installs packages such as geopandas to supplement the default packages, and attempts
         to adjust dependency versions (i.e. numpy for geopandas)
     Author: J Rosacker
-    Date: 2025-02-21
+    Updated by: U Podder
+    Date: 2026-02-03
     Notes: 
-        The script assumes that the origin env uses Python 3.9.16, and that the subsequent
-        numpy version to satisfy geopandas is 1.22. These will change as we upgrade to higher 
-        versions of ArcGIS Pro.
+        The script was written to interact with Python 3.11.11 (ArcGIS Pro 3.5.5), 
+        but should still function for later versions of both Python and Pro. 
+        Compatible package versions (e.g., geopandas, numpy, fiona) will be automatically resolved by conda.  
+        
 #>
-$newEnvName = 'gis-team-default-env'
+
+
+$newEnvName = 'gis-env'
 $baseEnvName = 'arcgispro-py3'
-$numpyVersion = 1.22
+
+# Dynamically detect Python version from base ArcGIS Pro environment
+Write-Output "`r`n>>> Detecting Python version from $baseEnvName..."
+$pythonVersion = ((& "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" run -n $baseEnvName python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')") | Where-Object { $_ -match '^\d+\.\d+$' } | Select-Object -Last 1).Trim()
+Write-Output ">>> Detected Python version: $pythonVersion"
 
 # Check conda version as a proxy to determine if conda is initialized in this shell
 try {
     Write-Output "`r`n>>> Checking conda version..."
-    conda --version
+    & "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" --version
 }
 catch {
     $message = @"
@@ -39,32 +47,34 @@ More info: https://www.esri.com/arcgis-blog/products/arcgis-pro/developers/conda
     break 
 }
 
-# Test for existence of env to clone, by activating it
-# Exit script if env can not be found
-try {
-    Write-Output "`r`n>>> Checking for base env: $baseEnvName..."
-    conda activate $baseEnvName
-    conda deactivate
+# Test for existence of base env by checking if its directory exists (avoids slow conda env list)
+Write-Output "`r`n>>> Checking for base env: $baseEnvName..."
+$baseEnvPath = "$Env:programFiles\ArcGIS\Pro\bin\Python\envs\$baseEnvName"
+if (-not (Test-Path $baseEnvPath)) {
+    Write-Output ">>> Exiting script since $baseEnvName env could not be found at: $baseEnvPath"
+    exit 1
 }
-catch {
-    Write-Output ">>> Existing script since $baseEnvName env could not be found"
-    break
-}
+Write-Output ">>> Found base env: $baseEnvName"
 
+
+# Clone the base environment using explicit conda.exe path
 Write-Output "`r`n>>> Cloning $baseEnvName into $newEnvName..."
-conda create --name $newEnvName --clone $baseEnvName
+& "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" create --name $newEnvName --clone $baseEnvName --yes
 
+# Install geopandas, numpy, and fiona with conda (no explicit versions)
+Write-Output "`r`n>>> Installing geopandas, numpy, and fiona with conda..."
+& "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" install -n $newEnvName geopandas numpy fiona --yes
+Write-Output ">>> Successfully installed packages using conda"
+
+
+# List conda environments using explicit conda.exe path
+Write-Output "`r`n>>> Listing conda environments..."
+& "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" env list
+
+# Note: conda activate may not work as expected in all PowerShell contexts.
+# If activation fails, activate manually in a new shell using:
+# & 'C:\Program Files\ArcGIS\Pro\bin\Python\condabin\conda.bat' activate $newEnvName
 Write-Output "`r`n>>> Activating $newEnvName..."
-conda activate $newEnvName
+& 'C:\Program Files\ArcGIS\Pro\bin\Python\condabin\conda.bat' activate $newEnvName
 
-Write-Output "`r`n>>> pip installing geopandas..."
-pip install geopandas
-
-Write-Output "`r`n>>> Dropping numpy version to $numpyVersion to satisfy geopandas dependencies..."
-pip install --user numpy==$numpyVersion
-
-Write-Output "`r`n>>> pip installing fiona..."
-pip install fiona
-
-Write-Output "`r`n>>> Listing all conda environments..."
-conda info --envs
+Write-Output "`r`n>>> Done."
