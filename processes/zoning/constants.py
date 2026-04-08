@@ -9,7 +9,6 @@ ZONING_CONVENTIONS = {
         "meta_res_title": "NYC Commercial Overlays (NYCO)",
         "gdb_name": "nyc_zoning_features.gdb",
         "apply_to_shapefile": True,
-        "type": "vector",
     },
     "nylh": {
         "trd_fc_name": "DZM_nylh",
@@ -20,7 +19,6 @@ ZONING_CONVENTIONS = {
         "meta_res_title": "NYC Limited Height Districts (NYLH)",
         "gdb_name": "nyc_zoning_features.gdb",
         "apply_to_shapefile": True,
-        "type": "vector",
     },
     "nysp": {
         "trd_fc_name": "DZM_nysp",
@@ -31,7 +29,6 @@ ZONING_CONVENTIONS = {
         "meta_res_title": "NYC Special Purpose Districts (NYSP)",
         "gdb_name": "nyc_zoning_features.gdb",
         "apply_to_shapefile": True,
-        "type": "vector",
     },
     "nysp_sd": {
         "trd_fc_name": "DZM_nysp_sd",
@@ -42,7 +39,6 @@ ZONING_CONVENTIONS = {
         "meta_res_title": "NYC Special Purpose Sub-Districts (NYSP_SD)",
         "gdb_name": "nyc_zoning_features.gdb",
         "apply_to_shapefile": True,
-        "type": "vector",
     },
     "nyzd": {
         "trd_fc_name": "DZM_nyzd",
@@ -53,7 +49,6 @@ ZONING_CONVENTIONS = {
         "meta_res_title": "NYC Zoning Districts (NYZD)",
         "gdb_name": "nyc_zoning_features.gdb",
         "apply_to_shapefile": True,
-        "type": "vector",
     },
     "nyzma": {
         "trd_fc_name": "DZM_nyzi",
@@ -64,7 +59,6 @@ ZONING_CONVENTIONS = {
         "meta_res_title": "NYC Zoning Map Amendments (NYZMA)",
         "gdb_name": "nyc_zoning_features.gdb",
         "apply_to_shapefile": True,
-        "type": "vector",
     },
 }
 
