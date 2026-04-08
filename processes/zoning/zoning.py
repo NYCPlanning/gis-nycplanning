@@ -115,9 +115,7 @@ def main():
         #TODO: turn gdb_name into a variable earlier in processes
         # Export zoning fcs to gdb workspace
         logging.info("Exporting zoning features from source ...")
-        for _, zoning_value in ZONING_CONVENTIONS.items():
-            if zoning_value["gdb_name"] == "nyc_zoning_features.gdb":
-                zoning_utils.export_features_using_dict(src=SOURCE_SDE_DZM_PATH,
+        zoning_utils.export_features_using_dict(src=SOURCE_SDE_DZM_PATH,
                                                 dst=os.path.join(temp_cycle_dir, "gdb", "nyc_zoning_features.gdb"),
                                                 dict_name=ZONING_CONVENTIONS,
                                                 src_prefix=SOURCE_SDE_PREFIX,
@@ -151,8 +149,10 @@ def main():
                                                 )
 
         logging.info("Exporting Georeferenced Zoning Map raster...")
-        src_raster_path = os.path.join(SOURCE_SDE_PATH, ZONING_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
-        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", ZONING_CONVENTIONS["georeferenced_zoning_maps"]["gdb_name"], ZONING_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
+        src_raster_path = os.path.join(SOURCE_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
+        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
+        logging.debug(src_raster_path)
+        logging.debug(dst_raster_path)
         arcpy.management.CopyRaster(in_raster=src_raster_path,
                                     out_rasterdataset=dst_raster_path
                                     )
