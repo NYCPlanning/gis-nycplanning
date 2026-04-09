@@ -81,7 +81,7 @@ def drop_fields_from_fc(workspace: str, feature_class: str, keep_fields: list):
     """
     arcpy.env.workspace = workspace
     all_fields = [field.name for field in arcpy.ListFields(feature_class)]
-    exceptions = ["OBJECTID", "GlobalID"])
+    exceptions = ["OBJECTID", "GlobalID"]
     fields_to_delete = [field for field in all_fields if field not in keep_fields and field not in exceptions]
 
     if fields_to_delete:
