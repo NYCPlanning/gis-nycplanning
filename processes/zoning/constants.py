@@ -1,4 +1,28 @@
-#TODO: Add docstring documentation
+"""Zoning process constants.
+
+This module centralizes the zoning pipeline constants used by
+`processes/zoning/zoning.py`.
+
+Key configuration dictionaries:
+- ZONING_CONVENTIONS: export/conversion settings for zoning feature classes
+- GEOREF_CONVENTIONS: raster export settings for georeferenced zoning maps
+- ZONING_PACKAGING: archive packaging definitions for final outputs
+- METADATA_XML_VALUES: standard metadata XML values to seed per-feature metadata
+"""
+
+"""
+ZONING_CONVENTIONS defines public output configuration for each zoning layer.
+Each entry maps a source feature to its export and metadata settings.
+Keys:
+  trd_fc_name: source feature class name in the SDE input workspace
+  public_output_name: desired output name for geodatabase feature class and shapefile
+  desired_fields: fields to retain when exporting the feature class
+  sql_expression: optional SQL filter expression used during export
+  statistics_fields: optional aggregation/statistics instructions
+  meta_res_title: title used when generating metadata for the feature
+  gdb_name: destination geodatabase name for this feature class
+  apply_to_shapefile: whether to produce a shapefile copy in addition to the GDB feature class
+  """
 ZONING_CONVENTIONS = {
     "nyco": {
         "trd_fc_name": "DZM_nyco",
@@ -62,9 +86,18 @@ ZONING_CONVENTIONS = {
     },
 }
 
+"""
+GEOREF_CONVENTIONS defines raster export settings for georeferenced zoning maps.
+Keys:
+  trd_fc_name: source raster dataset name in the SDE input workspace
+  public_output_name: output dataset name in the destination geodatabase
+  meta_res_title: title used for metadata generation
+  gdb_name: target geodatabase name for raster exports
+  apply_to_shapefile: whether a shapefile export is applicable (False for rasters)
+  """
 GEOREF_CONVENTIONS = {
     "georeferenced_zoning_maps": {
-        "trd_fc_name": "NYC_Zoning_Maps",
+        "trd_fc_name": "NYC_Zoning_Maps_PROD_COPY",
         "public_output_name": "nyc_georeferenced_zoning_maps",
         "meta_res_title": "NYC Georeferenced Zoning Maps",
         "gdb_name": "nyc_georeferenced_zoning_maps.gdb",
@@ -72,6 +105,12 @@ GEOREF_CONVENTIONS = {
     }
 }
 
+"""
+ZONING_PACKAGING defines packaging outputs and metadata exports for final delivery.
+Keys:
+  zip_files: packaging definitions for geodatabase and shapefile outputs
+  metadata: metadata export definitions and output file names
+  """
 ZONING_PACKAGING= {
     "zip_files": {
         "zoning_features_gdb": {
@@ -105,6 +144,10 @@ ZONING_PACKAGING= {
 }
 
 #TODO: Confirm all zoning features have the same crea_date
+"""
+METADATA_XML_VALUES provides default XML metadata fields used to seed
+metadata templates for zoning outputs.
+"""
 METADATA_XML_VALUES = {
     "crea_date": "20151216",
     "pub_date": "", 
