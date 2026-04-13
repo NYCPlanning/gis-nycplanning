@@ -1,4 +1,5 @@
 import os
+import datetime
 import arcpy
 import logging
 import tempfile
@@ -33,6 +34,7 @@ def main():
         log_path=LOG_FILE_PARENT,
     )
 
+    start_time = datetime.now().replace(microsecond=0)
     logging.info("{delim} Process Starting {delim}".format(delim="=" * 15))
     logging.info(f"ENVIRONMENT:     {ENVIRONMENT}")
 
@@ -247,6 +249,10 @@ def main():
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
         logging.info("Copying cycle directory to production location ...")
         shutil.copytree(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH, dirs_exist_ok=True)
+
+        end_time = datetime.now().replace(microsecond=0)
+        duration = end_time - start_time
+        logging.info('{delim} Runtime: {dur} {delim}\n\n'.format(delim='='*15,dur=duration))
 
 if __name__ == "__main__":
     main()
