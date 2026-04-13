@@ -156,12 +156,10 @@ def main():
         logging.info("Exporting Georeferenced Zoning Map raster...")
         arcpy.env.workspace = os.path.join(temp_cycle_dir, 'gdb', 'nyc_georeferenced_zoning_maps.gdb')
         src_raster_path = os.path.join(SOURCE_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
-        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georef_zm") #File name hardcoded because CopyRaster() 13 char limit; renamed to final name in next step after export
-        final_raster_name = os.path.join(GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
+        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", 'nyc_georeferenced_zoning_maps.gdb', GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"]) #File name hardcoded because CopyRaster() 13 char limit; renamed to final name in next step after export
         arcpy.management.CopyRaster(in_raster=src_raster_path,
                                     out_rasterdataset=dst_raster_path
                                     )
-        arcpy.management.Rename(dst_raster_path, final_raster_name)
 
  # Update metadata XML files and apply to features according to feature and metadata dictionaries
         logging.info("Updating and applying metadata...")
@@ -244,7 +242,8 @@ def main():
         # Not including yet-to-be-produced data dictionaries
         logging.info("Packaging data for web distribution...")
         zoning_utils.web_packaging(parent_dir=temp_cycle_dir,
-                                   packaging_dict=ZONING_PACKAGING
+                                   packaging_dict=ZONING_PACKAGING,
+                                   cycle_date=CYCLE_DATE
                                    )
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
