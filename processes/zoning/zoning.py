@@ -66,7 +66,7 @@ def main():
     SOURCE_SDE_DZM_PATH: Path = Path(SOURCE_SDE_PATH / f"{SOURCE_SDE_PREFIX}Digital_Zoning_Map")
     DESTINATION_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / DESTINATION_CONNECTION_FILE_NAME)
     dest_middle = DESTINATION_CONNECTION_FILE_NAME.removeprefix("sde@GIS").removesuffix(".sde")
-    DESTINATION_SDE_SDE_PREFIX: str = f"GIS{dest_middle}.{DESTINATION_SCHEMA}."
+    DESTINATION_SDE_PREFIX: str = f"GIS{dest_middle}.{DESTINATION_SCHEMA}."
     OPEN_DATA_STAGING_YEAR_PATH: Path = Path(OPEN_DATA_STAGING_PATH / "zoning" / CYCLE_DATE[:4])
     OPEN_DATA_STAGING_CYCLE_PATH: Path = Path(OPEN_DATA_STAGING_YEAR_PATH / CYCLE_DATE)
     XML_TEMPLATES_PATH: Path = Path(__file__).parent / "templates" / "metadata"
@@ -95,6 +95,9 @@ def main():
     # Create directory structure
     os.makedirs(name=OPEN_DATA_STAGING_YEAR_PATH,
                 exist_ok=True)
+
+    # Set Environment Parallel Processing (100% = maximum available cores)
+    arcpy.env.parallelProcessingFactor = "100%"
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_cycle_dir = Path(temp_dir) / CYCLE_DATE
@@ -150,12 +153,12 @@ def main():
 
         logging.info("Exporting Georeferenced Zoning Map raster...")
         src_raster_path = os.path.join(SOURCE_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
-        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
-        logging.debug(src_raster_path)
-        logging.debug(dst_raster_path)
+        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georef_zm") #File name hardcoded because CopyRaster() 13 char limit; renamed to final name in next step after export
+        final_raster_path = os.path.join(temp_cycle_dir, "gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
         arcpy.management.CopyRaster(in_raster=src_raster_path,
                                     out_rasterdataset=dst_raster_path
                                     )
+        arcpy.management.Rename(dst_raster_path, final_raster_path)
 
  # Update metadata XML files and apply to features according to feature and metadata dictionaries
         logging.info("Updating and applying metadata...")
@@ -198,7 +201,13 @@ def main():
                                                             md_template_file=updated_xml_path)
 
         # Georeferenced Zoning Maps metadata
-        # TODO: This logic is all very redundant--only difference is output gdb. Perhaps gdb name should be part of feature dict and georef and zoning convention dicts could be combined.        for feature_key, feature info in GEOREF_CONVENTIONS.items():
+        '''
+        TODO: This logic is all very redundant. 
+        The only difference for applying metadata to zoning vectors and georef zm is output gdb. 
+        Initially I though perhaps gdb name should be part of feature dict and georef and zoning convention dicts could be combined.
+        However, incorporating the georef zm into the same dict as the rest of zoning features became overly complicated when I remembered that 
+        georef zm source data is not nested within a feature dataset, meaning file name construction doesn't work for both simultaneously.        
+        '''
         for _, feature_info in GEOREF_CONVENTIONS.items():    
             feature_metadata = zoning_utils.update_metadata_values(
                 base_dict=METADATA_XML_VALUES,

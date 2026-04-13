@@ -97,7 +97,7 @@ Keys:
   """
 GEOREF_CONVENTIONS = {
     "georeferenced_zoning_maps": {
-        "trd_fc_name": "NYC_Zoning_Maps_PROD_COPY",
+        "trd_fc_name": "NYC_Zoning_Maps_TRD",
         "public_output_name": "nyc_georeferenced_zoning_maps",
         "meta_res_title": "NYC Georeferenced Zoning Maps",
         "gdb_name": "nyc_georeferenced_zoning_maps.gdb",
