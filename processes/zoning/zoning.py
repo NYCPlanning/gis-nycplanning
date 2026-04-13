@@ -1,5 +1,4 @@
 import os
-import datetime
 import arcpy
 import logging
 import tempfile
@@ -8,6 +7,7 @@ import utils as zoning_utils
 from arcpy import metadata as md
 
 from pathlib import Path
+from datetime import datetime
 from dcpgis.cli import CLI
 from dcpgis.utils import config
 from dcpgis.utils import logging as dcp_logging
@@ -154,13 +154,14 @@ def main():
                                                 )
 
         logging.info("Exporting Georeferenced Zoning Map raster...")
+        arcpy.env.workspace = os.path.join(temp_cycle_dir, 'gdb', 'nyc_georeferenced_zoning_maps.gdb')
         src_raster_path = os.path.join(SOURCE_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
         dst_raster_path = os.path.join(temp_cycle_dir, "gdb", "nyc_georef_zm") #File name hardcoded because CopyRaster() 13 char limit; renamed to final name in next step after export
-        final_raster_path = os.path.join(temp_cycle_dir, "gdb", GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
+        final_raster_name = os.path.join(GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"])
         arcpy.management.CopyRaster(in_raster=src_raster_path,
                                     out_rasterdataset=dst_raster_path
                                     )
-        arcpy.management.Rename(dst_raster_path, final_raster_path)
+        arcpy.management.Rename(dst_raster_path, final_raster_name)
 
  # Update metadata XML files and apply to features according to feature and metadata dictionaries
         logging.info("Updating and applying metadata...")
