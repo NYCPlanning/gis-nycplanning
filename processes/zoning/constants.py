@@ -26,7 +26,7 @@ Keys:
 ZONING_CONVENTIONS = {
     "nyco": {
         "trd_fc_name": "DZM_nyco",
-        "public_output_name": "nyc_zoning_commercial_overlays",
+        "public_output_name": "zoning_commercial_overlays",
         "desired_fields": ["OBJECTID", "Shape", "OVERLAY", "Shape_Length", "Shape_Area"],
         "sql_expression":None,
         "statistics_fields":[],
@@ -36,7 +36,7 @@ ZONING_CONVENTIONS = {
     },
     "nylh": {
         "trd_fc_name": "DZM_nylh",
-        "public_output_name": "nyc_zoning_limited_height",
+        "public_output_name": "zoning_limited_height",
         "desired_fields": ["OBJECTID", "Shape", "LHNAME", "LHLBL","Shape_Length", "Shape_Area"],
         "sql_expression":None,
         "statistics_fields":[],
@@ -46,7 +46,7 @@ ZONING_CONVENTIONS = {
     },
     "nysp": {
         "trd_fc_name": "DZM_nysp",
-        "public_output_name": "nyc_zoning_special_districts",
+        "public_output_name": "zoning_special_districts",
         "desired_fields": ["OBJECTID", "Shape", "SDNAME", "SDLBL", "Shape_Length", "Shape_Area"],
         "sql_expression":None,
         "statistics_fields":[["SDLBL", "FIRST"]],
@@ -56,7 +56,7 @@ ZONING_CONVENTIONS = {
     },
     "nysp_sd": {
         "trd_fc_name": "DZM_nysp_sd",
-        "public_output_name": "nyc_zoning_special_subdistricts",
+        "public_output_name": "zoning_special_subdistricts",
         "desired_fields": ["OBJECTID", "Shape", "SDNAME", "SDLBL", "SUBDIST", "SUB_AREA_NM", "SUBDIST_LBL", "SUBAREA_LBL", "SUBAREA_OTR","Shape_Length", "Shape_Area"],
         "sql_expression":"SUBDIST IS NOT NULL",
         "statistics_fields":[],
@@ -66,7 +66,7 @@ ZONING_CONVENTIONS = {
     },
     "nyzd": {
         "trd_fc_name": "DZM_nyzd",
-        "public_output_name": "nyc_zoning_districts",
+        "public_output_name": "zoning_districts",
         "desired_fields": ["OBJECTID", "Shape", "ZONEDIST", "Shape_Length", "Shape_Area"],
         "sql_expression":None,
         "statistics_fields":[],
@@ -76,7 +76,7 @@ ZONING_CONVENTIONS = {
     },
     "nyzma": {
         "trd_fc_name": "DZM_nyzi",
-        "public_output_name": "nyc_zoning_map_amendments",
+        "public_output_name": "zoning_map_amendments",
         "desired_fields": ["OBJECTID", "Shape", "EFFECTIVE", "STATUS", "ULURPNO", "LUCATS", "PROJECT_NAME", "Shape_Length", "Shape_Area"],
         "sql_expression":"INITIATIVE_TYPE = '1' AND (STATUS = '1' OR STATUS = '2')",
         "statistics_fields":[],
@@ -96,11 +96,11 @@ Keys:
   apply_to_shapefile: whether a shapefile export is applicable (False for rasters)
   """
 GEOREF_CONVENTIONS = {
-    "georeferenced_zoning_maps": {
+    "zoning_georeferenced_maps": {
         "trd_fc_name": "NYC_Zoning_Maps_TRD",
-        "public_output_name": "nyc_georeferenced_zoning_maps",
-        "meta_res_title": "NYC Georeferenced Zoning Maps",
-        "gdb_name": "nyc_georeferenced_zoning_maps.gdb",
+        "public_output_name": "zoning_georeferenced_maps",
+        "meta_res_title": "NYC Zoning Georeferenced Maps",
+        "gdb_name": "nyc_zoning_georeferenced_maps.gdb",
         "apply_to_shapefile": False,
     }
 }
@@ -116,24 +116,46 @@ ZONING_PACKAGING= {
         "zoning_features_gdb": {
             "src_parent_dir": "gdb",
             "name": "nyc_zoning_features_gdb.zip",
-            "contents":["nyc_zoning_features.gdb"]
+            "contents":["zoning_features.gdb"]
         },
         "georeferenced_gdb": {
             "src_parent_dir": "gdb",
-            "name": "nyc_georeferenced_zoning_maps_gdb.zip",
-            "contents":["nyc_georeferenced_zoning_maps.gdb"]
+            "name": "nyc_zoning_georeferenced_maps_gdb.zip",
+            "contents":["zoning_georeferenced_maps.gdb"]
         },
         "zoning_features_shp": {
             "src_parent_dir": "shp",
             "name": "nyc_zoning_features_shp.zip",
-            "contents":["nyc_zoning_commercial_overlays.*",
-                        "nyc_zoning_districts.*",
-                        "nyc_zoning_limited_height.*",
-                        "nyc_zoning_map_amendments.*",
-                        "nyc_zoning_special_districts.*",
-                        "nyc_zoning_special_subdistricts.*",
+            "contents":["zoning_commercial_overlays.*",
+                        "zoning_districts.*",
+                        "zoning_limited_height.*",
+                        "zoning_map_amendments.*",
+                        "zoning_special_districts.*",
+                        "zoning_special_subdistricts.*",
                         ]
         },
+            "zoning_features_gdb_archive": {
+            "src_parent_dir": "gdb",
+            "name": "nyc_zoning_features_{cycle_date}_gdb.zip",
+            "contents":["nyc_zoning_features.gdb"]
+        },        
+        "georeferenced_gdb_archive": {
+            "src_parent_dir": "gdb",
+            "name": "nyc_zoning_georeferenced_maps_{cycle_date}.zip",
+            "contents":["nyc_zoning_georeferenced_maps.gdb"]
+        },
+        "zoning_features_shp_archive": {
+            "src_parent_dir": "shp",
+            "name": "nyc_zoning_features_{cycle_date}_shp.zip",
+            "contents":["zoning_commercial_overlays.*",
+                        "zoning_districts.*",
+                        "zoning_limited_height.*",
+                        "zoning_map_amendments.*",
+                        "zoning_special_districts.*",
+                        "zoning_special_subdistricts.*",
+                        ]
+        },
+        
     },
     "metadata": {
         "zd": {
