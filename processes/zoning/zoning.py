@@ -107,17 +107,19 @@ def main():
                                         sub_dirs=OPEN_DATA_SUB_DIRS,
                                         )
         
+        # Extract all unique geodatabase names from conventions
+        GDB_NAMES = {info["gdb_name"] for conv_dict in [ZONING_CONVENTIONS, GEOREF_CONVENTIONS] for info in conv_dict.values()}
+        logging.debug(f"The following GDBs referenced in constants.py will be created: {GDB_NAMES}")
+
         # Create Zoning GeoDatabases
         logging.info("Creating GeoDatabases...")
-        arcpy.management.CreateFileGDB(out_folder_path=os.path.join(temp_cycle_dir, "gdb"),
-                                       out_name="nyc_zoning_features.gdb")
-        arcpy.management.CreateFileGDB(out_folder_path=os.path.join(temp_cycle_dir, "gdb"),
-                                      out_name="nyc_georeferenced_zoning_maps.gdb")
+        for gdb_name in GDB_NAMES:
+            arcpy.management.CreateFileGDB(out_folder_path=os.path.join(temp_cycle_dir, "gdb"),
+                                           out_name=gdb_name)
         
         # Set workspace
         arcpy.env.workspace = os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb')
 
-        #TODO: turn gdb_name into a variable earlier in processes
         # Export zoning fcs to gdb workspace
         logging.info("Exporting zoning features from source ...")
         zoning_utils.export_features_using_dict(src=SOURCE_SDE_DZM_PATH,
@@ -128,7 +130,6 @@ def main():
                                                 dst_key="public_output_name",
                                                 sql_key="sql_expression")
         
-        #TODO: decide on whether to alter/remove field aliases (not present in current gdb ouputs)
         logging.info("Removing internal-only fields from Feature Classes ...")
         for _, zoning_value in ZONING_CONVENTIONS.items():    
             if zoning_value["desired_fields"]:
@@ -153,10 +154,10 @@ def main():
                                                 export_as_shapefile=True
                                                 )
 
-        logging.info("Exporting Georeferenced Zoning Map raster...")
-        arcpy.env.workspace = os.path.join(temp_cycle_dir, 'gdb', 'nyc_georeferenced_zoning_maps.gdb')
-        src_raster_path = os.path.join(SOURCE_SDE_PATH, GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["trd_fc_name"])
-        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", 'nyc_georeferenced_zoning_maps.gdb', GEOREF_CONVENTIONS["georeferenced_zoning_maps"]["public_output_name"]) #File name hardcoded because CopyRaster() 13 char limit; renamed to final name in next step after export
+        logging.info("Exporting Zoning Georeferenced Map raster...")
+        arcpy.env.workspace = os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_georeferenced_maps.gdb')
+        src_raster_path = os.path.join(SOURCE_SDE_PATH, GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["trd_fc_name"])
+        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", 'nyc_zoning_georeferenced_maps.gdb', GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["public_output_name"])
         arcpy.management.CopyRaster(in_raster=src_raster_path,
                                     out_rasterdataset=dst_raster_path
                                     )
@@ -201,7 +202,7 @@ def main():
             zoning_utils.import_and_clean_feature_metadata(in_feature=shp_path,
                                                             md_template_file=updated_xml_path)
 
-        # Georeferenced Zoning Maps metadata
+        # Zoning Georeferenced Maps metadata
         '''
         TODO: This logic is all very redundant. 
         The only difference for applying metadata to zoning vectors and georef zm is output gdb. 
@@ -219,7 +220,7 @@ def main():
 
             xml_template_path = XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.xml"
             updated_xml_path = temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml"
-            fc_path = temp_cycle_dir / "gdb" / "nyc_georeferenced_zoning_maps.gdb" / f"{feature_info['public_output_name']}"
+            fc_path = temp_cycle_dir / "gdb" / "nyc_zoning_georeferenced_maps.gdb" / f"{feature_info['public_output_name']}"
                                             
             fc_path = str(fc_path)
             updated_xml_path = str(updated_xml_path)
