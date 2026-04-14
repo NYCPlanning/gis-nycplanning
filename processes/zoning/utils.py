@@ -17,7 +17,7 @@ def metadata_processing_generator(conventions_dict, temp_cycle_dir, gdb_name, ap
     Args:
         conventions_dict (dict): Dictionary of feature conventions (e.g., ZONING_CONVENTIONS, GEOREF_CONVENTIONS)
         temp_cycle_dir (Path): Temporary cycle directory path
-        gdb_name (str): Name of the geodatabase (e.g., "nyc_zoning_features.gdb")
+        gdb_name (str): Name of the geodatabase (e.g., "zoning_features.gdb")
         apply_to_shapefile (bool): Whether to apply metadata to shapefiles. Defaults to False.
         
     Yields:
@@ -128,20 +128,21 @@ def dissolve_in_place(workspace: str, feature_class: str, dissolve_field: list, 
     arcpy.management.Delete(in_data=f"{feature_class}_UNDISSOLVED")
 
 
-def web_packaging(parent_dir: str, packaging_dict: dict):
+def web_packaging(parent_dir: str, packaging_dict: dict, cycle_date: str = None):
     """
     Creates zip files in the /web folder as defined in the packaging_dict.
     
     Args:
         parent_dir (str or Path): Path to the parent directory containing 'gdb', 'shp', 'web', etc.
         packaging_dict (dict): The ZONING_PACKAGING dictionary.
+        cycle_date (str, optional): The cycle date to include in the zip file name. Defaults to None.
     """
     parent_dir = Path(parent_dir)
     web_dir = parent_dir / "web"
     web_dir.mkdir(parents=True, exist_ok=True) # redundant but safe
 
-    for zip_key, zip_info in packaging_dict["zip_files"].items():
-        zip_name = zip_info["name"]
+    for _, zip_info in packaging_dict["zip_files"].items():
+        zip_name = zip_info["name"].format(cycle_date=cycle_date) if cycle_date else zip_info["name"]
         src_parent_dir = parent_dir / zip_info["src_parent_dir"]
         contents = zip_info["contents"]
 
