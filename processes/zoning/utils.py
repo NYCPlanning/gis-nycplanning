@@ -31,8 +31,16 @@ def metadata_processing_generator(conventions_dict, temp_cycle_dir, gdb_name, ap
             "fc_path": str(temp_cycle_dir / "gdb" / gdb_name / feature_info["public_output_name"]),
             "shp_path": str(temp_cycle_dir / "shp" / f"{feature_info['public_output_name']}.shp"),
         }
-
-def export_features_using_dict(src: str, dst: str, dict_name: dict, src_key: str, dst_key: str, src_prefix: str= "", sql_key:str=None, export_as_shapefile: bool=False): 
+def export_feature_using_dict(
+    src: str,
+    dst: str,
+    feature_info: dict,
+    src_key: str,
+    dst_key: str,
+    src_prefix: str = "",
+    sql_key: str = None,
+    export_as_shapefile: bool = False,
+):
     """
     Exports feature classes from a source to a destination using a dictionary to define parameters. 
     
@@ -48,28 +56,50 @@ def export_features_using_dict(src: str, dst: str, dict_name: dict, src_key: str
         
     #TODO: Consider making more atomic by removing looping functionality 
     """
-    for key, value in dict_name.items():
-        src_path = str(Path(src) / f"{src_prefix}{value[src_key]}")
-        out_name = value[dst_key] + ".shp" if export_as_shapefile else value[dst_key]
-        dst_path = str(Path(dst) / out_name)
+    src_path = str(Path(src) / f"{src_prefix}{feature_info[src_key]}")
+    out_name = feature_info[dst_key] + (".shp" if export_as_shapefile else "")
+    dst_path = str(Path(dst) / out_name)
 
-        if sql_key is None: 
-            arcpy.conversion.ExportFeatures(in_features=src_path,
-                                            out_features=dst_path,
-                                            )
-        else:
-            sql_query = value[sql_key]
-            arcpy.conversion.ExportFeatures(in_features=src_path,
-                                            out_features=dst_path,
-                                            where_clause=sql_query
-                                            )
-            
-        
-        in_count, out_count = inspect_data.get_record_count_comparison(dataset_1=src_path,
-                                                        dataset_2=dst_path)
-        
-        if out_count != in_count:
-            logging.debug(f"Record count of {os.path.basename(dst_path)} changed from {in_count} to {out_count} during processing")
+    if sql_key is None: 
+        arcpy.conversion.ExportFeatures(in_features=src_path,
+                                        out_features=dst_path,
+                                        )
+    else:
+        arcpy.conversion.ExportFeatures(in_features=src_path,
+                                        out_features=dst_path,
+                                        where_clause=feature_info[sql_key],
+                                        )
+    
+    in_count, out_count = inspect_data.get_record_count_comparison(dataset_1=src_path,
+                                                    dataset_2=dst_path)
+    
+    if out_count != in_count:
+        logging.debug(f"Record count of {os.path.basename(dst_path)} changed from {in_count} to {out_count} during processing")
+
+def export_features_using_dict(
+    src: str,
+    dst: str,
+    dict_name: dict,
+    feature_info: dict,
+    src_key: str,
+    dst_key: str,
+    src_prefix: str = "",
+    sql_key: str = None,
+    export_as_shapefile: bool = False,
+):
+    """Wrapper function to call export_feature_using_dict with parameters from a feature_info dictionary."""
+    for _, feature_info in dict_name.items():
+        export_feature_using_dict(
+                                src=src,
+                                dst=dst,
+                                dict_name=dict_name,
+                                feature_info=feature_info,
+                                src_key=src_key,
+                                dst_key=dst_key,
+                                src_prefix=src_prefix,
+                                sql_key=sql_key,
+                                export_as_shapefile=export_as_shapefile
+                                )
 
 def drop_fields_from_fc(workspace: str, feature_class: str, keep_fields: list):
     """Drops all fields from a feature class except those specified in keep_fields.

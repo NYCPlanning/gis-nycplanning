@@ -21,8 +21,6 @@ CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
 PRODUCT_CONFIG_FILE_PARENT = Path(__file__).parent / "config"
 LOG_FILE_PARENT = Path(__file__).parent / "log"
 
-# TODO: Update NYZMA metadata to no longer include "since 2002" language
-
 def main():
     cli = CLI()
     args = cli.parse_args()
@@ -94,12 +92,12 @@ def main():
     logging.info(f"CYCLE_DATE: {CYCLE_DATE}")
     logging.info(f"COUNCIL_DATE: {COUNCIL_DATE}")
 
+    # Set Environment Parallel Processing (100% = maximum available cores)
+    arcpy.env.parallelProcessingFactor = "100%"
+
     # Create directory structure
     os.makedirs(name=OPEN_DATA_STAGING_YEAR_PATH,
                 exist_ok=True)
-
-    # Set Environment Parallel Processing (100% = maximum available cores)
-    arcpy.env.parallelProcessingFactor = "100%"
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_cycle_dir = Path(temp_dir) / CYCLE_DATE
@@ -116,48 +114,55 @@ def main():
         for gdb_name in GDB_NAMES:
             arcpy.management.CreateFileGDB(out_folder_path=os.path.join(temp_cycle_dir, "gdb"),
                                            out_name=gdb_name)
-        
-        # Set workspace
-        arcpy.env.workspace = os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb')
 
         # Export zoning fcs to gdb workspace
         logging.info("Exporting zoning features from source ...")
-        zoning_utils.export_features_using_dict(src=SOURCE_SDE_DZM_PATH,
-                                                dst=os.path.join(temp_cycle_dir, "gdb", "nyc_zoning_features.gdb"),
-                                                dict_name=ZONING_CONVENTIONS,
-                                                src_prefix=SOURCE_SDE_PREFIX,
-                                                src_key="trd_fc_name",
-                                                dst_key="public_output_name",
-                                                sql_key="sql_expression")
+        for _, feature_info in ZONING_CONVENTIONS.items():
+            dst_gdb = os.path.join(temp_cycle_dir, "gdb", feature_info["gdb_name"])
+            zoning_utils.export_feature_using_dict(
+                                                    src=SOURCE_SDE_DZM_PATH,
+                                                    dst=dst_gdb,
+                                                    feature_info=feature_info,
+                                                    src_prefix=SOURCE_SDE_PREFIX,
+                                                    src_key="trd_fc_name",
+                                                    dst_key="public_output_name",
+                                                    sql_key="sql_expression")
         
         logging.info("Removing internal-only fields from Feature Classes ...")
-        for _, zoning_value in ZONING_CONVENTIONS.items():    
-            if zoning_value["desired_fields"]:
-                zoning_utils.drop_fields_from_fc(workspace=os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb'),
-                                         feature_class=zoning_value["public_output_name"],
-                                         keep_fields=zoning_value["desired_fields"]
+        for _, feature_info in ZONING_CONVENTIONS.items():    
+            if feature_info["desired_fields"]:
+                zoning_utils.drop_fields_from_fc(workspace=os.path.join(temp_cycle_dir, 'gdb', feature_info["gdb_name"]),
+                                         feature_class=feature_info["public_output_name"],
+                                         keep_fields=feature_info["desired_fields"]
                                          )      
                 
         logging.info("Dissolving Special Districts ... ")
-        zoning_utils.dissolve_in_place(workspace=os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_features.gdb'),
+        zoning_utils.dissolve_in_place(workspace=os.path.join(temp_cycle_dir, 'gdb', ZONING_CONVENTIONS["nysp"]["gdb_name"]),
                                        feature_class=ZONING_CONVENTIONS["nysp"]["public_output_name"],
                                        dissolve_field=["SDNAME"],
                                        statistics_fields=ZONING_CONVENTIONS["nysp"]["statistics_fields"]
                                        )
 
         logging.info("Exporting FCs to Shapefiles...")
-        zoning_utils.export_features_using_dict(src=os.path.join(temp_cycle_dir, "gdb", "nyc_zoning_features.gdb"),
-                                                dst=os.path.join(temp_cycle_dir, "shp"),
-                                                dict_name=ZONING_CONVENTIONS, 
-                                                src_key="public_output_name",
-                                                dst_key="public_output_name",
-                                                export_as_shapefile=True
-                                                )
+        for _, feature_info in ZONING_CONVENTIONS.items():
+            src_gdb = os.path.join(temp_cycle_dir, "gdb", feature_info["gdb_name"])
+            zoning_utils.export_feature_using_dict(src=src_gdb,
+                                                    dst=os.path.join(temp_cycle_dir, "shp"),
+                                                    feature_info=feature_info,
+                                                    src_key="public_output_name",
+                                                    dst_key="public_output_name",
+                                                    export_as_shapefile=True
+                                                    )
 
         logging.info("Exporting Zoning Georeferenced Map raster...")
-        arcpy.env.workspace = os.path.join(temp_cycle_dir, 'gdb', 'nyc_zoning_georeferenced_maps.gdb')
         src_raster_path = os.path.join(SOURCE_SDE_PATH, GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["trd_fc_name"])
-        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", 'nyc_zoning_georeferenced_maps.gdb', GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["public_output_name"])
+        dst_raster_gdb = os.path.join(temp_cycle_dir, "gdb", GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["gdb_name"])
+        dst_raster_name = GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["public_output_name"]
+        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", dst_raster_gdb, dst_raster_name)
+
+        arcpy.env.workspace = dst_raster_path
+        # Set Environment Parallel Processing (100% = maximum available cores)
+        arcpy.env.parallelProcessingFactor = "100%"
         arcpy.management.CopyRaster(in_raster=src_raster_path,
                                     out_rasterdataset=dst_raster_path
                                     )
@@ -165,7 +170,6 @@ def main():
  # Update metadata XML files and apply to features according to feature and metadata dictionaries
         logging.info("Updating and applying metadata...")
         for _, feature_info in ZONING_CONVENTIONS.items():
-            
             # Create feature_metadata dict using static METADATA_XML_VALUES dict updated with feature-specific and cycle-specific values from ZONING_CONVENTIONS; these will be used to update the metadata XML template before importing to features
             feature_metadata = zoning_utils.update_metadata_values(
                 base_dict=METADATA_XML_VALUES,
@@ -176,7 +180,7 @@ def main():
             
             xml_template_path = XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.xml"
             updated_xml_path = temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml"
-            fc_path = temp_cycle_dir / "gdb" / "nyc_zoning_features.gdb" / f"{feature_info['public_output_name']}"
+            fc_path = temp_cycle_dir / "gdb" / feature_info["gdb_name"] / f"{feature_info['public_output_name']}"
             shp_path = temp_cycle_dir / "shp" / f"{feature_info['public_output_name']}.shp"
 
             fc_path = str(fc_path)
@@ -220,9 +224,9 @@ def main():
 
             xml_template_path = XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.xml"
             updated_xml_path = temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml"
-            fc_path = temp_cycle_dir / "gdb" / "nyc_zoning_georeferenced_maps.gdb" / f"{feature_info['public_output_name']}"
+            fc_path = temp_cycle_dir / "gdb" / feature_info["gdb_name"] / f"{feature_info['public_output_name']}"
                                             
-            fc_path = str(fc_path)
+            fc_path = str(fc_path) 
             updated_xml_path = str(updated_xml_path)
 
             # Update XML template with feature-specific and cycle-specific metadata values 
