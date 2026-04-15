@@ -106,7 +106,10 @@ def main():
                                         )
         
         # Extract all unique geodatabase names from conventions
-        GDB_NAMES = {info["gdb_name"] for conv_dict in [ZONING_CONVENTIONS, GEOREF_CONVENTIONS] for info in conv_dict.values()}
+        GDB_NAMES = set()
+        for convention in [ZONING_CONVENTIONS, GEOREF_CONVENTIONS]:
+            for info in convention.values():
+                GDB_NAMES.add(info["gdb_name"])
         logging.debug(f"The following GDBs referenced in constants.py will be created: {GDB_NAMES}")
 
         # Create Zoning GeoDatabases
