@@ -2,7 +2,7 @@ from pytest import fixture
 import shutil
 import zipfile
 import os
-from utilities.python import inspect_data
+from dcpgis.utils import inspect_data
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
@@ -120,3 +120,24 @@ def test_get_shp_schema(temp_shp_nonzipped):
     actual_schema = inspect_data.get_dataset_schema(shp)
 
     assert_frame_equal(expected_schema, actual_schema)
+
+
+def test_get_record_count_comparison_gdb(temp_gdb_nonzipped):
+    dataset_path = os.path.join(temp_gdb_nonzipped, "nyzd_one_row")
+
+    dataset_1, dataset_2 = inspect_data.get_record_count_comparison(
+        dataset_1=dataset_path, dataset_2=dataset_path
+    )
+
+    assert dataset_1 == 1
+    assert dataset_2 == 1
+
+def test_get_record_count_comparison_shp(temp_shp_nonzipped):
+    dataset_path = os.path.join(temp_shp_nonzipped, "nyzd_one_row")
+
+    dataset_1, dataset_2 = inspect_data.get_record_count_comparison(
+        dataset_1=dataset_path, dataset_2=dataset_path
+    )
+
+    assert dataset_1 == 1
+    assert dataset_2 == 1

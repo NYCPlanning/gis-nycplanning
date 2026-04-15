@@ -1,4 +1,6 @@
 processes/dev/*
+processes/zoning/config/dev*.yml
+processes/zoning/confic/prod*.yml
 
 ############################################
 # Byte-compiled / optimized / DLL files
@@ -177,3 +179,4 @@ cython_debug/
 .pypirc
 
 config/prod_*.yml
+config/dev_*.yml
