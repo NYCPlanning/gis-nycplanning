@@ -13,15 +13,14 @@
         versions of ArcGIS Pro.
 #>
 
-# Suppress the archspec/active_prefix_name plugin error in ArcGIS Pro's bundled conda
-$env:CONDA_NO_PLUGINS = 'true'
+# ...existing code...
 
 $newEnvName = 'gis-team-default-env'
 $baseEnvName = 'arcgispro-py3'
 
 # Dynamically detect Python version from base ArcGIS Pro environment
 Write-Output "`r`n>>> Detecting Python version from $baseEnvName..."
-$pythonVersion = ((& conda run -n $baseEnvName python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')") | Where-Object { $_ -match '^\d+\.\d+$' } | Select-Object -Last 1).Trim()
+$pythonVersion = ((& "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" run -n $baseEnvName python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')") | Where-Object { $_ -match '^\d+\.\d+$' } | Select-Object -Last 1).Trim()
 Write-Output ">>> Detected Python version: $pythonVersion"
 
 # Set package versions based on detected Python version
@@ -44,7 +43,7 @@ switch ($pythonVersion) {
 # Check conda version as a proxy to determine if conda is initialized in this shell
 try {
     Write-Output "`r`n>>> Checking conda version..."
-    conda --version
+    & "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" --version
 }
 catch {
     $message = @"
@@ -74,35 +73,25 @@ if (-not (Test-Path $baseEnvPath)) {
 }
 Write-Output ">>> Found base env: $baseEnvName"
 
-# Check if target env already exists by directory, and remove it if so
-$newEnvPath = "$Env:LOCALAPPDATA\ESRI\conda\envs\$newEnvName"
-$existingEnvs = Test-Path $newEnvPath
-if ($existingEnvs) {
-    Write-Output "`r`n>>> Environment '$newEnvName' already exists. Removing it first..."
-    Remove-Item -Recurse -Force $newEnvPath
-    Write-Output ">>> Removed existing environment at: $newEnvPath"
-}
 
+# Clone the base environment using explicit conda.exe path
 Write-Output "`r`n>>> Cloning $baseEnvName into $newEnvName..."
-conda create --name $newEnvName --clone $baseEnvName --yes
+& "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" create --name $newEnvName --clone $baseEnvName --yes
 
-# Use pip from the new env directly to ensure packages install into the correct environment
-$pipExe = "$newEnvPath\Scripts\pip.exe"
+# Install compatible versions for detected Python version using conda only
+Write-Output "`r`n>>> Installing geopandas, numpy, and fiona with conda..."
+& "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" install -n $newEnvName geopandas=$geopandasVersion numpy=$numpyVersion fiona=$fionaVersion --yes
+Write-Output ">>> Successfully installed packages using conda"
 
-# Install compatible versions for detected Python version
-Write-Output "`r`n>>> pip installing geopandas version $geopandasVersion..."
-& $pipExe install "geopandas==$geopandasVersion"
 
-Write-Output "`r`n>>> Installing numpy version $numpyVersion to satisfy geopandas dependencies..."
-& $pipExe install numpy==$numpyVersion
-
-Write-Output "`r`n>>> pip installing fiona version $fionaVersion..."
-& $pipExe install "fiona==$fionaVersion"
-
+# List conda environments using explicit conda.exe path
 Write-Output "`r`n>>> Listing conda environments..."
-Get-ChildItem "$Env:LOCALAPPDATA\ESRI\conda\envs" -Directory | Select-Object -ExpandProperty Name
+& "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" env list
 
+# Note: conda activate may not work as expected in all PowerShell contexts.
+# If activation fails, activate manually in a new shell using:
+# & 'C:\Program Files\ArcGIS\Pro\bin\Python\condabin\conda.bat' activate $newEnvName
 Write-Output "`r`n>>> Activating $newEnvName..."
-conda activate $newEnvName
+& 'C:\Program Files\ArcGIS\Pro\bin\Python\condabin\conda.bat' activate $newEnvName
 
 Write-Output "`r`n>>> Done."
