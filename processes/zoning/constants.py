@@ -116,12 +116,12 @@ ZONING_PACKAGING= {
         "zoning_features_gdb": {
             "src_parent_dir": "gdb",
             "name": "nyc_zoning_features_gdb.zip",
-            "contents":["zoning_features.gdb"]
+            "contents":["nyc_zoning_features.gdb"]
         },
         "georeferenced_gdb": {
             "src_parent_dir": "gdb",
             "name": "nyc_zoning_georeferenced_maps_gdb.zip",
-            "contents":["zoning_georeferenced_maps.gdb"]
+            "contents":["nyc_zoning_georeferenced_maps.gdb"]
         },
         "zoning_features_shp": {
             "src_parent_dir": "shp",
@@ -160,7 +160,7 @@ ZONING_PACKAGING= {
     "metadata": {
         "zd": {
             "src_parent_dir": "metadata",
-            "name": "nyc_zoning_districts_metadata.xlsx",
+            "name": "nyc_zoning_districts_data_dictionary.xlsx",
         }
     }
 }
@@ -169,6 +169,8 @@ ZONING_PACKAGING= {
 """
 METADATA_XML_VALUES provides default XML metadata fields used to seed
 metadata templates for zoning outputs.
+
+Values set to "" will be populated dynamically with update_xml_via_dictionary()
 """
 METADATA_XML_VALUES = {
     "crea_date": "20151216",
