@@ -141,7 +141,7 @@ ZONING_PACKAGING= {
         },        
         "georeferenced_gdb_archive": {
             "src_parent_dir": "gdb",
-            "name": "nyc_zoning_georeferenced_maps_{cycle_date}.zip",
+            "name": "nyc_zoning_georeferenced_maps_{cycle_date}_gdb.zip",
             "contents":["nyc_zoning_georeferenced_maps.gdb"]
         },
         "zoning_features_shp_archive": {
