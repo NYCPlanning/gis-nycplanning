@@ -122,8 +122,7 @@ def main():
         logging.info("Exporting zoning features from source ...")
         for _, feature_info in ZONING_CONVENTIONS.items():
             dst_gdb = os.path.join(temp_cycle_dir, "gdb", feature_info["gdb_name"])
-            zoning_utils.export_feature_using_dict(
-                                                    src=SOURCE_SDE_DZM_PATH,
+            zoning_utils.export_feature_using_dict(src=SOURCE_SDE_DZM_PATH,
                                                     dst=dst_gdb,
                                                     feature_info=feature_info,
                                                     src_prefix=SOURCE_SDE_PREFIX,
@@ -161,7 +160,7 @@ def main():
         src_raster_path = os.path.join(SOURCE_SDE_PATH, GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["trd_fc_name"])
         dst_raster_gdb = os.path.join(temp_cycle_dir, "gdb", GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["gdb_name"])
         dst_raster_name = GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["public_output_name"]
-        dst_raster_path = os.path.join(temp_cycle_dir, "gdb", dst_raster_gdb, dst_raster_name)
+        dst_raster_path = os.path.join(dst_raster_gdb, dst_raster_name)
 
         arcpy.env.workspace = dst_raster_path
         # Set Environment Parallel Processing (100% = maximum available cores)
@@ -170,7 +169,7 @@ def main():
                                     out_rasterdataset=dst_raster_path
                                     )
 
- # Update metadata XML files and apply to features according to feature and metadata dictionaries
+        # Update metadata XML files and apply them to features according to feature and metadata dictionaries
         logging.info("Updating and applying metadata...")
         for _, feature_info in ZONING_CONVENTIONS.items():
             # Create feature_metadata dict using static METADATA_XML_VALUES dict updated with feature-specific and cycle-specific values from ZONING_CONVENTIONS; these will be used to update the metadata XML template before importing to features
