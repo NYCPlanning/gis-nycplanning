@@ -6,7 +6,7 @@ The `processes/zoning` module prepares and distributes TRD-owned zoning products
 ![image](.\documentation\high-level-workflow.png)
 
 ## How to run
-
+To run, establish `gis-nycplanning/` as your base directory and run `python processes/zoning/zoning.py --env prod` or `python processes/zoning/zoning.py --env dev` in your terminal.
 
 ## Key Components
 `config/`
@@ -24,12 +24,6 @@ The `processes/zoning` module prepares and distributes TRD-owned zoning products
 - `cli.py` — ...
 - `utils/` — global utilities
 
-## Setup
-- dcpgis cli ......
-- ArcGIS Pro / `arcpy` requirements
-- Expected workspace layout
-- How to activate the correct environment and run the process
-
 ## Configuration
 Environment arguments: `--env dev`, `--env prod`
 
@@ -43,16 +37,6 @@ Config Files
   - Variable descriptions can be found in `/processes/zoning/config/template_config.yml`
   - The intention of having a local product config is to allow for product-by-product variability
 
-## Imports and Dependencies:
-
-Standard Libraries: `os`, `arcpy`, `logging`, `tempfile`, `shutil`, `pathlib.Path` for file system operations, logging, and temporary resource management.
-
-`dcpgis` Modules: CLI parsing, configuration management, logging setup, date logic, and directory management.
-
-Custom Modules:
-- `utils as zoning_utils`: Local utility functions for zoning-specific tasks (e.g., exporting features, updating metadata).
-- `constants`: Imports dictionaries like `ZONING_CONVENTIONS`, `GEOREF_CONVENTIONS`, `ZONING_PACKAGING`, and `METADATA_XML_VALUES` for configuration-driven processing.
-
 ## Workflow
 - Temporary staging directory creation
 - Creating geodatabases and shapefile outputs
@@ -60,15 +44,15 @@ Custom Modules:
 - Copying and packaging raster/map products
 - Metadata generation and application
 - Final staging to open data directories
+- Temp directory deleted
 
 ## Logging and Diagnostics
-- `log/` directory usage
+- prod_zoning.log and/or dev_zoning.log should be present `processes/zoning/log/`. Logging defaults to `INFO`, and can be overriden in the global config (e.g., `log_level_override: DEBUG`) 
 - How to interpret process logs
 - Common runtime issues and where to find details
 
 ## Troubleshooting
-- Known ArcGIS limitations (naming, file locks, existing datasets)
-- Temporary directory behavior and cleanup suggestions
+- ...
 
 ## Contributing / Extending
 - Metadata
