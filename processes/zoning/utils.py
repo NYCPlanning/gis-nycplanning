@@ -53,8 +53,6 @@ def export_feature_using_dict(
         src_prefix (str, optional): A prefix to be added to the source feature class names. Defaults to an empty string.
         sql_key (str, optional): The key in the dictionary that contains an optional SQL expression for filtering features during export. Defaults to None.
         export_as_shapefile (bool, optional): If True, exports the features as shapefiles. Defaults to False.
-        
-    #TODO: Consider making more atomic by removing looping functionality 
     """
     src_path = str(Path(src) / f"{src_prefix}{feature_info[src_key]}")
     out_name = feature_info[dst_key] + (".shp" if export_as_shapefile else "")
