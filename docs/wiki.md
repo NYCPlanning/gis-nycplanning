@@ -21,9 +21,11 @@ NYC Planning uses a proxy server. `http` and `https` environment variables must 
 For python, the GIS Team relies on the conda distribution that comes with ArcGIS Pro. The the bulk of our operations relate in some way or other to Esri software or file types, although we are increasingly adopting open source alternatives to the `arcpy` and `arcgis` libraries where it makes sense.
 
 #### Using Python via conda
-The GIS team uses a default conda environment ("gis-team-default-env") that can be generated with this [PowerShell script](utilities\powershell\deploy_esri_py_env_pro.ps1). At the time of writing, the script takes the base environment provided by ArcGIS Pro ("arcgispro-py3"), pip installs a few custom packages, and manually tunes package dependencies. We should ideally be able to use an environment.yml file to define and create our default environment, or at least use conda and not pip for installations, but the commands to do so often fail, likely due to firewall restrictions.
+The GIS team uses a default conda environment ("gis-env") that can be generated with this [PowerShell script](https://github.com/NYCPlanning/gis-nycplanning/blob/main/utilities/powershell/deploy_esri_py_env_pro.ps1). At the time of writing, the script takes the base environment provided by ArcGIS Pro ("arcgispro-py3"), and uses conda to install a few custom packages and resolve package dependencies. 
 
-The default conda environment name is important to remain consistent across GIS Team member's environments, because the [PowerShell files used in Task Scheduler](processes\trigger_process.ps1) to call python scripts all call that default environment name.
+We should ideally be able to use an environment.yml file to define and create our default environment, or at least use conda and not pip for installations, but the commands to do so often fail, likely due to firewall restrictions.
+
+The default conda environment name is important to remain consistent across GIS Team member's environments, because the [PowerShell files used in Task Scheduler](https://github.com/NYCPlanning/gis-nycplanning/blob/main/processes/trigger_process.ps1) to call python scripts all call that default environment name.
 
 Conda env setup (requires an active installation of ArcGIS Pro, and access to the deployment PowerShell script):
 - Initialize conda in PowerShell
@@ -32,7 +34,7 @@ Conda env setup (requires an active installation of ArcGIS Pro, and access to th
         ```powershell
         & $Env:programFiles\ArcGIS\Pro\bin\Python\condabin\conda.bat init
         ```
-   5. Open a new PowerShell terminal for the initialization to take effect (the prompt in PowerShell should now be prefixed with the active conda environment in parentheses, e.g: `(base) PS C:\Users\J_Jacobs>`)
+   3. Open a new PowerShell terminal for the initialization to take effect (the prompt in PowerShell should now be prefixed with the active conda environment in parentheses, e.g: `(base) PS C:\Users\J_Jacobs>`)
 - Run GIS Team default conda env deployment script
    1. Open PowerShell in Terminal
    2. Change directory to the root of this repository, so that the relative path called below allows PowerShell to find the necessary .ps1 file
@@ -47,7 +49,8 @@ Python can be installed directly from [python.org](https://www.python.org/), at 
 
 #### Known issues
 - ArcGIS Pro notebooks do not work on GIS Team PCs, but do on other DCP staff machines. We have hypothesized that this has something to do with either firewall rules, or the fact that our machines have static IP addresses assigned.
-- `conda install` fails or freezes often, when using either the ArcGIS Pro GUI or PowerShell. This is likely due to our firewall rules. `pip install` is a viable alternative.
+- `conda install` fails or freezes often, when using either the ArcGIS Pro GUI or PowerShell. This is likely due to our firewall rules. `pip install` is a viable alternative. This has become less common with the transition to Pro 3.5.
+- With the upgrade to Pro 3.5, `conda env ...` commands have been failing. It seems like this has to do with an issue with our machines invoking the `$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda-env.exe` executable. Root cause is unknown but is likely to do with our network environment. Workarounds involve calling alternative commands, e.g. replacing `conda env list` with `conda info --envs`
 
 ### SQL
 If SQL usage outside of ArcGIS Pro is desired, it is recommended to use SQL Server Management Studio (SSMS) for enterprise geodatabase management, with the optional additional usage of DBeaver to access the SQL Server databases, or any other databases such as DuckDB, SQLite, etc.
