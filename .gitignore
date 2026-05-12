@@ -1,6 +1,4 @@
 processes/dev/*
-processes/zoning/config/dev*.yml
-processes/zoning/confic/prod*.yml
 
 ############################################
 # Byte-compiled / optimized / DLL files
@@ -183,4 +181,3 @@ config/dev_*.yml
 
 # VS Code settings
 .vscode/
-
