@@ -163,18 +163,9 @@ def main():
         dst_raster_name = GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["public_output_name"]
         dst_raster_path = os.path.join(dst_raster_gdb, dst_raster_name)
 
-        logging.debug(f"src_raster_path: {src_raster_path}")
-        logging.debug(f"dst_raster_gdb: {dst_raster_gdb}")
-        logging.debug(f"dst_raster_name: {dst_raster_name}")
-        logging.debug(f"dst_raster_path: {dst_raster_path}")
-
         arcpy.env.workspace = dst_raster_path
         # Set Environment Parallel Processing (100% = maximum available cores)
         arcpy.env.parallelProcessingFactor = "100%"
-        # arcpy.management.CopyRaster(in_raster=src_raster_path,
-        #                             out_rasterdataset=dst_raster_path
-        #                             )
-
 
         arcpy.conversion.RasterToGeodatabase(Input_Rasters=src_raster_path,
                                              Output_Geodatabase=dst_raster_gdb)
