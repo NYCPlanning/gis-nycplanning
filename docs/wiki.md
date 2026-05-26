@@ -44,6 +44,12 @@ Conda env setup (requires an active installation of ArcGIS Pro, and access to th
         ```
    4. In case of errors, read and follow any output messages carefully
 
+#### Installing dcpgis package
+1. `cd` to top level of `gis-nycplanning` repo
+2. Activate [default gis-env](/utilities/powershell/deploy_esri_py_env_pro.ps1): `conda activate gis-env`
+3. Install dcpgis in interactive mode: `pip install -e .`
+4. Confirm that installation was successful by accessing tool help: `python -m dcpgis.cli -h`
+
 #### Using python outside of conda
 Python can be installed directly from [python.org](https://www.python.org/), at a per user level and without admin credentials. This is a valid approach to non-arcpy-based workflows, since it has so far proven impossible to pip install arcpy directly into a non-conda virtual environment.
 
