@@ -178,6 +178,8 @@ cython_debug/
 
 config/prod_*.yml
 config/dev_*.yml
+processes/zoning/config/prod_*.yml
+processes/zoning/config/dev_*.yml
 
 # VS Code settings
 .vscode/
