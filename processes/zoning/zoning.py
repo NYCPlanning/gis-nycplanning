@@ -64,9 +64,6 @@ def main():
     source_middle = SOURCE_CONNECTION_FILE_NAME.removeprefix("sde@GIS").removesuffix(".sde")
     SOURCE_SDE_PREFIX: str = f"GIS{source_middle}.{SOURCE_SCHEMA}."
     SOURCE_SDE_DZM_PATH: Path = Path(SOURCE_SDE_PATH / f"{SOURCE_SDE_PREFIX}Digital_Zoning_Map")
-    DESTINATION_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / DESTINATION_CONNECTION_FILE_NAME)
-    dest_middle = DESTINATION_CONNECTION_FILE_NAME.removeprefix("sde@GIS").removesuffix(".sde")
-    DESTINATION_SDE_PREFIX: str = f"GIS{dest_middle}.{DESTINATION_SCHEMA}."
     OPEN_DATA_STAGING_YEAR_PATH: Path = Path(OPEN_DATA_STAGING_PATH / "zoning" / CYCLE_DATE[:4])
     OPEN_DATA_STAGING_CYCLE_PATH: Path = Path(OPEN_DATA_STAGING_YEAR_PATH / CYCLE_DATE)
     XML_TEMPLATES_PATH: Path = Path(__file__).parent / "templates" / "metadata"
@@ -85,7 +82,6 @@ def main():
     logging.debug(f"DESTINATION_CONNECTION_FILE_NAME: {DESTINATION_CONNECTION_FILE_NAME}")
     logging.debug(f"SOURCE_SDE_PATH: {SOURCE_SDE_PATH}")
     logging.debug(f"SOURCE_SDE_DZM_PATH: {SOURCE_SDE_DZM_PATH}")
-    logging.debug(f"DESTINATION_SDE_PATH: {DESTINATION_SDE_PATH}")
     logging.debug(f"OPEN_DATA_STAGING_YEAR_PATH: {OPEN_DATA_STAGING_YEAR_PATH}")
     logging.debug(f"OPEN_DATA_STAGING_CYCLE_PATH: {OPEN_DATA_STAGING_CYCLE_PATH}")
     logging.info(f"XML_TEMPLATES_PATH: {XML_TEMPLATES_PATH}")
