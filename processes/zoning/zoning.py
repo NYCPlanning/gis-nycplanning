@@ -256,6 +256,7 @@ def main():
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
         logging.info("Copying cycle directory to production location ...")
+        arcpy.ClearWorkspaceCache_management()
         shutil.copytree(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH, dirs_exist_ok=True)
 
         end_time = datetime.now().replace(microsecond=0)
@@ -263,4 +264,8 @@ def main():
         logging.info('{delim} Runtime: {dur} {delim}\n\n'.format(delim='='*15,dur=duration))
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        logging.exception("Process failed")
+        raise
