@@ -40,24 +40,24 @@ def main():
     product_config = config.Config(
         app_env=ENVIRONMENT, config_file_path=PRODUCT_CONFIG_FILE_PARENT
     )
-    settings = product_config.get_config_from_yaml()
+    settings_product = product_config.get_config_from_yaml()
 
-    SOURCE_CONNECTION_FILE_NAME: str = settings["source_connection_file"]["name"]
-    SOURCE_SCHEMA: str = settings["source_connection_file"]["schema"]
-    DESTINATION_CONNECTION_FILE_NAME: str = settings["destination_connection_file"]["name"]
-    DESTINATION_SCHEMA: str = settings["destination_connection_file"]["schema"]
+    SOURCE_CONNECTION_FILE_NAME: str = settings_product["source_connection_file"]["name"]
+    SOURCE_SCHEMA: str = settings_product["source_connection_file"]["schema"]
+    DESTINATION_CONNECTION_FILE_NAME: str = settings_product["destination_connection_file"]["name"]
+    DESTINATION_SCHEMA: str = settings_product["destination_connection_file"]["schema"]
     
     # Global Config values
     main_config = config.Config(
         app_env=ENVIRONMENT, config_file_path=CONFIG_FILE_PARENT
     )
 
-    settings = main_config.get_config_from_yaml()
+    settings_global = main_config.get_config_from_yaml()
 
-    LOG_LEVEL_OVERRIDE = settings["log_level_override"]
-    OPEN_DATA_STAGING_PATH: Path = Path(settings["open_data_staging_path"]).absolute()
-    CONNECTION_FILE_PATH: Path = Path(settings["connection_file_path"]).absolute()
-    CYCLE_DATE: str = date_logic.calc_open_data_cycle_month(settings["open_data_cycle_date"])
+    LOG_LEVEL_OVERRIDE = settings_global["log_level_override"]
+    OPEN_DATA_STAGING_PATH: Path = Path(settings_global["open_data_staging_path"]).absolute()
+    CONNECTION_FILE_PATH: Path = Path(settings_global["connection_file_path"]).absolute()
+    CYCLE_DATE: str = date_logic.calc_open_data_cycle_month(settings_global["open_data_cycle_date"])
     
     # Define secondary constants
     SOURCE_SDE_PATH: Path = Path(CONNECTION_FILE_PATH / SOURCE_CONNECTION_FILE_NAME)
@@ -73,7 +73,7 @@ def main():
     COUNCIL_DATE = date_logic.get_latest_date_from_field(
         feature_class_path=str(SOURCE_SDE_DZM_PATH / f"{SOURCE_SDE_PREFIX}{ZONING_CONVENTIONS['nyzma']['trd_fc_name']}"),
         date_field="EFFECTIVE",
-        override_config_value=settings["city_council_date"] #defaults to None if blank in config file
+        override_config_value=settings_global["city_council_date"] #defaults to None if blank in config file
     )
 
     logging.debug(f"OPEN_DATA_STAGING_PATH: {OPEN_DATA_STAGING_PATH}")
