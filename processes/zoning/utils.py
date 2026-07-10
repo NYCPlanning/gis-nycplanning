@@ -53,30 +53,6 @@ def export_feature_using_dict(
     if out_count != in_count:
         logging.debug(f"Record count of {os.path.basename(dst_path)} changed from {in_count} to {out_count} during processing")
 
-def export_features_using_dict(
-    src: str,
-    dst: str,
-    dict_name: dict,
-    feature_info: dict,
-    src_key: str,
-    dst_key: str,
-    src_prefix: str = "",
-    sql_key: str = None,
-    export_as_shapefile: bool = False,
-):
-    """Wrapper function to call export_feature_using_dict with parameters from a feature_info dictionary."""
-    for _, feature_info in dict_name.items():
-        export_feature_using_dict(
-                                src=src,
-                                dst=dst,
-                                dict_name=dict_name,
-                                feature_info=feature_info,
-                                src_key=src_key,
-                                dst_key=dst_key,
-                                src_prefix=src_prefix,
-                                sql_key=sql_key,
-                                export_as_shapefile=export_as_shapefile
-                                )
 
 def drop_fields_from_fc(workspace: str, feature_class: str, keep_fields: list):
     """Drops all fields from a feature class except those specified in keep_fields.
