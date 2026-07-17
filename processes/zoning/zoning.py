@@ -346,8 +346,8 @@ def main():
             parent_dir=temp_cycle_dir,
             archive_specs=ZONING_PACKAGING,
             output_dir_name="web",
-            ignore_locks=False, #Can be set to True if arcpy.ClearWorkspaceCache_management() doesn't work
-            product_version=CYCLE_DATE
+            ignore_locks=False,  # Can be set to True if arcpy.ClearWorkspaceCache_management() doesn't work
+            product_version=CYCLE_DATE,
         )
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
