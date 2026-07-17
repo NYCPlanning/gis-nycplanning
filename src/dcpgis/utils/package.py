@@ -4,7 +4,7 @@ import logging
 
 def archive_zipping(parent_dir: str, archive_specs: dict, output_dir_name: str, ignore_locks: bool = False, product_version: str = None):
     """
-    Creates zip files in a sub-directory = as defined in the archive_specs dictionary.
+    Creates zip files in a sub-directory as defined in the archive_specs dictionary.
     
     Expected archive spec dictionary shape:
     {
@@ -80,6 +80,4 @@ def archive_zipping(parent_dir: str, archive_specs: dict, output_dir_name: str, 
                                 raise RuntimeError(f"Lock file found: {match}. Set ignore_locks=True to skip.")
                             
                             zf.write(match, arcname=match.relative_to(source_dir))
-                            
-# Need to iterate through content list, identify pattern + glob, confirm item exists in directory, then write 
 
