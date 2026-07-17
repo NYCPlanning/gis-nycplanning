@@ -3,8 +3,10 @@ import arcpy
 import logging
 import tempfile
 import shutil
+import time
 import utils as zoning_utils
 from arcpy import metadata as md
+
 
 from pathlib import Path
 from datetime import datetime
@@ -194,37 +196,37 @@ def main():
                 export_as_shapefile=True,
             )
 
-        logging.info("Exporting Zoning Georeferenced Map raster...")
-        src_raster_name = (
-            SOURCE_SDE_PREFIX
-            + GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["trd_fc_name"]
-        )
-        src_raster_path = os.path.join(SOURCE_SDE_PATH, src_raster_name)
-        dst_raster_gdb = os.path.join(
-            temp_cycle_dir,
-            "gdb",
-            GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["gdb_name"],
-        )
-        dst_raster_name = GEOREF_CONVENTIONS["zoning_georeferenced_maps"][
-            "public_output_name"
-        ]
-        dst_raster_path = os.path.join(dst_raster_gdb, dst_raster_name)
+        # logging.info("Exporting Zoning Georeferenced Map raster...")
+        # src_raster_name = (
+        #     SOURCE_SDE_PREFIX
+        #     + GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["trd_fc_name"]
+        # )
+        # src_raster_path = os.path.join(SOURCE_SDE_PATH, src_raster_name)
+        # dst_raster_gdb = os.path.join(
+        #     temp_cycle_dir,
+        #     "gdb",
+        #     GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["gdb_name"],
+        # )
+        # dst_raster_name = GEOREF_CONVENTIONS["zoning_georeferenced_maps"][
+        #     "public_output_name"
+        # ]
+        # dst_raster_path = os.path.join(dst_raster_gdb, dst_raster_name)
 
-        arcpy.env.workspace = dst_raster_path
-        # Set Environment Parallel Processing (100% = maximum available cores)
-        arcpy.env.parallelProcessingFactor = "100%"
+        # arcpy.env.workspace = dst_raster_path
+        # # Set Environment Parallel Processing (100% = maximum available cores)
+        # arcpy.env.parallelProcessingFactor = "100%"
 
-        arcpy.conversion.RasterToGeodatabase(
-            Input_Rasters=src_raster_path, Output_Geodatabase=dst_raster_gdb
-        )
+        # arcpy.conversion.RasterToGeodatabase(
+        #     Input_Rasters=src_raster_path, Output_Geodatabase=dst_raster_gdb
+        # )
 
-        arcpy.management.Rename(
-            in_data=os.path.join(
-                dst_raster_gdb,
-                GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["trd_fc_name"],
-            ),
-            out_data=dst_raster_path,
-        )
+        # arcpy.management.Rename(
+        #     in_data=os.path.join(
+        #         dst_raster_gdb,
+        #         GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["trd_fc_name"],
+        #     ),
+        #     out_data=dst_raster_path,
+        # )
 
         # Update metadata XML files and apply them to features according to feature and metadata dictionaries
         logging.info("Updating and applying metadata...")
@@ -292,62 +294,66 @@ def main():
         However, incorporating the georef zm into the same dict as the rest of zoning features became overly complicated when I remembered that 
         georef zm source data is not nested within a feature dataset, meaning file name construction doesn't work for both simultaneously.        
         """
-        for _, feature_info in GEOREF_CONVENTIONS.items():
-            feature_metadata = zoning_utils.update_metadata_values(
-                base_dict=METADATA_XML_VALUES,
-                feature_info=feature_info,
-                cycle_date=CYCLE_DATE,
-                council_date=date_logic.reformat_date_str_to_written_month(
-                    COUNCIL_DATE
-                ),
-            )
+        # for _, feature_info in GEOREF_CONVENTIONS.items():
+        #     feature_metadata = zoning_utils.update_metadata_values(
+        #         base_dict=METADATA_XML_VALUES,
+        #         feature_info=feature_info,
+        #         cycle_date=CYCLE_DATE,
+        #         council_date=date_logic.reformat_date_str_to_written_month(
+        #             COUNCIL_DATE
+        #         ),
+        #     )
 
-            xml_template_path = (
-                XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.xml"
-            )
-            updated_xml_path = (
-                temp_cycle_dir
-                / "metadata"
-                / f"{feature_info['public_output_name']}.xml"
-            )
-            fc_path = (
-                temp_cycle_dir
-                / "gdb"
-                / feature_info["gdb_name"]
-                / f"{feature_info['public_output_name']}"
-            )
+        #     xml_template_path = (
+        #         XML_TEMPLATES_PATH / f"{feature_info['public_output_name']}.xml"
+        #     )
+        #     updated_xml_path = (
+        #         temp_cycle_dir
+        #         / "metadata"
+        #         / f"{feature_info['public_output_name']}.xml"
+        #     )
+        #     fc_path = (
+        #         temp_cycle_dir
+        #         / "gdb"
+        #         / feature_info["gdb_name"]
+        #         / f"{feature_info['public_output_name']}"
+        #     )
 
-            fc_path = str(fc_path)
-            updated_xml_path = str(updated_xml_path)
+        #     fc_path = str(fc_path)
+        #     updated_xml_path = str(updated_xml_path)
 
-            # Update XML template with feature-specific and cycle-specific metadata values
-            zoning_utils.update_xml_via_dictionary(
-                input_xml_path=xml_template_path,
-                output_xml_path=updated_xml_path,
-                metadata_dict=feature_metadata,
-            )
+        #     # Update XML template with feature-specific and cycle-specific metadata values
+        #     zoning_utils.update_xml_via_dictionary(
+        #         input_xml_path=xml_template_path,
+        #         output_xml_path=updated_xml_path,
+        #         metadata_dict=feature_metadata,
+        #     )
 
-            # Import updated metadata into feature class
-            zoning_utils.import_and_clean_feature_metadata(
-                in_feature=fc_path, md_template_file=updated_xml_path
-            )
+        #     # Import updated metadata into feature class
+        #     zoning_utils.import_and_clean_feature_metadata(
+        #         in_feature=fc_path, md_template_file=updated_xml_path
+        #     )
 
-            # Sync metadata outside of import_and_clean_feature_metadata() to ensure updates are applied correctly. Only for FCs
-            item_md = md.Metadata(fc_path)
-            item_md.synchronize("ALWAYS")
+        #     # Sync metadata outside of import_and_clean_feature_metadata() to ensure updates are applied correctly. Only for FCs
+        #     item_md = md.Metadata(fc_path)
+        #     item_md.synchronize("ALWAYS")
 
         # Not including yet-to-be-produced data dictionaries
         logging.info("Packaging data for web distribution...")
+        arcpy.ClearWorkspaceCache_management()
+        time.sleep(5)
         package.archive_zipping(
             parent_dir=temp_cycle_dir,
             archive_specs=ZONING_PACKAGING,
             output_dir_name="web",
+            ignore_locks=False, #Can be set to True if arcpy.ClearWorkspaceCache_management() doesn't work
             product_version=CYCLE_DATE
         )
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
         logging.info("Copying cycle directory to production location ...")
         arcpy.ClearWorkspaceCache_management()
+        time.sleep(5)
         shutil.copytree(
             src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH, dirs_exist_ok=True
         )

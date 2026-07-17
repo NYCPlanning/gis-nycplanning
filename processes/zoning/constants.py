@@ -106,65 +106,18 @@ GEOREF_CONVENTIONS = {
 }
 
 """
-ZONING_PACKAGING defines packaging outputs and metadata exports for final delivery.
-Keys:
-  zip_files: packaging definitions for geodatabase and shapefile outputs
-  metadata: metadata export definitions and output file names
-  """
-# ZONING_PACKAGING= {
-#     "zip_files": {
-#         "zoning_features_gdb": {
-#             "src_parent_dir": "gdb",
-#             "name": "nyc_zoning_features_gdb.zip",
-#             "contents":["nyc_zoning_features.gdb"]
-#         },
-#         "georeferenced_gdb": {
-#             "src_parent_dir": "gdb",
-#             "name": "nyc_zoning_georeferenced_maps_gdb.zip",
-#             "contents":["nyc_zoning_georeferenced_maps.gdb"]
-#         },
-#         "zoning_features_shp": {
-#             "src_parent_dir": "shp",
-#             "name": "nyc_zoning_features_shp.zip",
-#             "contents":["zoning_commercial_overlays.*",
-#                         "zoning_districts.*",
-#                         "zoning_limited_height.*",
-#                         "zoning_map_amendments.*",
-#                         "zoning_special_districts.*",
-#                         "zoning_special_subdistricts.*",
-#                         ]
-#         },
-#             "zoning_features_gdb_archive": {
-#             "src_parent_dir": "gdb",
-#             "name": "nyc_zoning_features_{cycle_date}_gdb.zip",
-#             "contents":["nyc_zoning_features.gdb"]
-#         },        
-#         "georeferenced_gdb_archive": {
-#             "src_parent_dir": "gdb",
-#             "name": "nyc_zoning_georeferenced_maps_{cycle_date}_gdb.zip",
-#             "contents":["nyc_zoning_georeferenced_maps.gdb"]
-#         },
-#         "zoning_features_shp_archive": {
-#             "src_parent_dir": "shp",
-#             "name": "nyc_zoning_features_{cycle_date}_shp.zip",
-#             "contents":["zoning_commercial_overlays.*",
-#                         "zoning_districts.*",
-#                         "zoning_limited_height.*",
-#                         "zoning_map_amendments.*",
-#                         "zoning_special_districts.*",
-#                         "zoning_special_subdistricts.*",
-#                         ]
-#         },
-        
-#     },
-#     "metadata": {
-#         "zd": {
-#             "src_parent_dir": "metadata",
-#             "name": "nyc_zoning_districts_data_dictionary.xlsx",
-#         }
-#     }
-# }
+ZONING_PACKAGING defines archive packaging rules for output distribution.
 
+Each entry in the dictionary represents one archive to build. 
+Archive specifications are defined in a dictionary with the following keys:
+- source_dirs: one or more folders to search for input files
+- content: explicit file names to include from those folders
+- output_name: the zip file name to create
+- output_dir: the folder where the zip should be written
+
+This structure supports packaging both single-folder and multi-folder archives
+while keeping the file selection explicit.
+"""
 ZONING_PACKAGING = {
     "zoning_features_gdb": {
         "source_dirs": ["gdb"],
@@ -198,16 +151,15 @@ ZONING_PACKAGING = {
         "output_dir": "web",
     },
     "georeferenced_gdb_archive": {
-        "source_dirs": ["gdb", "metadata"],
+        "source_dirs": ["gdb"],
         "content": [
             "nyc_zoning_georeferenced_maps.gdb",
-            "zoning_georeferenced_maps.xlsx",
         ],
         "output_name": "nyc_zoning_georeferenced_maps_{cycle_date}_gdb.zip",
         "output_dir": "web",
     },
     "zoning_features_shp_archive": {
-        "source_dirs": ["shp", "metadata"],
+        "source_dirs": ["shp"],
         "content": [
             "zoning_commercial_overlays.*",
             "zoning_districts.*",
@@ -215,12 +167,6 @@ ZONING_PACKAGING = {
             "zoning_map_amendments.*",
             "zoning_special_districts.*",
             "zoning_special_subdistricts.*",
-            "zoning_commercial_overlays.xlsx",
-            "zoning_districts.xlsx",
-            "zoning_limited_height.xlsx",
-            "zoning_map_amendments.xlsx",
-            "zoning_special_districts.xlsx",
-            "zoning_special_subdistricts.xlsx",
         ],
         "output_name": "nyc_zoning_features_{cycle_date}_shp.zip",
         "output_dir": "web",
