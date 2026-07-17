@@ -70,7 +70,7 @@ def main():
     source_middle = SOURCE_CONNECTION_FILE_NAME.removeprefix("sde@GIS").removesuffix(".sde")
     SOURCE_SDE_PREFIX: str = f"GIS{source_middle}.{SOURCE_SCHEMA}."
     SOURCE_SDE_DZM_PATH: Path = Path(SOURCE_SDE_PATH / f"{SOURCE_SDE_PREFIX}Digital_Zoning_Map")
-    METADATA_STAGING_DIR: Path = Path(OPEN_DATA_STAGING_PATH / "zoning"/ "_metadata_staging")
+    METADATA_STAGING_DIR: Path = Path(OPEN_DATA_STAGING_PATH / "zoning" / "_metadata_staging")
     OPEN_DATA_STAGING_YEAR_PATH: Path = Path(OPEN_DATA_STAGING_PATH / "zoning" / CYCLE_DATE[:4])
     OPEN_DATA_STAGING_CYCLE_PATH: Path = Path(OPEN_DATA_STAGING_YEAR_PATH / CYCLE_DATE)
     XML_TEMPLATES_PATH: Path = Path(__file__).parent / "templates" / "metadata"
@@ -78,7 +78,9 @@ def main():
     dcp_logging.override_log_level(LOG_LEVEL_OVERRIDE)
 
     COUNCIL_DATE = date_logic.get_latest_date_from_field(
-        feature_class_path=str(SOURCE_SDE_DZM_PATH / f"{SOURCE_SDE_PREFIX}{ZONING_CONVENTIONS['nyzma']['trd_fc_name']}"),
+        feature_class_path=str(
+            SOURCE_SDE_DZM_PATH / f"{SOURCE_SDE_PREFIX}{ZONING_CONVENTIONS['nyzma']['trd_fc_name']}"
+        ),
         date_field="EFFECTIVE",
         override_config_value=settings_global["city_council_date"],  # defaults to None if blank in config file
     )
@@ -269,7 +271,7 @@ def main():
             parent_dir=temp_cycle_dir,
             archive_specs=ZONING_PACKAGING,
             output_dir_name="web",
-            ignore_locks=False,  # Can be set to True if arcpy.ClearWorkspaceCache_management() doesn't work
+            dangerous_ignore_locks=False,  # Can be set to True if arcpy.ClearWorkspaceCache_management() doesn't work
             product_version=CYCLE_DATE,
         )
 
