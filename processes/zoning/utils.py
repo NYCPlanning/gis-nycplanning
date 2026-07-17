@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 import arcpy
 import os
-import zipfile
 
 from dcpgis.utils import inspect_data
 from arcpy import metadata as md
@@ -109,33 +108,6 @@ def dissolve_in_place(workspace: str, feature_class: str, dissolve_field: list, 
             )
 
     arcpy.management.Delete(in_data=f"{feature_class}_UNDISSOLVED")
-
-
-def web_packaging(parent_dir: str, packaging_dict: dict, cycle_date: str = None):
-    """
-    Creates zip files in the /web folder as defined in the packaging_dict.
-    
-    Args:
-        parent_dir (str or Path): Path to the parent directory containing 'gdb', 'shp', 'web', etc.
-        packaging_dict (dict): The ZONING_PACKAGING dictionary.
-        cycle_date (str, optional): The cycle date to include in the zip file name. Defaults to None.
-    """
-    parent_dir = Path(parent_dir)
-    web_dir = parent_dir / "web"
-    web_dir.mkdir(parents=True, exist_ok=True) # redundant but safe
-
-    for _, zip_info in packaging_dict["zip_files"].items():
-        zip_name = zip_info["name"].format(cycle_date=cycle_date) if cycle_date else zip_info["name"]
-        src_parent_dir = parent_dir / zip_info["src_parent_dir"]
-        contents = zip_info["contents"]
-
-        zip_path = web_dir / zip_name
-        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-            for pattern in contents:
-                for file_path in src_parent_dir.glob(pattern):
-                    # Write file to zip, preserving only the filename (not full path)
-                    zf.write(file_path, arcname=file_path.name)
-        logging.debug(f"Created {zip_name}")
 
 
 def update_metadata_values(base_dict: dict, feature_info: dict, cycle_date: str, council_date:str) -> dict:

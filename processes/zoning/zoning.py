@@ -13,6 +13,7 @@ from dcpgis.utils import config
 from dcpgis.utils import logging as dcp_logging
 from dcpgis.utils import date_logic
 from dcpgis.utils import dir_mgmt
+from dcpgis.utils import package
 
 from constants import (
     ZONING_CONVENTIONS,
@@ -337,10 +338,11 @@ def main():
 
         # Not including yet-to-be-produced data dictionaries
         logging.info("Packaging data for web distribution...")
-        zoning_utils.web_packaging(
+        package.archive_zipping(
             parent_dir=temp_cycle_dir,
-            packaging_dict=ZONING_PACKAGING,
-            cycle_date=CYCLE_DATE,
+            archive_specs=ZONING_PACKAGING,
+            output_dir_name="web",
+            product_version=CYCLE_DATE
         )
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
