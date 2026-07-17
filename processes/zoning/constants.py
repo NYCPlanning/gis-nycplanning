@@ -173,6 +173,14 @@ ZONING_PACKAGING = {
     },
 }
 
+ZONING_DATA_DICTS = ["zoning_commercial_overlays_data_dictionary.xlsx",
+                    "zoning_districts_data_dictionary.xlsx",
+                    "zoning_limited_height_data_dictionary.xlsx",
+                    "zoning_map_amendments_data_dictionary.xlsx",
+                    "zoning_special_districts_data_dictionary.xlsx",
+                    "zoning_special_subdistricts_data_dictionary.xlsx",
+                    ]
+
 #TODO: Confirm all zoning features have the same crea_date
 """
 METADATA_XML_VALUES provides default XML metadata fields used to seed
