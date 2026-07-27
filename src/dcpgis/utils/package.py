@@ -3,9 +3,14 @@ import zipfile
 import logging
 import shutil
 
-#TODO: consider adding decorators for ClearingworkspaseCache_management() + sleep to clear locks
+
+# TODO: consider adding decorators for ClearingworkspaseCache_management() + sleep to clear locks
 def archive_zipping(
-    parent_dir: str, archive_specs: dict, output_dir_name: str, dangerous_ignore_locks: bool = False, product_version: str = None
+    parent_dir: str,
+    archive_specs: dict,
+    output_dir_name: str,
+    dangerous_ignore_locks: bool = False,
+    product_version: str = None,
 ):
     """
     Creates zip files in a sub-directory as defined in the archive_specs dictionary.
@@ -70,7 +75,9 @@ def archive_zipping(
                                         if dangerous_ignore_locks:
                                             logging.debug(f"Skipping lock file: {nested}")
                                             continue
-                                        raise RuntimeError(f"Lock file found: {nested}. Set dangerous_ignore_locks=True to skip.")
+                                        raise RuntimeError(
+                                            f"Lock file found: {nested}. Set dangerous_ignore_locks=True to skip."
+                                        )
 
                                     zf.write(nested, arcname=nested.relative_to(source_dir))
 
@@ -79,7 +86,9 @@ def archive_zipping(
                                 if dangerous_ignore_locks:
                                     logging.debug(f"Skipping lock file {match}")
                                     continue
-                                raise RuntimeError(f"Lock file found: {match}. Set dangerous_ignore_locks=True to skip.")
+                                raise RuntimeError(
+                                    f"Lock file found: {match}. Set dangerous_ignore_locks=True to skip."
+                                )
 
                             zf.write(match, arcname=match.relative_to(source_dir))
 
