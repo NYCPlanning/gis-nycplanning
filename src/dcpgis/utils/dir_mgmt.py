@@ -7,10 +7,10 @@ def create_dir_with_subdirs(parent_dir_path: Path, sub_dirs: list) -> None:
 
     The sub_dirs list may include nested paths, such as
     ["top_level", "another_top_level", "third_top_level/nested/nested_again"],
-    and each path will be created as needed.
+    and each path will be created along with any required intermediate directories.
 
-    This function is non-destructive: it will not raise an error if a directory
-    already exists, and it will not remove or modify existing files.
+    This function creates the target directory path and its sub-directories as needed,
+    while leaving existing directories and files in place.
 
     Args:
         parent_dir_path (Path): The parent directory under which to create the sub-directories.
@@ -21,5 +21,4 @@ def create_dir_with_subdirs(parent_dir_path: Path, sub_dirs: list) -> None:
     """
     for sub_dir in sub_dirs:
         dir_path = Path(parent_dir_path / sub_dir)
-        if dir_path.exists():
-            Path.mkdir(dir_path, parents=True, exist_ok=True)
+        Path.mkdir(dir_path, parents=True, exist_ok=True)

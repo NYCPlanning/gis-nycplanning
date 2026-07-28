@@ -109,6 +109,7 @@ def main():
             parent_dir_path=temp_cycle_dir,
             sub_dirs=OPEN_DATA_SUB_DIRS,
         )
+        assert temp_cycle_dir.exists(), f"Temporary cycle directory {temp_cycle_dir} was not created successfully."
 
         # Extract all unique geodatabase names from conventions
         GDB_NAMES = set()
