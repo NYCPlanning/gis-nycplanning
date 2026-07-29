@@ -6,8 +6,10 @@ import os
 from dcpgis.utils import inspect_data
 from arcpy import metadata as md
 
+logger = logging.getLogger(__name__)
+
 def utils_test():
-    logging.debug("Utils test is functioning properly.")
+    logger.debug("Utils test is functioning properly.")
 
 def export_feature_using_dict(
     src: str,
@@ -50,7 +52,7 @@ def export_feature_using_dict(
                                                     dataset_2=dst_path)
     
     if out_count != in_count:
-        logging.debug(f"Record count of {os.path.basename(dst_path)} changed from {in_count} to {out_count} during processing")
+        logger.debug(f"Record count of {os.path.basename(dst_path)} changed from {in_count} to {out_count} during processing")
 
 
 def drop_fields_from_fc(workspace: str, feature_class: str, keep_fields: list):
@@ -94,7 +96,7 @@ def dissolve_in_place(workspace: str, feature_class: str, dissolve_field: list, 
     in_count, out_count = inspect_data.get_record_count_comparison(dataset_1=f"{feature_class}_UNDISSOLVED",
                                                                     dataset_2=feature_class)
     if out_count != in_count:
-            logging.debug(f"Record count of {feature_class} changed from {in_count} to {out_count} during processing")
+            logger.debug(f"Record count of {feature_class} changed from {in_count} to {out_count} during processing")
     
     # Drop statistics type prefix from field name to retain original schema
     fields_in_fc = [f.name for f in arcpy.ListFields(feature_class)]
@@ -173,28 +175,28 @@ def import_and_clean_feature_metadata(in_feature: str, md_template_file: str):
         in_feature (str): Path to the feature class to update with metadata.
         md_template_file (str): Path to the metadata XML template file to import.
     """
-    logging.info(f"Importing and cleaning metadata for {in_feature}")
+    logger.info(f"Importing and cleaning metadata for {in_feature}")
     item_md = md.Metadata(in_feature)
 
     # upgrade md
     item_md.upgrade("ESRI_ISO")
-    logging.debug(f"Upgrading metadata for {in_feature}")
+    logger.debug(f"Upgrading metadata for {in_feature}")
 
     # import from metadata template
     item_md.importMetadata(
         sourceUri=md_template_file, #metadata_import_option="ISO19139"
     )
-    logging.debug(f"Importing metadata from {md_template_file}")
+    logger.debug(f"Importing metadata from {md_template_file}")
 
     # # synchronize md (NOTE: doesn't play well w/ template - room for improvement)
     # item_md.synchronize("ALWAYS")
-    # logging.debug(f"Synchronizing metadata for {in_feature}")
+    # logger.debug(f"Synchronizing metadata for {in_feature}")
 
     # TODO: assign thumbnail from template @ templates\_template_{product}_thumbnail.jpg
 
     # delete gp etc
     item_md.deleteContent("GPHISTORY")
-    logging.debug(f"Deleting GP history from metadata for {in_feature}")
+    logger.debug(f"Deleting GP history from metadata for {in_feature}")
 
     item_md.save()
 
