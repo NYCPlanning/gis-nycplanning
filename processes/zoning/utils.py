@@ -38,14 +38,24 @@ def export_feature_using_dict(
     out_name = feature_info[dst_key] + (".shp" if export_as_shapefile else "")
     dst_path = str(Path(dst) / out_name)
 
+    # Use Field Mapping to drop GlobalID because it can not be deleted using DeleteFields()
+    fms = arcpy.FieldMappings()
+    fms.addTable(src_path)
+
+    gid_index = fms.findFieldMapIndex("GlobalID")
+    if gid_index != 1:
+        fms.removeFieldMap(gid_index)
+
     if sql_key is None: 
         arcpy.conversion.ExportFeatures(in_features=src_path,
                                         out_features=dst_path,
+                                        field_mapping=fms,
                                         )
     else:
         arcpy.conversion.ExportFeatures(in_features=src_path,
                                         out_features=dst_path,
                                         where_clause=feature_info[sql_key],
+                                        field_mapping=fms,
                                         )
     
     in_count, out_count = inspect_data.get_record_count_comparison(dataset_1=src_path,
