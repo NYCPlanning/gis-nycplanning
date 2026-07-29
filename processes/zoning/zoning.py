@@ -30,6 +30,8 @@ CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
 PRODUCT_CONFIG_FILE_PARENT = Path(__file__).parent / "config"
 LOG_FILE_PARENT = Path(__file__).parent / "log"
 
+logger = logging.getLogger(__name__)
+
 
 def main():
     cli = CLI()
@@ -43,8 +45,8 @@ def main():
     )
 
     start_time = datetime.now().replace(microsecond=0)
-    logging.info("{delim} Process Starting {delim}".format(delim="=" * 15))
-    logging.info(f"ENVIRONMENT:     {ENVIRONMENT}")
+    logger.info("{delim} Process Starting {delim}".format(delim="=" * 15))
+    logger.info(f"ENVIRONMENT:     {ENVIRONMENT}")
 
     # Product Config values
     product_config = config.Config(app_env=ENVIRONMENT, config_file_path=PRODUCT_CONFIG_FILE_PARENT)
@@ -53,7 +55,6 @@ def main():
     SOURCE_CONNECTION_FILE_NAME: str = settings_product["source_connection_file"]["name"]
     SOURCE_SCHEMA: str = settings_product["source_connection_file"]["schema"]
     DESTINATION_CONNECTION_FILE_NAME: str = settings_product["destination_connection_file"]["name"]
-    DESTINATION_SCHEMA: str = settings_product["destination_connection_file"]["schema"]
 
     # Global Config values
     main_config = config.Config(app_env=ENVIRONMENT, config_file_path=CONFIG_FILE_PARENT)
@@ -85,17 +86,17 @@ def main():
         override_config_value=settings_global["city_council_date"],  # defaults to None if blank in config file
     )
 
-    logging.debug(f"OPEN_DATA_STAGING_PATH: {OPEN_DATA_STAGING_PATH}")
-    logging.debug(f"CONNECTION_FILE_PATH: {CONNECTION_FILE_PATH}")
-    logging.debug(f"SOURCE_CONNECTION_FILE_NAME: {SOURCE_CONNECTION_FILE_NAME}")
-    logging.debug(f"DESTINATION_CONNECTION_FILE_NAME: {DESTINATION_CONNECTION_FILE_NAME}")
-    logging.debug(f"SOURCE_SDE_PATH: {SOURCE_SDE_PATH}")
-    logging.debug(f"SOURCE_SDE_DZM_PATH: {SOURCE_SDE_DZM_PATH}")
-    logging.debug(f"OPEN_DATA_STAGING_YEAR_PATH: {OPEN_DATA_STAGING_YEAR_PATH}")
-    logging.debug(f"OPEN_DATA_STAGING_CYCLE_PATH: {OPEN_DATA_STAGING_CYCLE_PATH}")
-    logging.info(f"XML_TEMPLATES_PATH: {XML_TEMPLATES_PATH}")
-    logging.info(f"CYCLE_DATE: {CYCLE_DATE}")
-    logging.info(f"COUNCIL_DATE: {COUNCIL_DATE}")
+    logger.debug(f"OPEN_DATA_STAGING_PATH: {OPEN_DATA_STAGING_PATH}")
+    logger.debug(f"CONNECTION_FILE_PATH: {CONNECTION_FILE_PATH}")
+    logger.debug(f"SOURCE_CONNECTION_FILE_NAME: {SOURCE_CONNECTION_FILE_NAME}")
+    logger.debug(f"DESTINATION_CONNECTION_FILE_NAME: {DESTINATION_CONNECTION_FILE_NAME}")
+    logger.debug(f"SOURCE_SDE_PATH: {SOURCE_SDE_PATH}")
+    logger.debug(f"SOURCE_SDE_DZM_PATH: {SOURCE_SDE_DZM_PATH}")
+    logger.debug(f"OPEN_DATA_STAGING_YEAR_PATH: {OPEN_DATA_STAGING_YEAR_PATH}")
+    logger.debug(f"OPEN_DATA_STAGING_CYCLE_PATH: {OPEN_DATA_STAGING_CYCLE_PATH}")
+    logger.info(f"XML_TEMPLATES_PATH: {XML_TEMPLATES_PATH}")
+    logger.info(f"CYCLE_DATE: {CYCLE_DATE}")
+    logger.info(f"COUNCIL_DATE: {COUNCIL_DATE}")
 
     # Set Environment Parallel Processing (100% = maximum available cores)
     arcpy.env.parallelProcessingFactor = "100%"
@@ -116,16 +117,16 @@ def main():
         for convention in [ZONING_CONVENTIONS, GEOREF_CONVENTIONS]:
             for info in convention.values():
                 GDB_NAMES.add(info["gdb_name"])
-        logging.debug(f"The following GDBs referenced in constants.py will be created: {GDB_NAMES}")
+        logger.debug(f"The following GDBs referenced in constants.py will be created: {GDB_NAMES}")
 
         # Create Zoning GeoDatabases
-        logging.info("Creating GeoDatabases...")
+        logger.info("Creating GeoDatabases...")
         for gdb_name in GDB_NAMES:
             arcpy.management.CreateFileGDB(out_folder_path=os.path.join(temp_cycle_dir, "gdb"), out_name=gdb_name)
 
         # Export zoning fcs to gdb workspace
-        logging.info("Exporting zoning features from source ...")
-        for _, feature_info in ZONING_CONVENTIONS.items():
+        logger.info("Exporting zoning features from source ...")
+        for feature_info in ZONING_CONVENTIONS.values():
             dst_gdb = os.path.join(temp_cycle_dir, "gdb", feature_info["gdb_name"])
             zoning_utils.export_feature_using_dict(
                 src=SOURCE_SDE_DZM_PATH,
@@ -137,8 +138,8 @@ def main():
                 sql_key="sql_expression",
             )
 
-        logging.info("Removing internal-only fields from Feature Classes ...")
-        for _, feature_info in ZONING_CONVENTIONS.items():
+        logger.info("Removing internal-only fields from Feature Classes ...")
+        for feature_info in ZONING_CONVENTIONS.values():
             if feature_info["desired_fields"]:
                 zoning_utils.drop_fields_from_fc(
                     workspace=os.path.join(temp_cycle_dir, "gdb", feature_info["gdb_name"]),
@@ -146,7 +147,7 @@ def main():
                     keep_fields=feature_info["desired_fields"],
                 )
 
-        logging.info("Dissolving Special Districts ... ")
+        logger.info("Dissolving Special Districts ... ")
         zoning_utils.dissolve_in_place(
             workspace=os.path.join(temp_cycle_dir, "gdb", ZONING_CONVENTIONS["nysp"]["gdb_name"]),
             feature_class=ZONING_CONVENTIONS["nysp"]["public_output_name"],
@@ -154,8 +155,8 @@ def main():
             statistics_fields=ZONING_CONVENTIONS["nysp"]["statistics_fields"],
         )
 
-        logging.info("Exporting FCs to Shapefiles...")
-        for _, feature_info in ZONING_CONVENTIONS.items():
+        logger.info("Exporting FCs to Shapefiles...")
+        for feature_info in ZONING_CONVENTIONS.values():
             src_gdb = os.path.join(temp_cycle_dir, "gdb", feature_info["gdb_name"])
             zoning_utils.export_feature_using_dict(
                 src=src_gdb,
@@ -166,7 +167,7 @@ def main():
                 export_as_shapefile=True,
             )
 
-        logging.info("Exporting Zoning Georeferenced Map raster...")
+        logger.info("Exporting Zoning Georeferenced Map raster...")
         src_raster_name = SOURCE_SDE_PREFIX + GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["trd_fc_name"]
         src_raster_path = os.path.join(SOURCE_SDE_PATH, src_raster_name)
         dst_raster_gdb = os.path.join(
@@ -190,8 +191,8 @@ def main():
         )
 
         # Update metadata XML files and apply them to features according to feature and metadata dictionaries
-        logging.info("Updating and applying metadata...")
-        for _, feature_info in ZONING_CONVENTIONS.items():
+        logger.info("Updating and applying metadata...")
+        for feature_info in ZONING_CONVENTIONS.values():
             # Create feature_metadata dict using static METADATA_XML_VALUES dict updated with feature-specific and
             # cycle-specific values from ZONING_CONVENTIONS;
             # these will be used to update the metadata XML template before importing to features
@@ -236,7 +237,7 @@ def main():
         However, incorporating the georef zm into the same dict as the rest of zoning features became overly complicated when I remembered that 
         georef zm source data is not nested within a feature dataset, meaning file name construction doesn't work for both simultaneously.        
         """
-        for _, feature_info in GEOREF_CONVENTIONS.items():
+        for _, feature_info in GEOREF_CONVENTIONS.value():
             feature_metadata = zoning_utils.update_metadata_values(
                 base_dict=METADATA_XML_VALUES,
                 feature_info=feature_info,
@@ -265,7 +266,7 @@ def main():
             item_md = md.Metadata(fc_path)
             item_md.synchronize("ALWAYS")
 
-        logging.info("Packaging data for web distribution...")
+        logger.info("Packaging data for web distribution...")
         arcpy.ClearWorkspaceCache_management()
         time.sleep(5)
         package.archive_zipping(
@@ -285,19 +286,19 @@ def main():
             )
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
-        logging.info("Copying cycle directory to production location ...")
+        logger.info("Copying cycle directory to production location ...")
         arcpy.ClearWorkspaceCache_management()
         time.sleep(5)
         shutil.copytree(src=temp_cycle_dir, dst=OPEN_DATA_STAGING_CYCLE_PATH, dirs_exist_ok=True)
 
         end_time = datetime.now().replace(microsecond=0)
         duration = end_time - start_time
-        logging.info("{delim} Runtime: {dur} {delim}\n\n".format(delim="=" * 15, dur=duration))
+        logger.info("{delim} Runtime: {dur} {delim}\n\n".format(delim="=" * 15, dur=duration))
 
 
 if __name__ == "__main__":
     try:
         main()
     except Exception:
-        logging.exception("Process failed")
+        logger.exception("Process failed")
         raise
