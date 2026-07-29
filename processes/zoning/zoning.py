@@ -138,19 +138,6 @@ def main():
                 sql_key="sql_expression",
             )
 
-        for feature_info in ZONING_CONVENTIONS.values():
-            fc_path = os.path.join(
-                temp_cycle_dir,
-                "gdb",
-                feature_info["gdb_name"],
-                feature_info["public_output_name"],
-            )
-
-            print(f"\nFields for {feature_info['public_output_name']}:")
-            fields = arcpy.ListFields(fc_path)
-            for field in fields:
-                print(f" - {field.name}")
-
         logger.info("Removing internal-only fields from Feature Classes ...")
         for feature_info in ZONING_CONVENTIONS.values():
             if feature_info["desired_fields"]:
@@ -159,20 +146,6 @@ def main():
                     feature_class=feature_info["public_output_name"],
                     keep_fields=feature_info["desired_fields"],
                 )
-
-        for feature_info in ZONING_CONVENTIONS.values():
-            fc_path = os.path.join(
-                temp_cycle_dir,
-                "gdb",
-                feature_info["gdb_name"],
-                feature_info["public_output_name"],
-            )
-
-            print(f"\nFields for {feature_info['public_output_name']}:")
-            fields = arcpy.ListFields(fc_path)
-            for field in fields:
-                print(f" - {field.name}")
-
 
         logger.info("Dissolving Special Districts ... ")
         zoning_utils.dissolve_in_place(
