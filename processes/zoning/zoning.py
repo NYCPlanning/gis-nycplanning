@@ -136,6 +136,7 @@ def main():
                 src_key="trd_fc_name",
                 dst_key="public_output_name",
                 sql_key="sql_expression",
+                drop_global_id=True,
             )
 
         logger.info("Removing internal-only fields from Feature Classes ...")
@@ -165,6 +166,7 @@ def main():
                 src_key="public_output_name",
                 dst_key="public_output_name",
                 export_as_shapefile=True,
+                drop_global_id=False,
             )
 
         logger.info("Exporting Zoning Georeferenced Map raster...")

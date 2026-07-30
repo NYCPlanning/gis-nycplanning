@@ -20,6 +20,7 @@ def export_feature_using_dict(
     src_prefix: str = "",
     sql_key: str = None,
     export_as_shapefile: bool = False,
+    drop_global_id: bool = False,
 ):
     """
     Exports feature classes from a source to a destination using a dictionary to define parameters. 
@@ -39,12 +40,15 @@ def export_feature_using_dict(
     dst_path = str(Path(dst) / out_name)
 
     # Use Field Mapping to drop GlobalID because it can not be deleted using DeleteFields()
-    fms = arcpy.FieldMappings()
-    fms.addTable(src_path)
+    if drop_global_id is True:
+        fms = arcpy.FieldMappings()
+        fms.addTable(src_path)
 
-    gid_index = fms.findFieldMapIndex("GlobalID")
-    if gid_index != 1:
-        fms.removeFieldMap(gid_index)
+        gid_index = fms.findFieldMapIndex("GlobalID")
+        if gid_index != 1:
+            fms.removeFieldMap(gid_index)
+    else:
+        fms = None
 
     if sql_key is None: 
         arcpy.conversion.ExportFeatures(in_features=src_path,
@@ -63,7 +67,6 @@ def export_feature_using_dict(
     
     if out_count != in_count:
         logger.debug(f"Record count of {os.path.basename(dst_path)} changed from {in_count} to {out_count} during processing")
-
 
 def drop_fields_from_fc(workspace: str, feature_class: str, keep_fields: list):
     """Drops all fields from a feature class except those specified in keep_fields.
