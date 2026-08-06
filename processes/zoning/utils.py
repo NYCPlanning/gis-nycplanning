@@ -86,7 +86,7 @@ def drop_fields_from_fc(workspace: str, feature_class: str, keep_fields: list):
                                      drop_field=fields_to_delete)
 
 
-def dissolve_in_place(workspace: str, feature_class: str, dissolve_field: list, statistics_fields: list):
+def dissolve_in_place(workspace: str, feature_class: str, dissolve_field: list, statistics_fields: list[list]):
     """
     Dissolves a feature class in place based on specified fields and statistics. 
 
@@ -94,7 +94,7 @@ def dissolve_in_place(workspace: str, feature_class: str, dissolve_field: list, 
         workspace (str): The path to the workspace containing the feature class.
         feature_class (str): The name of the feature class to be dissolved.
         dissolve_field (list): A list of field names to dissolve on.
-        statistics_fields (list): A list of statistics fields to include in the dissolve operation.
+        statistics_fields (list[list]): A list of lists that include statistics fields for dissolve. Example: [["Shape_Length", "SUM"], ["Shape_Area", "SUM"]]
     """
     arcpy.env.workspace = workspace
     arcpy.management.Rename(in_data=feature_class, 
