@@ -152,7 +152,7 @@ def update_metadata_values(base_dict: dict, feature_info: dict, cycle_date: str,
     return metadata_values    
 
 
-def update_xml_via_dictionary(input_xml_path: str, output_xml_path: str, metadata_dict: dict):
+def unpack_dict_into_string_file(input_xml_path: str, output_xml_path: str, metadata_dict: dict):
     """
     Updates an XML file's elements based on a provided dictionary.
 

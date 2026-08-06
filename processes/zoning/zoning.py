@@ -215,7 +215,7 @@ def main():
             shp_path = str(shp_path)
 
             # Update XML template with feature-specific and cycle-specific metadata values
-            zoning_utils.update_xml_via_dictionary(
+            zoning_utils.unpack_dict_into_string_file(
                 input_xml_path=xml_template_path,
                 output_xml_path=updated_xml_path,
                 metadata_dict=feature_metadata,
@@ -255,7 +255,7 @@ def main():
             updated_xml_path = str(updated_xml_path)
 
             # Update XML template with feature-specific and cycle-specific metadata values
-            zoning_utils.update_xml_via_dictionary(
+            zoning_utils.unpack_dict_into_string_file(
                 input_xml_path=xml_template_path,
                 output_xml_path=updated_xml_path,
                 metadata_dict=feature_metadata,
