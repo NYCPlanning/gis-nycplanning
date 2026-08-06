@@ -72,7 +72,7 @@ def test_archive_zipping_skips_lock_files_when_ignore_locks_true(package_test_tr
         }
     }
 
-    archive_zipping(package_test_tree_with_lock, archive_specs, output_dir_name="web", ignore_locks=True)
+    archive_zipping(package_test_tree_with_lock, archive_specs, output_dir_name="web", dangerous_ignore_locks=True)
 
     archive_path = package_test_tree_with_lock / "web" / "product.zip"
     with zipfile.ZipFile(archive_path) as zf:
@@ -94,7 +94,7 @@ def test_archive_zipping_raises_when_lock_files_found_and_ignore_locks_false(pac
     }
 
     with pytest.raises(RuntimeError, match="Lock file found"):
-        archive_zipping(package_test_tree_with_lock, archive_specs, output_dir_name="web", ignore_locks=False)
+        archive_zipping(package_test_tree_with_lock, archive_specs, output_dir_name="web", dangerous_ignore_locks=False)
 
 
 
