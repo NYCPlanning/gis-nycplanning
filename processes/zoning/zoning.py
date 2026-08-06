@@ -216,9 +216,9 @@ def main():
 
             # Update XML template with feature-specific and cycle-specific metadata values
             zoning_utils.unpack_dict_into_string_file(
-                input_xml_path=xml_template_path,
-                output_xml_path=updated_xml_path,
-                metadata_dict=feature_metadata,
+                input_str_path=xml_template_path,
+                output_str_path=updated_xml_path,
+                value_dict=feature_metadata,
             )
 
             # Import updated metadata into feature class
@@ -256,9 +256,9 @@ def main():
 
             # Update XML template with feature-specific and cycle-specific metadata values
             zoning_utils.unpack_dict_into_string_file(
-                input_xml_path=xml_template_path,
-                output_xml_path=updated_xml_path,
-                metadata_dict=feature_metadata,
+                input_str_path=xml_template_path,
+                output_str_path=updated_xml_path,
+                value_dict=feature_metadata,
             )
 
             # Import updated metadata into feature class

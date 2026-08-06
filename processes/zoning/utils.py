@@ -152,29 +152,25 @@ def update_metadata_values(base_dict: dict, feature_info: dict, cycle_date: str,
     return metadata_values    
 
 
-def unpack_dict_into_string_file(input_xml_path: str, output_xml_path: str, metadata_dict: dict):
+def unpack_dict_into_string_file(input_str_path: str, output_str_path: str, value_dict: dict):
     """
-    Updates an XML file's elements based on a provided dictionary.
+    Updates an string file's elements based on a provided dictionary.
 
     Args:
-        input_xml_path (str): Path to the XML file template.
-        output_xml_path (str): Path to the desired XML output.
-        metadata_dict (dict): Dictionary containing metadata values to insert.
+        input_str_path (str): Path to the text file template.
+        output_str_path (str): Path to the desired text output.
+        value_dict (dict): Dictionary containing values to insert.
     """
     
     # Read the XML as text
-    with open(input_xml_path, 'r') as f:
-        xml_content = f.read()
+    with open(input_str_path, 'r') as f:
+        str_content = f.read()
 
-    # TODO: Compare against Alex's implementation of xml updates
     # # Replace placeholders with values
-    for key, value in metadata_dict.items():
-        placeholder = '{' + key + '}'
-        xml_content = xml_content.replace(placeholder, value)
-
+    str_content = str_content.format(**value_dict)
     # Write the modified content
-    with open(output_xml_path, 'w', encoding='utf-8') as f:
-        f.write(xml_content)
+    with open(output_str_path, 'w', encoding='utf-8') as f:
+        f.write(str_content)
 
 
 def import_and_clean_feature_metadata(in_feature: str, md_template_file: str):
