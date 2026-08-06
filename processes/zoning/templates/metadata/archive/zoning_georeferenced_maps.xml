@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata xml:lang="en">
    <Esri>
-      <CreaDate>{crea_date}</CreaDate>
-      <CreaTime>{crea_time}</CreaTime>
       <ArcGISFormat>{arcgis_format}</ArcGISFormat>
       <SyncOnce>FALSE</SyncOnce>
       <DataProperties>
@@ -62,7 +60,6 @@
    <dataIdInfo>
       <idCitation>
          <date>
-            <createDate>{crea_date}</createDate>
             <pubDate>{pub_date}</pubDate>
          </date>
          <resTitle Sync="FALSE">{res_title}</resTitle>

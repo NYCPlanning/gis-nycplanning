@@ -189,10 +189,8 @@ metadata templates for zoning outputs.
 Values set to "" will be populated dynamically with update_xml_via_dictionary()
 """
 METADATA_XML_VALUES = {
-    "crea_date": "20151216",
     "pub_date": "", 
     "council_date": "",
-    "crea_time": "00000000",
     "arcgis_format": "1.0",
     "sync_once": "TRUE",
     "item_name": "",

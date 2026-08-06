@@ -1,21 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata>
    <Esri>
-      <CreaDate>{crea_date}</CreaDate>
-      <CreaTime>{crea_time}</CreaTime>
       <SyncOnce>{sync_once}</SyncOnce>
       <SyncDate>20260204</SyncDate>
-      <SyncTime>11122100</SyncTime>
+      <SyncTime>11122500</SyncTime>
       <ModDate>20260204</ModDate>
-      <ModTime>11122100</ModTime>
+      <ModTime>11122500</ModTime>
       <DataProperties>
          <itemProps>
             <itemName Sync="{item_name_sync}">{item_name}</itemName>
             <nativeExtBox>
-               <westBL Sync="TRUE">914621.578222</westBL>
-               <eastBL Sync="TRUE">1067334.594645</eastBL>
-               <southBL Sync="TRUE">123986.456473</southBL>
-               <northBL Sync="TRUE">271422.628792</northBL>
+               <westBL Sync="TRUE">913013.356700</westBL>
+               <eastBL Sync="TRUE">1054239.228776</eastBL>
+               <southBL Sync="TRUE">118296.424546</southBL>
+               <northBL Sync="TRUE">272940.861976</northBL>
                <exTypeCode Sync="TRUE">1</exTypeCode>
             </nativeExtBox>
             <imsContentType Sync="{ims_content_type_sync}">{ims_content_type}</imsContentType>
@@ -65,7 +63,6 @@
       <idCitation>
          <resTitle Sync="FALSE">{res_title}</resTitle>
          <date>
-            <createDate>{crea_date}</createDate>
             <pubDate>{pub_date}</pubDate>
          </date>
          <citRespParty>
@@ -75,14 +72,18 @@
                   <eMailAdd>DCPOpendata@planning.nyc.gov</eMailAdd>
                </cntAddress>
             </rpCntInfo>
+            <displayName>New York City Department of City Planning</displayName>
          </citRespParty>
          <presForm>
             <PresFormCd value="005" Sync="TRUE" />
          </presForm>
       </idCitation>
-      <idAbs>&lt;DIV STYLE="text-align:Left;"&gt;&lt;DIV&gt;&lt;DIV&gt;&lt;P&gt;&lt;SPAN&gt;Polygon features representing the within-tax-block limits for commercial overlay districts, as shown on the DCP zoning maps. Commercial overlay district designations are indicated in the OVERLAY attribute.&lt;/SPAN&gt;&lt;/P&gt;&lt;/DIV&gt;&lt;/DIV&gt;&lt;/DIV&gt;</idAbs>
-      <idPurp>Commercial overlay districts for New York City. A commercial overlay is a C1 or C2 district mapped within residential zoning districts to serve local retail needs. Data is updated monthly.</idPurp>
+      <idAbs>Special purpose districts have regulations that supplement and modify the underlying zoning for distinctive neighborhoods with particular issues and goals. The district designation is indicated in the SDNAME attribute. The abbreviation as shown on the zoning map is indicated in the SDLBL attribute. See also Special Purpose Subdistricts, which contains both the main special purpose district boundaries and the internal subdistricts. Subdistrict data has not been fully digitized and may be incomplete. See the Zoning Resolution for a complete description of the special purpose district. Where appropriate, the Zoning Resolution includes a district map showing subdistricts and subareas within the special purpose district.</idAbs>
+      <idPurp>Special purpose districts have regulations that supplement and modify the underlying zoning for distinctive neighborhoods with particular issues and goals.</idPurp>
       <idCredit>NYC Department of City Planning, Technical Review Division</idCredit>
+      <idStatus>
+         <ProgCd value="007" />
+      </idStatus>
       <resMaint>
          <maintFreq>
             <MaintFreqCd value="005" />
@@ -92,13 +93,13 @@
          <keyword>New York City</keyword>
       </placeKeys>
       <themeKeys>
+         <keyword>Special Purpose District</keyword>
          <keyword>Zoning</keyword>
          <keyword>Department of City Planning</keyword>
-         <keyword>Commercial Overlay</keyword>
       </themeKeys>
       <searchKeys>
          <keyword>Zoning</keyword>
-         <keyword>Commercial Overlay Districts</keyword>
+         <keyword>Special Purpose District</keyword>
          <keyword>New York City</keyword>
          <keyword>NYC</keyword>
          <keyword>Department of City Planning</keyword>
@@ -106,27 +107,27 @@
       </searchKeys>
       <resConst>
          <LegConsts>
-            <othConsts>The data is freely available to all New York City agencies and the public.Notice To Users: 1. Zoning data changes frequently! The downloadable zoning data will be updated on the last Monday of every month. Updates will include recent zoning changes adopted by City Council. 2. These features are not intended for determining zoning at the individual tax lot level.</othConsts>
+            <othConsts>The data is freely available to all New York City agencies and the public. Notice To Users: 1. Zoning data changes frequently! The downloadable zoning data will be updated on the last Monday of every month. Updates will include recent zoning changes adopted by City Council. 2. These features are not intended for determining zoning at the individual tax lot level.</othConsts>
          </LegConsts>
          <Consts>
-            <useLimit>&lt;DIV STYLE="text-align:Left;"&gt;&lt;DIV&gt;&lt;DIV&gt;&lt;P&gt;&lt;SPAN&gt;This dataset is being provided by the Department of City Planning (DCP) on DCP's website for informational purposes only. DCP does not warranty the completeness, accuracy, content, or fitness for any particular purpose or use of the dataset, nor are any such warranties to be implied or inferred with respect to the dataset as furnished on the website. DCP and the City are not liable for any deficiencies in the completeness, accuracy, content, or fitness for any particular purpose or use the dataset, or applications utilizing the dataset, provided by any third party.&lt;/SPAN&gt;&lt;/P&gt;&lt;/DIV&gt;&lt;/DIV&gt;&lt;/DIV&gt;</useLimit>
+            <useLimit>&lt;DIV STYLE="text-align:Left;"&gt;&lt;DIV&gt;&lt;DIV&gt;&lt;P&gt;&lt;SPAN&gt;1. Zoning data changes frequently. The downloadable zoning data will be updated monthly. Updates will include recent zoning changes adopted by City Council.&lt;/SPAN&gt;&lt;/P&gt;&lt;P&gt;&lt;SPAN&gt;2. These features are not intended for determining zoning at the individual tax lot level.&lt;/SPAN&gt;&lt;/P&gt;&lt;P&gt;&lt;SPAN&gt;3. This dataset is being provided by the Department of City Planning (DCP) on DCP's website for informational purposes only. DCP does not warranty the completeness, accuracy, content, or fitness for any particular purpose or use of the dataset, nor are any such warranties to be implied or inferred with respect to the dataset as furnished on the website. DCP and the City are not liable for any deficiencies in the completeness, accuracy, content, or fitness for any particular purpose or use the dataset, or applications utilizing the dataset, provided by any third party. &lt;/SPAN&gt;&lt;/P&gt;&lt;/DIV&gt;&lt;/DIV&gt;&lt;/DIV&gt;</useLimit>
          </Consts>
       </resConst>
       <dataLang>
          <languageCode value="eng" />
          <countryCode value="USA" Sync="TRUE" />
       </dataLang>
-      <suppInfo>The date of the most recent City Council adoptions included in this data is {council_date}.</suppInfo>
       <dataExt>
          <exDesc>publication date</exDesc>
       </dataExt>
+      <suppInfo>The date of the most recent City Council adoptions included in this data is {council_date}.</suppInfo>
+      <envirDesc Sync="FALSE">Esri ArcGIS 10.6</envirDesc>
       <dataChar>
          <CharSetCd value="004" />
       </dataChar>
       <tpCat>
          <TopicCatCd value="015" />
       </tpCat>
-      <envirDesc Sync="TRUE">Version 6.2 (Build 9200) ; Esri ArcGIS 10.9.1.28388</envirDesc>
       <spatRpType>
          <SpatRepTypCd value="001" Sync="TRUE" />
       </spatRpType>
@@ -134,10 +135,10 @@
          <geoEle>
             <GeoBndBox esriExtentType="search">
                <exTypeCode Sync="TRUE">1</exTypeCode>
-               <westBL Sync="TRUE">-74.251911</westBL>
-               <eastBL Sync="TRUE">-73.699406</eastBL>
-               <northBL Sync="TRUE">40.911666</northBL>
-               <southBL Sync="TRUE">40.506600</southBL>
+               <westBL Sync="TRUE">-74.257745</westBL>
+               <eastBL Sync="TRUE">-73.746768</eastBL>
+               <northBL Sync="TRUE">40.915833</northBL>
+               <southBL Sync="TRUE">40.491085</southBL>
             </GeoBndBox>
          </geoEle>
       </dataExt>
@@ -158,9 +159,9 @@
       </report>
    </dqInfo>
    <eainfo>
-      <detailed Name="nyco">
+      <detailed Name="nysp">
          <enttyp>
-            <enttypl Sync="TRUE">nyco</enttypl>
+            <enttypl Sync="TRUE">nysp</enttypl>
             <enttypt Sync="TRUE">Feature Class</enttypt>
             <enttypc Sync="TRUE">0</enttypc>
          </enttyp>
@@ -178,6 +179,15 @@
             </attrdomv>
          </attr>
          <attr>
+            <attrlabl Sync="TRUE">SDNAME</attrlabl>
+            <attalias Sync="TRUE">SDNAME</attalias>
+            <attrtype Sync="TRUE">String</attrtype>
+            <attwidth Sync="TRUE">255</attwidth>
+            <attrdef>Special District Name</attrdef>
+            <atprecis Sync="TRUE">0</atprecis>
+            <attscale Sync="TRUE">0</attscale>
+         </attr>
+         <attr>
             <attrlabl>SHAPE</attrlabl>
             <attrdef>Feature geometry.</attrdef>
             <attrdefs>ESRI</attrdefs>
@@ -191,11 +201,11 @@
             <attscale Sync="TRUE">0</attscale>
          </attr>
          <attr>
-            <attrlabl Sync="TRUE">OVERLAY</attrlabl>
-            <attalias Sync="TRUE">Commercial Overlay</attalias>
+            <attrlabl Sync="TRUE">SDLBL</attrlabl>
+            <attalias Sync="TRUE">SDLBL</attalias>
             <attrtype Sync="TRUE">String</attrtype>
-            <attwidth Sync="TRUE">15</attwidth>
-            <attrdef>Commercial Overlay District Designation</attrdef>
+            <attwidth Sync="TRUE">10</attwidth>
+            <attrdef>Special District Label as shown on DCP zoning maps</attrdef>
             <atprecis Sync="TRUE">0</atprecis>
             <attscale Sync="TRUE">0</attscale>
          </attr>
@@ -239,7 +249,7 @@
    </refSysInfo>
    <spatRepInfo>
       <VectSpatRep>
-         <geometObjs Name="nyco">
+         <geometObjs Name="nysp">
             <geoObjTyp>
                <GeoObjTypCd value="002" Sync="TRUE" />
             </geoObjTyp>
@@ -252,7 +262,7 @@
    </spatRepInfo>
    <spdoinfo>
       <ptvctinf>
-         <esriterm Name="nyco">
+         <esriterm Name="nysp">
             <efeatyp Sync="TRUE">Simple</efeatyp>
             <efeageom code="4" Sync="TRUE" />
             <esritopo Sync="TRUE">FALSE</esritopo>

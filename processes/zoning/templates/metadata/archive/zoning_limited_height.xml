@@ -1,24 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata>
    <Esri>
-      <CreaDate>{crea_date}</CreaDate>
-      <CreaTime>{crea_time}</CreaTime>
       <SyncOnce>{sync_once}</SyncOnce>
       <SyncDate>20260204</SyncDate>
-      <SyncTime>11121900</SyncTime>
+      <SyncTime>11122900</SyncTime>
       <ModDate>20260204</ModDate>
-      <ModTime>11121900</ModTime>
+      <ModTime>11122900</ModTime>
       <DataProperties>
          <itemProps>
             <itemName Sync="{item_name_sync}">{item_name}</itemName>
             <nativeExtBox>
-               <westBL Sync="TRUE">913013.300598</westBL>
-               <eastBL Sync="TRUE">1067340.151065</eastBL>
-               <southBL Sync="TRUE">118296.424546</southBL>
-               <northBL Sync="TRUE">272940.861976</northBL>
+               <westBL Sync="TRUE">984072.138795</westBL>
+               <eastBL Sync="TRUE">996745.570469</eastBL>
+               <southBL Sync="TRUE">188388.573404</southBL>
+               <northBL Sync="TRUE">225889.953453</northBL>
                <exTypeCode Sync="TRUE">1</exTypeCode>
             </nativeExtBox>
-            <imsContentType Sync="{ims_content_type_sync}">{ims_content_type}</imsContentType>
+            <imsContentType Sync="TRUE">002</imsContentType>
          </itemProps>
          <coordRef>
             <type Sync="TRUE">Projected</type>
@@ -34,7 +32,6 @@
          <minScale>{min_scale}</minScale>
          <maxScale>{max_scale}</maxScale>
       </scaleRange>
-      <ArcGISProfile>{arcgis_profile}</ArcGISProfile>
    </Esri>
    <mdLang>
       <languageCode value="eng" />
@@ -44,7 +41,7 @@
       <CharSetCd value="004" />
    </mdChar>
    <mdHrLv>
-      <ScopeCd value="{scope_value}" />
+      <ScopeCd value="005" />
    </mdHrLv>
    <distInfo>
       <distributor>
@@ -65,7 +62,6 @@
       <idCitation>
          <resTitle Sync="FALSE">{res_title}</resTitle>
          <date>
-            <createDate>{crea_date}</createDate>
             <pubDate>{pub_date}</pubDate>
          </date>
          <citRespParty>
@@ -81,29 +77,28 @@
             <PresFormCd value="005" Sync="TRUE" />
          </presForm>
       </idCitation>
-      <idAbs>&lt;DIV STYLE="text-align:Left;"&gt;&lt;DIV&gt;&lt;DIV&gt;&lt;P&gt;&lt;SPAN&gt;These are polygon features representing the zoning districts. These features cover the entire city, extending to the city limits on land and out to the US Army Corps of Engineers' pierhead lines over water. Zoning district designations are indicated in the ZONEDIST attribute.&lt;/SPAN&gt;&lt;/P&gt;&lt;/DIV&gt;&lt;/DIV&gt;&lt;/DIV&gt;</idAbs>
-      <idPurp>Zoning districts for New York City. Data is updated monthly.</idPurp>
+      <idAbs>&lt;DIV STYLE="text-align:Left;"&gt;&lt;DIV&gt;&lt;DIV&gt;&lt;P&gt;&lt;SPAN&gt;Limited Height Districts contain restrictions on the height of buildings and other structures. A Limited Height District may be superimposed on an area designated as an historic district by the Landmarks Preservation Commission. &lt;/SPAN&gt;&lt;/P&gt;&lt;/DIV&gt;&lt;/DIV&gt;&lt;/DIV&gt;</idAbs>
+      <idPurp>Districts in which the height of buildings is restricted.</idPurp>
       <idCredit>NYC Department of City Planning, Technical Review Division</idCredit>
       <idStatus>
-         <ProgCd value="007" />
+         <ProgCd value="001" />
       </idStatus>
       <resMaint>
          <maintFreq>
-            <MaintFreqCd value="005" />
+            <MaintFreqCd value="011" />
          </maintFreq>
       </resMaint>
       <placeKeys>
          <keyword>New York City</keyword>
       </placeKeys>
       <themeKeys>
+         <keyword>Limited Height District</keyword>
          <keyword>Zoning</keyword>
          <keyword>Department of City Planning</keyword>
       </themeKeys>
       <searchKeys>
-         <keyword>Zoning districts</keyword>
-         <keyword>residential</keyword>
-         <keyword>commercial</keyword>
-         <keyword>manufacturing</keyword>
+         <keyword>Zoning</keyword>
+         <keyword>Limited Height Districts</keyword>
          <keyword>New York City</keyword>
          <keyword>NYC</keyword>
          <keyword>Department of City Planning</keyword>
@@ -111,21 +106,21 @@
       </searchKeys>
       <resConst>
          <LegConsts>
-            <othConsts>The data is freely available to all New York City agencies and the public. Notice To Users: 1. Zoning data changes frequently! The downloadable zoning data will be updated on the last Monday of every month. Updates will include recent zoning changes adopted by City Council. 2. These features are not intended for determining zoning at the individual tax lot level.</othConsts>
+            <othConsts>The data is freely available to all New York City agencies and the public.Notice To Users: 1. Zoning data changes frequently! The downloadable zoning data will be updated on the last Monday of every month. Updates will include recent zoning changes adopted by City Council.</othConsts>
          </LegConsts>
          <Consts>
-            <useLimit>&lt;DIV STYLE="text-align:Left;"&gt;&lt;DIV&gt;&lt;DIV&gt;&lt;P&gt;&lt;SPAN&gt;1. Zoning data changes frequently. The downloadable zoning data will be updated monthly. Updates will include recent zoning changes adopted by City Council.&lt;/SPAN&gt;&lt;/P&gt;&lt;P&gt;&lt;SPAN&gt;2. These features are not intended for determining zoning at the individual tax lot level.&lt;/SPAN&gt;&lt;/P&gt;&lt;P&gt;&lt;SPAN&gt;3. This dataset is being provided by the Department of City Planning (DCP) on DCP's website for informational purposes only. DCP does not warranty the completeness, accuracy, content, or fitness for any particular purpose or use of the dataset, nor are any such warranties to be implied or inferred with respect to the dataset as furnished on the website. DCP and the City are not liable for any deficiencies in the completeness, accuracy, content, or fitness for any particular purpose or use the dataset, or applications utilizing the dataset, provided by any third party.&lt;/SPAN&gt;&lt;/P&gt;&lt;/DIV&gt;&lt;/DIV&gt;&lt;/DIV&gt;</useLimit>
+            <useLimit>&lt;DIV STYLE="text-align:Left;"&gt;&lt;DIV&gt;&lt;DIV&gt;&lt;P&gt;&lt;SPAN&gt;This feature class is not expected to change in the future. Any future updates will be announced in the GIS Zoning Features download section of the Department of City Planning website &lt;/SPAN&gt;&lt;A href="https://www1.nyc.gov/site/planning/data-maps/open-data.page"&gt;&lt;SPAN&gt;https://www1.nyc.gov/site/planning/data-maps/open-data.page&lt;/SPAN&gt;&lt;/A&gt;&lt;/P&gt;&lt;/DIV&gt;&lt;/DIV&gt;&lt;/DIV&gt;</useLimit>
          </Consts>
       </resConst>
       <dataLang>
          <languageCode value="eng" />
          <countryCode value="USA" Sync="TRUE" />
       </dataLang>
+      <suppInfo>The date of the most recent City Council adoptions included in this data is {council_date}.</suppInfo>
+      <envirDesc Sync="FALSE">Esri ArcGIS 10.6</envirDesc>
       <dataExt>
          <exDesc>publication date</exDesc>
       </dataExt>
-      <suppInfo>The date of the most recent City Council adoptions included in this data is {council_date}.</suppInfo>
-      <envirDesc Sync="FALSE">Esri ArcGIS 10.6</envirDesc>
       <dataChar>
          <CharSetCd value="004" />
       </dataChar>
@@ -139,10 +134,10 @@
          <geoEle>
             <GeoBndBox esriExtentType="search">
                <exTypeCode Sync="TRUE">1</exTypeCode>
-               <westBL Sync="TRUE">-74.257745</westBL>
-               <eastBL Sync="TRUE">-73.699367</eastBL>
-               <northBL Sync="TRUE">40.915833</northBL>
-               <southBL Sync="TRUE">40.490982</southBL>
+               <westBL Sync="TRUE">-74.000642</westBL>
+               <eastBL Sync="TRUE">-73.954877</eastBL>
+               <northBL Sync="TRUE">40.786692</northBL>
+               <southBL Sync="TRUE">40.683751</southBL>
             </GeoBndBox>
          </geoEle>
       </dataExt>
@@ -163,20 +158,12 @@
       </report>
    </dqInfo>
    <eainfo>
-      <detailed Name="nyzd">
-         <attr>
-            <attrlabl>SHAPE</attrlabl>
-            <attrdef>Feature geometry.</attrdef>
-            <attrdefs>ESRI</attrdefs>
-            <attrdomv>
-               <udom>Coordinates defining the features.</udom>
-            </attrdomv>
-            <attalias Sync="TRUE">Shape</attalias>
-            <attrtype Sync="TRUE">Geometry</attrtype>
-            <attwidth Sync="TRUE">0</attwidth>
-            <atprecis Sync="TRUE">0</atprecis>
-            <attscale Sync="TRUE">0</attscale>
-         </attr>
+      <detailed Name="nylh">
+         <enttyp>
+            <enttypl Sync="TRUE">nylh</enttypl>
+            <enttypt Sync="TRUE">Feature Class</enttypt>
+            <enttypc Sync="TRUE">0</enttypc>
+         </enttyp>
          <attr>
             <attrlabl Sync="TRUE">OBJECTID</attrlabl>
             <attalias Sync="TRUE">OBJECTID</attalias>
@@ -191,19 +178,36 @@
             </attrdomv>
          </attr>
          <attr>
-            <attrlabl Sync="TRUE">ZONEDIST</attrlabl>
-            <attalias Sync="TRUE">ZONEDIST</attalias>
+            <attrlabl Sync="TRUE">LHNAME</attrlabl>
+            <attalias Sync="TRUE">LHNAME</attalias>
             <attrtype Sync="TRUE">String</attrtype>
-            <attwidth Sync="TRUE">15</attwidth>
-            <attrdef>Zoning district designation</attrdef>
+            <attwidth Sync="TRUE">50</attwidth>
+            <attrdef>Limited height district name</attrdef>
             <atprecis Sync="TRUE">0</atprecis>
             <attscale Sync="TRUE">0</attscale>
          </attr>
-         <enttyp>
-            <enttypl Sync="TRUE">nyzd</enttypl>
-            <enttypt Sync="TRUE">Feature Class</enttypt>
-            <enttypc Sync="TRUE">0</enttypc>
-         </enttyp>
+         <attr>
+            <attrlabl Sync="TRUE">LHLBL</attrlabl>
+            <attalias Sync="TRUE">LHLBL</attalias>
+            <attrtype Sync="TRUE">String</attrtype>
+            <attwidth Sync="TRUE">10</attwidth>
+            <attrdef>Limited height district label</attrdef>
+            <atprecis Sync="TRUE">0</atprecis>
+            <attscale Sync="TRUE">0</attscale>
+         </attr>
+         <attr>
+            <attrlabl>SHAPE</attrlabl>
+            <attrdef>Feature geometry.</attrdef>
+            <attrdefs>ESRI</attrdefs>
+            <attrdomv>
+               <udom>Coordinates defining the features.</udom>
+            </attrdomv>
+            <attalias Sync="TRUE">Shape</attalias>
+            <attrtype Sync="TRUE">Geometry</attrtype>
+            <attwidth Sync="TRUE">0</attwidth>
+            <atprecis Sync="TRUE">0</atprecis>
+            <attscale Sync="TRUE">0</attscale>
+         </attr>
          <attr>
             <attrlabl Sync="TRUE">Shape_Length</attrlabl>
             <attalias Sync="TRUE">Shape_Length</attalias>
@@ -218,7 +222,7 @@
             </attrdomv>
          </attr>
          <attr>
-            <attrlabl Sync="TRUE">SHAPE_area</attrlabl>
+            <attrlabl Sync="TRUE">Shape_area</attrlabl>
             <attalias Sync="TRUE">Shape_Area</attalias>
             <attrtype Sync="TRUE">Double</attrtype>
             <attwidth Sync="TRUE">8</attwidth>
@@ -244,7 +248,7 @@
    </refSysInfo>
    <spatRepInfo>
       <VectSpatRep>
-         <geometObjs Name="nyzd">
+         <geometObjs Name="nylh">
             <geoObjTyp>
                <GeoObjTypCd value="002" Sync="TRUE" />
             </geoObjTyp>
@@ -257,7 +261,7 @@
    </spatRepInfo>
    <spdoinfo>
       <ptvctinf>
-         <esriterm Name="nyzd">
+         <esriterm Name="nylh">
             <efeatyp Sync="TRUE">Simple</efeatyp>
             <efeageom code="4" Sync="TRUE" />
             <esritopo Sync="TRUE">FALSE</esritopo>

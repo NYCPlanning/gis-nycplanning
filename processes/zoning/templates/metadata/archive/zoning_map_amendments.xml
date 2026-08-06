@@ -1,21 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata>
    <Esri>
-      <CreaDate>{crea_date}</CreaDate>
-      <CreaTime>{crea_time}</CreaTime>
       <SyncOnce>{sync_once}</SyncOnce>
       <SyncDate>20260204</SyncDate>
-      <SyncTime>11122500</SyncTime>
+      <SyncTime>11123100</SyncTime>
       <ModDate>20260204</ModDate>
-      <ModTime>11122500</ModTime>
+      <ModTime>11123100</ModTime>
       <DataProperties>
          <itemProps>
             <itemName Sync="{item_name_sync}">{item_name}</itemName>
             <nativeExtBox>
-               <westBL Sync="TRUE">913013.356700</westBL>
-               <eastBL Sync="TRUE">1054239.228776</eastBL>
-               <southBL Sync="TRUE">118296.424546</southBL>
-               <northBL Sync="TRUE">272940.861976</northBL>
+               <westBL Sync="TRUE">912744.489128</westBL>
+               <eastBL Sync="TRUE">1067345.992260</eastBL>
+               <southBL Sync="TRUE">118378.436850</southBL>
+               <northBL Sync="TRUE">272027.749301</northBL>
                <exTypeCode Sync="TRUE">1</exTypeCode>
             </nativeExtBox>
             <imsContentType Sync="{ims_content_type_sync}">{ims_content_type}</imsContentType>
@@ -44,14 +42,9 @@
       <CharSetCd value="004" />
    </mdChar>
    <mdHrLv>
-      <ScopeCd value="005" />
+      <ScopeCd value="{scope_value}" />
    </mdHrLv>
    <distInfo>
-      <distributor>
-         <distorOrdPrc>
-            <resFees>Free</resFees>
-         </distorOrdPrc>
-      </distributor>
       <distTranOps>
          <onLineSrc>
             <linkage>https://www1.nyc.gov/site/planning/data-maps/open-data.page</linkage>
@@ -65,7 +58,6 @@
       <idCitation>
          <resTitle Sync="FALSE">{res_title}</resTitle>
          <date>
-            <createDate>{crea_date}</createDate>
             <pubDate>{pub_date}</pubDate>
          </date>
          <citRespParty>
@@ -81,9 +73,8 @@
             <PresFormCd value="005" Sync="TRUE" />
          </presForm>
       </idCitation>
-      <idAbs>Special purpose districts have regulations that supplement and modify the underlying zoning for distinctive neighborhoods with particular issues and goals. The district designation is indicated in the SDNAME attribute. The abbreviation as shown on the zoning map is indicated in the SDLBL attribute. See also Special Purpose Subdistricts, which contains both the main special purpose district boundaries and the internal subdistricts. Subdistrict data has not been fully digitized and may be incomplete. See the Zoning Resolution for a complete description of the special purpose district. Where appropriate, the Zoning Resolution includes a district map showing subdistricts and subareas within the special purpose district.</idAbs>
-      <idPurp>Special purpose districts have regulations that supplement and modify the underlying zoning for distinctive neighborhoods with particular issues and goals.</idPurp>
-      <idCredit>NYC Department of City Planning, Technical Review Division</idCredit>
+      <idAbs>&lt;DIV STYLE="text-align:Left;"&gt;&lt;DIV&gt;&lt;DIV&gt;&lt;P&gt;&lt;SPAN&gt;Areas covered by zoning changes adopted and proposed. Includes outlines for current "Certified" rezonings. Selected city-initiated text amendments to the Zoning Resolution that have discrete geographical boundaries may be included.&lt;/SPAN&gt;&lt;/P&gt;&lt;/DIV&gt;&lt;/DIV&gt;&lt;/DIV&gt;</idAbs>
+      <idPurp>Areas covered by zoning changes adopted and proposed.</idPurp>
       <idStatus>
          <ProgCd value="007" />
       </idStatus>
@@ -96,13 +87,16 @@
          <keyword>New York City</keyword>
       </placeKeys>
       <themeKeys>
-         <keyword>Special Purpose District</keyword>
-         <keyword>Zoning</keyword>
          <keyword>Department of City Planning</keyword>
+         <keyword>Zoning Change Index</keyword>
+         <keyword>Zoning</keyword>
       </themeKeys>
       <searchKeys>
          <keyword>Zoning</keyword>
-         <keyword>Special Purpose District</keyword>
+         <keyword>Zoning Map Amendments</keyword>
+         <keyword>nyzma</keyword>
+         <keyword>Zoning Change Index</keyword>
+         <keyword>nyzi</keyword>
          <keyword>New York City</keyword>
          <keyword>NYC</keyword>
          <keyword>Department of City Planning</keyword>
@@ -110,10 +104,10 @@
       </searchKeys>
       <resConst>
          <LegConsts>
-            <othConsts>The data is freely available to all New York City agencies and the public. Notice To Users: 1. Zoning data changes frequently! The downloadable zoning data will be updated on the last Monday of every month. Updates will include recent zoning changes adopted by City Council. 2. These features are not intended for determining zoning at the individual tax lot level.</othConsts>
+            <othConsts>The data is freely available to all New York City agencies and the public.Notice To Users: 1. Zoning data changes frequently! The downloadable zoning data will be updated on the last Monday of every month. Updates will include recent zoning changes adopted by City Council.</othConsts>
          </LegConsts>
          <Consts>
-            <useLimit>&lt;DIV STYLE="text-align:Left;"&gt;&lt;DIV&gt;&lt;DIV&gt;&lt;P&gt;&lt;SPAN&gt;1. Zoning data changes frequently. The downloadable zoning data will be updated monthly. Updates will include recent zoning changes adopted by City Council.&lt;/SPAN&gt;&lt;/P&gt;&lt;P&gt;&lt;SPAN&gt;2. These features are not intended for determining zoning at the individual tax lot level.&lt;/SPAN&gt;&lt;/P&gt;&lt;P&gt;&lt;SPAN&gt;3. This dataset is being provided by the Department of City Planning (DCP) on DCP's website for informational purposes only. DCP does not warranty the completeness, accuracy, content, or fitness for any particular purpose or use of the dataset, nor are any such warranties to be implied or inferred with respect to the dataset as furnished on the website. DCP and the City are not liable for any deficiencies in the completeness, accuracy, content, or fitness for any particular purpose or use the dataset, or applications utilizing the dataset, provided by any third party. &lt;/SPAN&gt;&lt;/P&gt;&lt;/DIV&gt;&lt;/DIV&gt;&lt;/DIV&gt;</useLimit>
+            <useLimit>&lt;DIV STYLE="text-align:Left;"&gt;&lt;DIV&gt;&lt;DIV&gt;&lt;P&gt;&lt;SPAN&gt;1. Zoning data changes frequently. The downloadable zoning data will be updated monthly. Updates will include recent zoning changes adopted by City Council.&lt;/SPAN&gt;&lt;/P&gt;&lt;P&gt;&lt;SPAN&gt;2. These features are not intended for determining zoning at the individual tax lot level.&lt;/SPAN&gt;&lt;/P&gt;&lt;P&gt;&lt;SPAN&gt;3. This dataset is being provided by the Department of City Planning (DCP) on DCP's website for informational purposes only. DCP does not warranty the completeness, accuracy, content, or fitness for any particular purpose or use of the dataset, nor are any such warranties to be implied or inferred with respect to the dataset as furnished on the website. DCP and the City are not liable for any deficiencies in the completeness, accuracy, content, or fitness for any particular purpose or use the dataset, or applications utilizing the dataset, provided by any third party.&lt;/SPAN&gt;&lt;/P&gt;&lt;/DIV&gt;&lt;/DIV&gt;&lt;/DIV&gt;</useLimit>
          </Consts>
       </resConst>
       <dataLang>
@@ -122,9 +116,20 @@
       </dataLang>
       <dataExt>
          <exDesc>publication date</exDesc>
+         <tempEle>
+            <TempExtent>
+               <exTemp>
+                  <TM_Period>
+                     <tmBegin date="January 1, 2002" />
+                     <tmEnd date="now" />
+                  </TM_Period>
+               </exTemp>
+            </TempExtent>
+         </tempEle>
       </dataExt>
       <suppInfo>The date of the most recent City Council adoptions included in this data is {council_date}.</suppInfo>
       <envirDesc Sync="FALSE">Esri ArcGIS 10.6</envirDesc>
+      <idCredit>NYC Department of City Planning, Technical Review Division</idCredit>
       <dataChar>
          <CharSetCd value="004" />
       </dataChar>
@@ -138,10 +143,10 @@
          <geoEle>
             <GeoBndBox esriExtentType="search">
                <exTypeCode Sync="TRUE">1</exTypeCode>
-               <westBL Sync="TRUE">-74.257745</westBL>
-               <eastBL Sync="TRUE">-73.746768</eastBL>
-               <northBL Sync="TRUE">40.915833</northBL>
-               <southBL Sync="TRUE">40.491085</southBL>
+               <westBL Sync="TRUE">-74.258708</westBL>
+               <eastBL Sync="TRUE">-73.699357</eastBL>
+               <northBL Sync="TRUE">40.913326</northBL>
+               <southBL Sync="TRUE">40.491207</southBL>
             </GeoBndBox>
          </geoEle>
       </dataExt>
@@ -151,45 +156,8 @@
          <MaintFreqCd value="005" />
       </maintFreq>
    </mdMaint>
-   <dqInfo>
-      <dqScope>
-         <scpLvl>
-            <ScopeCd value="{scope_value}" />
-         </scpLvl>
-      </dqScope>
-      <report type="DQAbsExtPosAcc" dimension="horizontal">
-         <measDesc>The data were developed using DCP's Tax Block Base Map Files, DOITT's NYCMap planimetric street centerlines and 2006 orthophotos as reference sources. Measurements and dimensions for location of zoning features were obtained from DCP zoning maps. The estimated horizontal accuracy is +/- 20 feet.</measDesc>
-      </report>
-   </dqInfo>
    <eainfo>
-      <detailed Name="nysp">
-         <enttyp>
-            <enttypl Sync="TRUE">nysp</enttypl>
-            <enttypt Sync="TRUE">Feature Class</enttypt>
-            <enttypc Sync="TRUE">0</enttypc>
-         </enttyp>
-         <attr>
-            <attrlabl Sync="TRUE">OBJECTID</attrlabl>
-            <attalias Sync="TRUE">OBJECTID</attalias>
-            <attrtype Sync="TRUE">OID</attrtype>
-            <attwidth Sync="TRUE">4</attwidth>
-            <atprecis Sync="TRUE">0</atprecis>
-            <attscale Sync="TRUE">0</attscale>
-            <attrdef Sync="TRUE">Internal feature number.</attrdef>
-            <attrdefs Sync="TRUE">Esri</attrdefs>
-            <attrdomv>
-               <udom Sync="TRUE">Sequential unique whole numbers that are automatically generated.</udom>
-            </attrdomv>
-         </attr>
-         <attr>
-            <attrlabl Sync="TRUE">SDNAME</attrlabl>
-            <attalias Sync="TRUE">SDNAME</attalias>
-            <attrtype Sync="TRUE">String</attrtype>
-            <attwidth Sync="TRUE">255</attwidth>
-            <attrdef>Special District Name</attrdef>
-            <atprecis Sync="TRUE">0</atprecis>
-            <attscale Sync="TRUE">0</attscale>
-         </attr>
+      <detailed Name="nyzma">
          <attr>
             <attrlabl>SHAPE</attrlabl>
             <attrdef>Feature geometry.</attrdef>
@@ -204,11 +172,65 @@
             <attscale Sync="TRUE">0</attscale>
          </attr>
          <attr>
-            <attrlabl Sync="TRUE">SDLBL</attrlabl>
-            <attalias Sync="TRUE">SDLBL</attalias>
+            <attrlabl Sync="TRUE">OBJECTID</attrlabl>
+            <attalias Sync="TRUE">OBJECTID</attalias>
+            <attrtype Sync="TRUE">OID</attrtype>
+            <attwidth Sync="TRUE">4</attwidth>
+            <atprecis Sync="TRUE">0</atprecis>
+            <attscale Sync="TRUE">0</attscale>
+            <attrdef Sync="TRUE">Internal feature number.</attrdef>
+            <attrdefs Sync="TRUE">Esri</attrdefs>
+            <attrdomv>
+               <udom Sync="TRUE">Sequential unique whole numbers that are automatically generated.</udom>
+            </attrdomv>
+         </attr>
+         <attr>
+            <attrlabl Sync="TRUE">STATUS</attrlabl>
+            <attalias Sync="TRUE">Status</attalias>
+            <attrtype Sync="TRUE">String</attrtype>
+            <attwidth Sync="TRUE">15</attwidth>
+            <attrdef>Current status of zoning change</attrdef>
+            <atprecis Sync="TRUE">0</atprecis>
+            <attscale Sync="TRUE">0</attscale>
+         </attr>
+         <attr>
+            <attrlabl Sync="TRUE">EFFECTIVE</attrlabl>
+            <attalias Sync="TRUE">EFFECTIVE</attalias>
+            <attrtype Sync="TRUE">Date</attrtype>
+            <attwidth Sync="TRUE">8</attwidth>
+            <attrdef>Date change became effective</attrdef>
+            <atprecis Sync="TRUE">0</atprecis>
+            <attscale Sync="TRUE">0</attscale>
+         </attr>
+         <enttyp>
+            <enttypl Sync="TRUE">nyzma</enttypl>
+            <enttypt Sync="TRUE">Feature Class</enttypt>
+            <enttypc Sync="TRUE">0</enttypc>
+         </enttyp>
+         <attr>
+            <attrlabl Sync="TRUE">ULURPNO</attrlabl>
+            <attalias Sync="TRUE">ULURPNO</attalias>
+            <attrtype Sync="TRUE">String</attrtype>
+            <attwidth Sync="TRUE">50</attwidth>
+            <attrdef>Same as TRACKINGNO</attrdef>
+            <atprecis Sync="TRUE">0</atprecis>
+            <attscale Sync="TRUE">0</attscale>
+         </attr>
+         <attr>
+            <attrlabl Sync="TRUE">LUCATS</attrlabl>
+            <attalias Sync="TRUE">LUCATS</attalias>
             <attrtype Sync="TRUE">String</attrtype>
             <attwidth Sync="TRUE">10</attwidth>
-            <attrdef>Special District Label as shown on DCP zoning maps</attrdef>
+            <attrdef>Foreign key to link to LUCATS database records</attrdef>
+            <atprecis Sync="TRUE">0</atprecis>
+            <attscale Sync="TRUE">0</attscale>
+         </attr>
+         <attr>
+            <attrlabl Sync="TRUE">PROJECT_NAME</attrlabl>
+            <attalias Sync="TRUE">PROJECT_NAME</attalias>
+            <attrtype Sync="TRUE">String</attrtype>
+            <attwidth Sync="TRUE">100</attwidth>
+            <attrdef>Project name</attrdef>
             <atprecis Sync="TRUE">0</atprecis>
             <attscale Sync="TRUE">0</attscale>
          </attr>
@@ -226,7 +248,7 @@
             </attrdomv>
          </attr>
          <attr>
-            <attrlabl Sync="TRUE">SHAPE_area</attrlabl>
+            <attrlabl Sync="TRUE">Shape_Area</attrlabl>
             <attalias Sync="TRUE">Shape_Area</attalias>
             <attrtype Sync="TRUE">Double</attrtype>
             <attwidth Sync="TRUE">8</attwidth>
@@ -252,7 +274,7 @@
    </refSysInfo>
    <spatRepInfo>
       <VectSpatRep>
-         <geometObjs Name="nysp">
+         <geometObjs Name="nyzma">
             <geoObjTyp>
                <GeoObjTypCd value="002" Sync="TRUE" />
             </geoObjTyp>
@@ -265,7 +287,7 @@
    </spatRepInfo>
    <spdoinfo>
       <ptvctinf>
-         <esriterm Name="nysp">
+         <esriterm Name="nyzma">
             <efeatyp Sync="TRUE">Simple</efeatyp>
             <efeageom code="4" Sync="TRUE" />
             <esritopo Sync="TRUE">FALSE</esritopo>

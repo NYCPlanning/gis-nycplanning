@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata>
    <Esri>
-      <CreaDate>{crea_date}</CreaDate>
-      <CreaTime>{crea_time}</CreaTime>
       <SyncOnce>{sync_once}</SyncOnce>
       <SyncDate>20260204</SyncDate>
       <SyncTime>11121900</SyncTime>
@@ -65,7 +63,6 @@
       <idCitation>
          <resTitle Sync="FALSE">{res_title}</resTitle>
          <date>
-            <createDate>{crea_date}</createDate>
             <pubDate>{pub_date}</pubDate>
          </date>
          <citRespParty>
