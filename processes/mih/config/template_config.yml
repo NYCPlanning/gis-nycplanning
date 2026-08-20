@@ -1,0 +1,34 @@
+# template_config.yml — MIH process-specific config
+# city_council_date is derived at runtime from max(DateAdopte) in the MIH FC 
+
+# Connection file (name only — full path constructed from global connection_file_path)
+connection_file:
+  name:                       # format: sde@SDE_NAME.sde
+  schema:                     # prefix used in FC names, e.g. SDE
+  sde_user_disconnect:        # bool — true in prod, false in dev
+
+# FC names (constructed as connection_file_path/name/schema.fc_name in code)
+dtm_fc_name: DOF_Tax_Block_Polygon
+mih_sde_fc_name: DCP_MIH
+
+# Required environment variables (set once per machine or in Dagster deployment):
+#   MIH_PROJECT_ROOT  — absolute path to MIH project directory (e.g. G:\PROJECTS\MIH)  ([System.Environment]::SetEnvironmentVariable("MIH_PROJECT_ROOT", "G:\PROJECTS\MIH", "User"))
+#                        Derives: MIH_PROJECT_ROOT/MIH.gdb (source FC), MIH_PROJECT_ROOT/MIH_BlockLists (blocklist output)
+
+#   FTP_USER          — FTP username for DOB blocklist upload    ([System.Environment]::SetEnvironmentVariable("FTP_USER", "Check previous MIH config", "User"))
+                                                                  
+#   FTP_PASSWORD      — FTP password for DOB blocklist upload  ([System.Environment]::SetEnvironmentVariable("FTP_PASSWORD", "Check Previous MIH config", "User"))
+
+
+
+# Output sub-paths (relative to global open_data_staging_path)
+# Derives in code: open_data_staging_path/mih_output_subpath/year/publication_date/shp|meta
+mih_output_subpath: MIH
+
+# Paths for MIH .lyr.xml metadata export (relative to open_data_staging_path parent)
+lyr_xml_zoning_subpath: DATA/Zoning
+lyr_xml_bytes_subpath: DATA/Bytes of the BIG APPLE/Zoning Related
+
+# FTP — credentials via env vars FTP_USER and FTP_PASSWORD only
+ftp_host:                     # e.g. securetransport.csc.nycnet
+ftp_folder:                   # e.g. /DCP (D@NY)/MIH
