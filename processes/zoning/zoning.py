@@ -182,14 +182,12 @@ def main():
 
         arcpy.env.workspace = dst_raster_path
         arcpy.env.parallelProcessingFactor = "100%"
-        arcpy.conversion.RasterToGeodatabase(Input_Rasters=src_raster_path, Output_Geodatabase=dst_raster_gdb)
 
-        arcpy.management.Rename(
-            in_data=os.path.join(
-                dst_raster_gdb,
-                GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["trd_fc_name"],
-            ),
-            out_data=dst_raster_path,
+        arcpy.management.MosaicToNewRaster(
+            input_rasters=src_raster_path,
+            output_location=dst_raster_gdb,
+            raster_dataset_name_with_extension=dst_raster_name,
+            number_of_bands=1,
         )
 
         # Update metadata XML files and apply them to features according to feature and metadata dictionaries
@@ -239,7 +237,7 @@ def main():
         However, incorporating the georef zm into the same dict as the rest of zoning features became overly complicated when I remembered that 
         georef zm source data is not nested within a feature dataset, meaning file name construction doesn't work for both simultaneously.        
         """
-        for _, feature_info in GEOREF_CONVENTIONS.value():
+        for feature_info in GEOREF_CONVENTIONS.values():
             feature_metadata = zoning_utils.update_metadata_values(
                 base_dict=METADATA_XML_VALUES,
                 feature_info=feature_info,
