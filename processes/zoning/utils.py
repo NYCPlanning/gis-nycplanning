@@ -190,18 +190,15 @@ def import_and_clean_feature_metadata(in_feature: str, md_template_file: str):
         in_feature (str): Path to the feature class to update with metadata.
         md_template_file (str): Path to the metadata XML template file to import.
     """
-    logger.info(f"Importing and cleaning metadata for {in_feature}")
     item_md = md.Metadata(in_feature)
 
     # upgrade md
     item_md.upgrade("ESRI_ISO")
-    logger.debug(f"Upgrading metadata for {in_feature}")
 
     # import from metadata template
     item_md.importMetadata(
         sourceUri=md_template_file,  # metadata_import_option="ISO19139"
     )
-    logger.debug(f"Importing metadata from {md_template_file}")
 
     # # synchronize md (NOTE: doesn't play well w/ template - room for improvement)
     # item_md.synchronize("ALWAYS")
