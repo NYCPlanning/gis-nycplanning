@@ -83,7 +83,10 @@ function Get-ProxyAddressPort {
 # report no proxy configured while WinHTTP has one active. Surface both.
 function Get-WinHttpProxyAddressPort {
     $output = (netsh winhttp show proxy) -join "`n"
-    if ($output -notmatch 'Proxy Server\(s\)\s*:\s*(\S+)') {
+    # Match the proxy value's own shape (host:port, optionally scheme=-prefixed and
+    # ;-chained) rather than keying off the "Proxy Server(s)" label, which netsh
+    # localizes on non-English Windows installs.
+    if ($output -notmatch '((?:\w+=)?[\w.-]+:\d+(?:;[\w.-]+=[\w.-]+:\d+)*)') {
         return [pscustomobject]@{ Address = ''; Port = '' }
     }
     Get-ProxyAddressPort -ProxyServerValue $Matches[1]
@@ -92,8 +95,13 @@ function Get-WinHttpProxyAddressPort {
 # Default ArcGIS Pro install location and conda env name are hardcoded rather than
 # configurable - this tool intentionally has no config file to go missing or drift.
 function Resolve-ArcGisPythonPath {
-    $candidate = "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\envs\arcgispro-py3\python.exe"
-    if (Test-Path $candidate) { return $candidate }
+    # $Env:ProgramFiles is redirected to the x86 path under a 32-bit PowerShell host;
+    # $Env:ProgramW6432 always points at the true 64-bit Program Files, so check it first.
+    $programFilesRoots = @($Env:ProgramW6432, $Env:ProgramFiles) | Where-Object { $_ } | Select-Object -Unique
+    foreach ($root in $programFilesRoots) {
+        $candidate = Join-Path $root 'ArcGIS\Pro\bin\Python\envs\arcgispro-py3\python.exe'
+        if (Test-Path $candidate) { return $candidate }
+    }
     return $null
 }
 
@@ -182,7 +190,7 @@ try {
     $pythonPath = Resolve-ArcGisPythonPath
 
     if (-not $AprxPath) {
-        $AprxPath = Read-Host "Enter path to .aprx project (leave blank to skip GIS-level checks)"
+        $AprxPath = (Read-Host "Enter path to .aprx project (leave blank to skip GIS-level checks)").Trim()
     }
 
     $gisInfo = $null
@@ -206,10 +214,12 @@ try {
             @{ Title = 'GIS-Level Info'; Rows = @([pscustomobject]@{ Property = 'Error'; Value = $gisInfo.error }) }
         )
     } else {
+        $projectInfoRows = @([pscustomobject]@{ Property = 'Aprx Path'; Value = $gisInfo.aprx_path })
+        if ($gisInfo.layers_error) {
+            $projectInfoRows += [pscustomobject]@{ Property = 'Layers Error'; Value = $gisInfo.layers_error }
+        }
         $gisSections = @(
-            @{ Title = 'Project Info'; Rows = @(
-                [pscustomobject]@{ Property = 'Aprx Path'; Value = $gisInfo.aprx_path }
-            ) }
+            @{ Title = 'Project Info'; Rows = $projectInfoRows }
             @{ Title = 'Software Info'; Rows = @(
                 [pscustomobject]@{ Property = 'Account'; Value = $gisInfo.signed_in_account }
                 [pscustomobject]@{ Property = 'Software Version'; Value = $gisInfo.software_version }

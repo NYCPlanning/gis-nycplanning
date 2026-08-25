@@ -10,6 +10,7 @@ Usage:
 Author: J Rosacker
 Date: 2025-08-24
 """
+
 import json
 import platform
 import sys
@@ -48,25 +49,68 @@ def get_layer_inventory(aprx_path: str) -> list:
     aprx = arcpy.mp.ArcGISProject(aprx_path)
     for map_obj in aprx.listMaps():
         for layer in map_obj.listLayers():
-            if layer.isGroupLayer:
-                # It's just a container - its children are already listed individually
-                continue
-            entries.append(_describe(map_obj.name, layer.name, layer))
+            try:
+                if layer.isGroupLayer:
+                    # It's just a container - its children are already listed individually
+                    continue
+                entries.append(_describe(map_obj.name, layer.name, layer))
+            except Exception as err:
+                # One unreadable layer shouldn't cost us the rest of the inventory -
+                # record it as broken and keep going.
+                entries.append(
+                    {
+                        "map": map_obj.name,
+                        "layer": "<unreadable>",
+                        "data_source": "",
+                        "is_broken": True,
+                        "error": str(err),
+                    }
+                )
         for table in map_obj.listTables():
-            entries.append(_describe(map_obj.name, table.name, table))
+            try:
+                entries.append(_describe(map_obj.name, table.name, table))
+            except Exception as err:
+                entries.append(
+                    {
+                        "map": map_obj.name,
+                        "layer": "<unreadable>",
+                        "data_source": "",
+                        "is_broken": True,
+                        "error": str(err),
+                    }
+                )
     return entries
 
 
 def main() -> dict:
     aprx_path = sys.argv[1] if len(sys.argv) > 1 else ""
 
-    result = {
-        "signed_in_account": get_signed_in_account(),
-        "software_version": arcpy.GetInstallInfo().get("Version"),
-        "python_version": platform.python_version(),
-        "aprx_path": aprx_path,
-        "layers": get_layer_inventory(aprx_path) if aprx_path else [],
-    }
+    # Each field is collected independently so a single failure (e.g. not signed
+    # in, or a corrupt .aprx) doesn't cost us every other diagnostic we could
+    # still gather.
+    result: dict = {"aprx_path": aprx_path}
+
+    try:
+        result["signed_in_account"] = get_signed_in_account()
+    except Exception as err:
+        result["signed_in_account"] = f"Error: {err}"
+
+    try:
+        result["software_version"] = arcpy.GetInstallInfo().get("Version")
+    except Exception as err:
+        result["software_version"] = f"Error: {err}"
+
+    result["python_version"] = platform.python_version()
+
+    if aprx_path:
+        try:
+            result["layers"] = get_layer_inventory(aprx_path)
+        except Exception as err:
+            result["layers"] = []
+            result["layers_error"] = f"Failed to open project: {err}"
+    else:
+        result["layers"] = []
+
     return result
 
 
