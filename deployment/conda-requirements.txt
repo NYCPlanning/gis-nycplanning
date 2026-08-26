@@ -1,0 +1,6 @@
+# Base packages installed on top of ArcGIS Pro's arcgispro-py3 clone.
+# Installed via: conda install -n gis-env --file conda-requirements.txt --file conda-requirements-dev.txt
+# Left unpinned so conda resolves versions compatible with the cloned base env.
+geopandas
+numpy
+fiona
