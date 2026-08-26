@@ -177,6 +177,7 @@ cython_debug/
 .pypirc
 
 config/prod_*.yml
+dev_*.yml
 
 # VS Code settings
 .vscode/
