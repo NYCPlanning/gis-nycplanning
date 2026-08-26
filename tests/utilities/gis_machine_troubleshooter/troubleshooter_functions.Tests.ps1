@@ -17,7 +17,7 @@
 
 # Dot-sourced directly at script scope, not inside a BeforeAll - Pester 3.4.0 only allows
 # BeforeAll inside a Describe block, unlike newer Pester which also supports file-scoped ones.
-. (Join-Path $PSScriptRoot '..\..\..\utilities\gis_machine_troubleshooter\troubleshooter_functions.ps1')
+. (Join-Path $PSScriptRoot '..\..\..\utilities\gis_machine_troubleshooter\internal\troubleshooter_functions.ps1')
 
 Describe 'Get-ProxyAddressPort' {
     It 'returns empty Address/Port for a null/empty value' {

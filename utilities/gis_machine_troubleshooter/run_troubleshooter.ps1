@@ -24,7 +24,7 @@ param(
     [string]$AprxPath
 )
 
-. (Join-Path $PSScriptRoot 'troubleshooter_functions.ps1')
+. (Join-Path $PSScriptRoot 'internal\troubleshooter_functions.ps1')
 
 # --- Main ---
 # Wrapped in try/catch/finally so the window always reports a clear result and
@@ -76,7 +76,7 @@ try {
     if ($pythonPath) {
         Write-Output ">>> Collecting GIS-level info via $pythonPath"
         try {
-            $scriptPath = Join-Path $PSScriptRoot 'collect_gis_info.py'
+            $scriptPath = Join-Path $PSScriptRoot 'internal\collect_gis_info.py'
             $rawOutput = & $pythonPath $scriptPath $AprxPath
             $gisInfo = $rawOutput | ConvertFrom-Json
         } catch {

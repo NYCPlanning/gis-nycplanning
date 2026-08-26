@@ -4,7 +4,7 @@ imports arcpy at module level, same requirement as test_inspect_data.py."""
 import platform
 import sys
 
-from utilities.gis_machine_troubleshooter import collect_gis_info
+from utilities.gis_machine_troubleshooter.internal import collect_gis_info
 
 
 # --- _describe() ---
