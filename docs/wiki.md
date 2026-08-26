@@ -52,6 +52,9 @@ Python can be installed directly from [python.org](https://www.python.org/), at 
 - `conda install` fails or freezes often, when using either the ArcGIS Pro GUI or PowerShell. This is likely due to our firewall rules. `pip install` is a viable alternative. This has become less common with the transition to Pro 3.5.
 - With the upgrade to Pro 3.5, `conda env ...` commands have been failing. It seems like this has to do with an issue with our machines invoking the `$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda-env.exe` executable. Root cause is unknown but is likely to do with our network environment. Workarounds involve calling alternative commands, e.g. replacing `conda env list` with `conda info --envs`
 
+#### Continuous Integration
+A GitHub Actions workflow (`.github/workflows/lint.yml`) runs `ruff`, `mypy`, and `PSScriptAnalyzer` against every pull request, using a hosted `ubuntu-latest` runner. It installs `ruff`/`mypy` via conda from [`conda-requirements-dev.txt`](https://github.com/NYCPlanning/gis-nycplanning/blob/main/deployment/conda-requirements-dev.txt), the same file the local deploy script uses, so CI and local devs see identical versions. Testing `arcpy`-dependent code and PowerShell 5.1 via Pester, is a separate set of challenges to tackle.
+
 ### SQL
 If SQL usage outside of ArcGIS Pro is desired, it is recommended to use SQL Server Management Studio (SSMS) for enterprise geodatabase management, with the optional additional usage of DBeaver to access the SQL Server databases, or any other databases such as DuckDB, SQLite, etc.
 
