@@ -6,7 +6,7 @@
         (in this same folder) to supplement the default packages.
     Author: J Rosacker
     Updated by: U Podder
-    Date: 2026-02-03
+    Date: _ongoing_
     Notes:
         The script was written to interact with Python 3.11.11 (ArcGIS Pro 3.5.5),
         but should still function for later versions of both Python and Pro.
@@ -20,16 +20,17 @@ $newEnvName = 'gis-env'
 $baseEnvName = 'arcgispro-py3'
 $baseRequirementsFile = Join-Path $PSScriptRoot 'conda-requirements.txt'
 $devRequirementsFile = Join-Path $PSScriptRoot 'conda-requirements-dev.txt'
+$defaultCondaExe = "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe"
 
 # Dynamically detect Python version from base ArcGIS Pro environment
 Write-Output "`r`n>>> Detecting Python version from $baseEnvName..."
-$pythonVersion = ((& "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" run -n $baseEnvName python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')") | Where-Object { $_ -match '^\d+\.\d+$' } | Select-Object -Last 1).Trim()
+$pythonVersion = ((& $defaultCondaExe run -n $baseEnvName python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')") | Where-Object { $_ -match '^\d+\.\d+$' } | Select-Object -Last 1).Trim()
 Write-Output ">>> Detected Python version: $pythonVersion"
 
 # Check conda version as a proxy to determine if conda is initialized in this shell
 try {
     Write-Output "`r`n>>> Checking conda version..."
-    & "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" --version
+    & $defaultCondaExe --version
 }
 catch {
     $message = @"
@@ -62,7 +63,7 @@ Write-Output ">>> Found base env: $baseEnvName"
 
 # Clone the base environment using explicit conda.exe path
 Write-Output "`r`n>>> Cloning $baseEnvName into $newEnvName..."
-& "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" create --name $newEnvName --clone $baseEnvName --yes
+& $defaultCondaExe create --name $newEnvName --clone $baseEnvName --yes
 
 # Install base and dev packages from the frozen requirement files
 foreach ($requirementsFile in @($baseRequirementsFile, $devRequirementsFile)) {
@@ -73,10 +74,10 @@ foreach ($requirementsFile in @($baseRequirementsFile, $devRequirementsFile)) {
 }
 
 Write-Output "`r`n>>> Installing packages from $baseRequirementsFile and $devRequirementsFile with conda..."
-& "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" install -n $newEnvName --file $baseRequirementsFile --file $devRequirementsFile --yes
+& $defaultCondaExe install -n $newEnvName --file $baseRequirementsFile --file $devRequirementsFile --yes
 if ($LASTEXITCODE -ne 0) {
     Write-Output "`r`n>>> conda install failed (exit code $LASTEXITCODE). Falling back to pip install, per docs/wiki.md Known Issues..."
-    & "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" run -n $newEnvName pip install -r $baseRequirementsFile -r $devRequirementsFile
+    & $defaultCondaExe run -n $newEnvName pip install -r $baseRequirementsFile -r $devRequirementsFile
     if ($LASTEXITCODE -ne 0) {
         Write-Output "`r`n>>> pip install fallback also failed (exit code $LASTEXITCODE). See docs/wiki.md Known Issues for troubleshooting."
         exit 1
@@ -91,10 +92,11 @@ else {
 # List conda environments using explicit conda.exe path
 # Note: `conda env list` is broken on Pro 3.5+ (see docs/wiki.md Known Issues) -- use `conda info --envs` instead
 Write-Output "`r`n>>> Listing conda environments..."
-& "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" info --envs
+& $defaultCondaExe info --envs
 
 # Note: If activation doesn't visibly take effect, run `conda activate gis-env` manually in your terminal.
+# Bare conda command called here to avoid init + subprocess nonsense.
 Write-Output "`r`n>>> Activating $newEnvName..."
-& "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" activate $newEnvName
+conda activate $newEnvName
 
 Write-Output "`r`n>>> Done."
