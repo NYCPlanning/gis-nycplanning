@@ -76,7 +76,7 @@ Write-Output "`r`n>>> Installing packages from $baseRequirementsFile and $devReq
 & "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" install -n $newEnvName --file $baseRequirementsFile --file $devRequirementsFile --yes
 if ($LASTEXITCODE -ne 0) {
     Write-Output "`r`n>>> conda install failed (exit code $LASTEXITCODE). Falling back to pip install, per docs/wiki.md Known Issues..."
-    & "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\envs\$newEnvName\Scripts\pip.exe" install -r $baseRequirementsFile -r $devRequirementsFile
+    & "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" run -n $newEnvName pip install -r $baseRequirementsFile -r $devRequirementsFile
     if ($LASTEXITCODE -ne 0) {
         Write-Output "`r`n>>> pip install fallback also failed (exit code $LASTEXITCODE). See docs/wiki.md Known Issues for troubleshooting."
         exit 1
@@ -95,6 +95,6 @@ Write-Output "`r`n>>> Listing conda environments..."
 
 # Note: If activation doesn't visibly take effect, run `conda activate gis-env` manually in your terminal.
 Write-Output "`r`n>>> Activating $newEnvName..."
-conda activate $newEnvName
+& "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" activate $newEnvName
 
 Write-Output "`r`n>>> Done."
