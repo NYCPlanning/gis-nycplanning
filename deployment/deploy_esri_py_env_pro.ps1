@@ -93,10 +93,8 @@ else {
 Write-Output "`r`n>>> Listing conda environments..."
 & "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe" info --envs
 
-# Note: conda activate may not work as expected in all PowerShell contexts.
-# If activation fails, activate manually in a new shell using:
-# & 'C:\Program Files\ArcGIS\Pro\bin\Python\condabin\conda.bat' activate $newEnvName
+# Note: If activation doesn't visibly take effect, run `conda activate gis-env` manually in your terminal.
 Write-Output "`r`n>>> Activating $newEnvName..."
-& 'C:\Program Files\ArcGIS\Pro\bin\Python\condabin\conda.bat' activate $newEnvName
+conda activate $newEnvName
 
 Write-Output "`r`n>>> Done."
