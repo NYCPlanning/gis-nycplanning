@@ -182,13 +182,11 @@ def main():
 
         arcpy.env.workspace = dst_raster_path
         arcpy.env.parallelProcessingFactor = "100%"
+        arcpy.env.compression = "LZW"
 
-        arcpy.management.MosaicToNewRaster(
-            input_rasters=src_raster_path,
-            output_location=dst_raster_gdb,
-            raster_dataset_name_with_extension=dst_raster_name,
-            number_of_bands=1,
-        )
+        arcpy.management.CopyRaster(
+            in_raster=src_raster_path, 
+            out_rasterdataset=dst_raster_path)
 
         # Update metadata XML files and apply them to features according to feature and metadata dictionaries
         logger.info("Updating and applying metadata...")
