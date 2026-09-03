@@ -1,5 +1,5 @@
 # template_config.yml — MIH process-specific config
-# city_council_date is derived at runtime from max(DateAdopte) in the MIH FC
+# city_council_date and publication_date are derived at runtime from the child versioned MIH FC
 
 # Date overrides — leave empty to derive from FC; set explicitly only if needed (e.g. debugging)
 publication_date:             # format: YYYYMMDD — overrides value parsed from versioned FC name
@@ -19,8 +19,6 @@ mih_sde_fc_name: DCP_MIH
 #   FTP_USER          — FTP username for DOB blocklist upload    ([System.Environment]::SetEnvironmentVariable("FTP_USER", "Check previous MIH config", "User"))
                                                                   
 #   FTP_PASSWORD      — FTP password for DOB blocklist upload  ([System.Environment]::SetEnvironmentVariable("FTP_PASSWORD", "Check Previous MIH config", "User"))
-
-
 
 # Output sub-paths (relative to global open_data_staging_path)
 # Derives in code: open_data_staging_path/mih_output_subpath/year/publication_date/shp|meta
