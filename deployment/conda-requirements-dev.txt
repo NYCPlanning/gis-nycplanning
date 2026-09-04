@@ -1,0 +1,8 @@
+# Dev tooling installed alongside the base packages, via conda only (conda-forge channel).
+# Pinned so local devs and CI see identical lint/type-check results.
+# pin ruff at 0.12.0 and mypy at 1.16.1: the last versions on conda-forge before
+# vc14_runtime >=14.44.35208 is required, which gis-env's vs2015_runtime 14.38.33130
+# (from the arcgispro-py3 base) does not satisfy.
+ruff==0.12.0
+mypy==1.16.1
+types-pyyaml>=6.0.12
