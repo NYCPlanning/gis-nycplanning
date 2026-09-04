@@ -1,9 +1,3 @@
-import datetime
-import pandas
-import xarray
-import time
-
-
 def this_outputs_a_string() -> str:
     output = {"key": "value", "and": "another"}
     return output
@@ -24,6 +18,7 @@ def main():
     print(this_accepts_an_integer(a="hello", b=2))
 
     this_is_missing_a_return_type()
+
 
 if __name__ == "__main__":
     main()
