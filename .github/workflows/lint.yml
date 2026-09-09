@@ -27,7 +27,7 @@ jobs:
 
       - name: Run mypy
         shell: bash -el {0}
-        run: mypy src
+        run: mypy src tests
 
       - name: Run PSScriptAnalyzer
         shell: pwsh
