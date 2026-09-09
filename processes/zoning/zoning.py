@@ -258,7 +258,7 @@ def main():
         logger.info("Packaging data for web distribution...")
         arcpy.ClearWorkspaceCache_management()
         time.sleep(5)
-        package.archive_zipping(
+        zoning_utils.archive_zipping(
             parent_dir=temp_cycle_dir,
             archive_specs=ZONING_PACKAGING,
             output_dir_name="web",
