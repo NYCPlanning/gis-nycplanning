@@ -1,30 +1,26 @@
-import os
-import arcpy
 import logging
-import tempfile
+import os
 import shutil
+import tempfile
 import time
+from datetime import datetime
+from pathlib import Path
+
+import arcpy
 import utils as zoning_utils
 from arcpy import metadata as md
-
-
-from pathlib import Path
-from datetime import datetime
-from dcpgis.cli import CLI
-from dcpgis.utils import config
-from dcpgis.utils import logging as dcp_logging
-from dcpgis.utils import date_logic
-from dcpgis.utils import dir_mgmt
-from dcpgis.utils import package
-
 from constants import (
-    ZONING_CONVENTIONS,
     GEOREF_CONVENTIONS,
-    ZONING_PACKAGING,
-    ZONING_DATA_DICTS,
     METADATA_XML_VALUES,
+    ZONING_CONVENTIONS,
+    ZONING_DATA_DICTS,
+    ZONING_PACKAGING,
 )
+
+from dcpgis.cli import CLI
 from dcpgis.constants import OPEN_DATA_SUB_DIRS
+from dcpgis.utils import config, date_logic, dir_mgmt, package
+from dcpgis.utils import logging as dcp_logging
 
 CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
 PRODUCT_CONFIG_FILE_PARENT = Path(__file__).parent / "config"
@@ -97,9 +93,6 @@ def main():
     logger.info(f"XML_TEMPLATES_PATH: {XML_TEMPLATES_PATH}")
     logger.info(f"CYCLE_DATE: {CYCLE_DATE}")
     logger.info(f"COUNCIL_DATE: {COUNCIL_DATE}")
-
-    # Set Environment Parallel Processing (100% = maximum available cores)
-    arcpy.env.parallelProcessingFactor = "100%"
 
     # Create directory structure
     os.makedirs(name=OPEN_DATA_STAGING_YEAR_PATH, exist_ok=True)
@@ -184,9 +177,7 @@ def main():
         arcpy.env.parallelProcessingFactor = "100%"
         arcpy.env.compression = "LZW"
 
-        arcpy.management.CopyRaster(
-            in_raster=src_raster_path, 
-            out_rasterdataset=dst_raster_path)
+        arcpy.management.CopyRaster(in_raster=src_raster_path, out_rasterdataset=dst_raster_path)
 
         # Update metadata XML files and apply them to features according to feature and metadata dictionaries
         logger.info("Updating and applying metadata...")
