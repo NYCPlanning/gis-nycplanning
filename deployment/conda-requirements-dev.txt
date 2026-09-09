@@ -10,3 +10,5 @@ mypy==1.16.1
 types-pyyaml>=6.0.12
 # bounded to the 2.2.x line to match gis-env's installed pandas==2.2.3
 pandas-stubs>=2.2.3,<2.3
+# pinned to match the esri-bundled version.
+pytest==7.4.3
