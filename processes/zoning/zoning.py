@@ -268,10 +268,10 @@ def main():
 
         metadata_output_dirs = ["web", "metadata"]
         for dir in metadata_output_dirs:
-            package.copy_metadata_to_folder(
-                metadata_source_dir=METADATA_STAGING_DIR,
+            package.copy_matching_files(
+                source_dir=METADATA_STAGING_DIR,
                 output_dir=temp_cycle_dir / dir,
-                metadata_files=ZONING_DATA_DICTS,
+                files=ZONING_DATA_DICTS,
             )
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
