@@ -22,14 +22,18 @@ jobs:
         run: conda install --file deployment/conda-requirements-dev.txt -c conda-forge --yes
 
       - name: Run ruff
+        # run even if an earlier step failed. skip only on manual cancel
+        if: ${{ !cancelled() }}
         shell: bash -el {0}
         run: ruff check .
 
       - name: Run mypy
+        if: ${{ !cancelled() }}
         shell: bash -el {0}
         run: mypy src tests
 
       - name: Run PSScriptAnalyzer
+        if: ${{ !cancelled() }}
         shell: pwsh
         run: |
           Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
