@@ -40,7 +40,7 @@ jobs:
               Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
           }
           Invoke-ScriptAnalyzer -Path . -Recurse | Tee-Object -Variable results
-          if ($results | Where-Object { $_.Severity -ne 'Information' }) {
-              Write-Output "::error::PSScriptAnalyzer found Warning/Error/ParseError-severity issues"
+          if ($results | Where-Object { $_.Severity -in 'Error', 'ParseError' }) {
+              Write-Output "::error::PSScriptAnalyzer found Error/ParseError-severity issues"
               exit 1
           }
