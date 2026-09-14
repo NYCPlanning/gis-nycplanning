@@ -37,7 +37,7 @@ catch {
 
 >>> Encountered an error. Is conda initialized for your PowerShell? If not:
 
-1. Run the two commands below in PowerShell (copy/paste the two lines in their entirety into PS and run): 
+1. Run the two commands below in PowerShell (copy/paste the two lines in their entirety into PS and run):
     set-executionpolicy remotesigned -scope currentuser
     & 'C:\Program Files\ArcGIS\Pro\bin\Python\condabin\conda.bat' init
 
@@ -48,7 +48,7 @@ More info: https://www.esri.com/arcgis-blog/products/arcgis-pro/developers/conda
 "@
     Write-Output $message
     Write-Output ">>> Error message: " $_
-    break 
+    break
 }
 
 # Test for existence of base env by checking if its directory exists (avoids slow conda env list)
