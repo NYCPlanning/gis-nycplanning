@@ -48,3 +48,11 @@ $env:HTTPS_PROXY = "http://bcpxy.nycnet:8080"
   `bk_mappluto_17v1.zip` inside the outer zip), so single-level content inspection can't see
   the `.shp` files nested a level down. They come out as `type=unknown`; the real format is
   `shp`. Everything else inspected cleanly at one level.
+- 3 archive links carry a leftover cache-busting query string (`?r=1`/`?r=2`) on NYC's own
+  site - likely added when DCP re-uploaded a corrected file at the same path and needed to
+  force caches to pick up the new bytes. The scraper fetches through it fine and strips it
+  from the `url` column, but the underlying links are still live with the suffix as of this
+  writing and would be worth cleaning up at the source:
+  - PLUTO 2017 `17v1` → `.../pluto/nyc_pluto_17v1.zip?r=1`
+  - PLUTO 2017 `17v1.1` → `.../pluto/nyc_pluto_17v1_1.zip?r=1`
+  - MapPLUTO 2017 `17v1.1` → `.../mappluto/mappluto_17v1_1.zip?r=2`
