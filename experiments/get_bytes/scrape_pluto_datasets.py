@@ -6,10 +6,13 @@ script hits directly instead (see README.md for how these were found).
 """
 
 import csv
+import hashlib
 import io
 import re
 import zipfile
+from collections import defaultdict
 from pathlib import Path
+from urllib.parse import urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -17,8 +20,7 @@ from bs4 import BeautifulSoup
 CONTENT_PAGE_URL = "https://www.nyc.gov/content/planning/pages/resources/datasets/mappluto-pluto-change"
 CONTENT_API_URL = "https://apps.nyc.gov/content-api/v1/content/planning/resources/datasets/mappluto-pluto-change"
 ARCHIVE_JSON_URL = (
-    "https://www.nyc.gov/assets/planning/json/content/resources/dataset-archives/"
-    "mappluto-pluto-change.json"
+    "https://www.nyc.gov/assets/planning/json/content/resources/dataset-archives/mappluto-pluto-change.json"
 )
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 OUTPUT_CSV = Path(__file__).parent / "pluto_datasets.csv"
@@ -130,11 +132,7 @@ def infer_type_from_zip_contents(url: str, session: requests.Session) -> str:
 def infer_type(label_text: str, url: str, session: requests.Session) -> str:
     if url.lower().endswith(".pdf"):
         return "pdf"
-    return (
-        infer_type_from_label(label_text)
-        or infer_type_from_url(url)
-        or infer_type_from_zip_contents(url, session)
-    )
+    return infer_type_from_label(label_text) or infer_type_from_url(url) or infer_type_from_zip_contents(url, session)
 
 
 def strip_cache_buster(url: str) -> str:
@@ -204,6 +202,31 @@ def parse_recent_release(html_fragment: str, session: requests.Session) -> list[
     return rows
 
 
+def assign_identifiers(rows: list[dict]) -> None:
+    """Add a leftmost `identifier` per row, equal to the URL's filename minus its
+    extension, disambiguated with a deterministic 5-digit suffix when that base name
+    is reused by more than one row.
+    """
+    groups: defaultdict[str, list[dict]] = defaultdict(list)
+    for row in rows:
+        base_id = Path(urlparse(row["url"]).path).stem
+        groups[base_id].append(row)
+
+    for base_id, group in groups.items():
+        if len(group) == 1:
+            group[0]["identifier"] = base_id
+            continue
+        used_suffixes: set[str] = set()
+        for row in group:
+            digest = int(hashlib.md5(row["url"].encode()).hexdigest(), 16)
+            suffix_num = digest % 100000
+            while f"{suffix_num:05d}" in used_suffixes:
+                suffix_num = (suffix_num + 1) % 100000
+            suffix = f"{suffix_num:05d}"
+            used_suffixes.add(suffix)
+            row["identifier"] = f"{base_id}_{suffix}"
+
+
 def main() -> None:
     session = requests.Session()
     session.headers.update({"User-Agent": USER_AGENT})
@@ -216,14 +239,11 @@ def main() -> None:
     archive_resp.raise_for_status()
     archive_entries = archive_resp.json()
 
-    rows = parse_recent_release(html_fragment, session) + parse_archive(
-        archive_entries, session
-    )
+    rows = parse_recent_release(html_fragment, session) + parse_archive(archive_entries, session)
+    assign_identifiers(rows)
 
     with OUTPUT_CSV.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(
-            f, fieldnames=["dataset_name", "type", "version", "url"]
-        )
+        writer = csv.DictWriter(f, fieldnames=["identifier", "dataset_name", "type", "version", "url"])
         writer.writeheader()
         writer.writerows(rows)
 
