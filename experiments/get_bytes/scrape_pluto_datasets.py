@@ -49,6 +49,17 @@ def normalize_dataset_name(raw: str) -> str:
     return name.strip("_")
 
 
+def reference_doc_suffix(link_text: str) -> str:
+    """'View Data Dictionary' -> 'datadictionary'; 'View Read Me' -> 'readme'.
+
+    Unlike normalize_dataset_name, spaces are dropped entirely rather than turned into
+    underscores, so this matches the source filenames' own convention
+    (pluto_datadictionary.pdf, pluto_readme.pdf) instead of splitting each word.
+    """
+    text = re.sub(r"^view\s+", "", link_text, flags=re.IGNORECASE)
+    return re.sub(r"[^a-z0-9]", "", text.lower())
+
+
 def infer_type_from_label(label_text: str) -> str | None:
     for pattern, type_ in LABEL_FORMAT_PATTERNS:
         if pattern.search(label_text):
@@ -162,7 +173,7 @@ def parse_recent_release(html_fragment: str, session: requests.Session) -> list[
         h3 = sub_section.find("h3")
         if h3 is None:
             continue
-        dataset_name = normalize_dataset_name(h3.get_text(strip=True))
+        base_name = normalize_dataset_name(h3.get_text(strip=True))
         current_label = h3.get_text(strip=True)
 
         for tr in sub_section.find_all("tr"):
@@ -174,6 +185,14 @@ def parse_recent_release(html_fragment: str, session: requests.Session) -> list[
                 href = a["href"].strip()
                 if not href.lower().endswith((".zip", ".pdf")):
                     continue  # e.g. the MapPLUTO "View REST" ArcGIS service link
+                if "download" in a.get("class", []):
+                    dataset_name = base_name
+                else:
+                    # A reference doc (Data Dictionary / Read Me / MetaData), not the
+                    # dataset file itself - give it its own name instead of reusing the
+                    # dataset's, e.g. "pluto_datadictionary", "mappluto_metadata".
+                    suffix = reference_doc_suffix(a.get_text(strip=True))
+                    dataset_name = f"{base_name}_{suffix}" if suffix else base_name
                 rows.append(
                     {
                         "dataset_name": dataset_name,
