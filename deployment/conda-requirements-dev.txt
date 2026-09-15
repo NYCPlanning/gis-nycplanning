@@ -12,3 +12,6 @@ types-pyyaml>=6.0.12
 pandas-stubs>=2.2.3,<2.3
 # pinned to match the esri-bundled version.
 pytest==7.4.3
+pytest-cov>=5.0.0
+types-requests>=2.32
+types-beautifulsoup4>=4.12
