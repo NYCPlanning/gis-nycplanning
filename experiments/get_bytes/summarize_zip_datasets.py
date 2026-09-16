@@ -122,14 +122,21 @@ def discover_gdb_folders(names: list[str]) -> list[str]:
 
 
 def discover_loose_dirs(names: list[str]) -> list[str]:
-    """Distinct parent directories ('' for top-level) of members that aren't inside a
-    .gdb folder and aren't a nested zip themselves."""
+    """Distinct parent directories ('' for top-level) that contain at least one shapefile
+    component (.shp, or a standalone .dbf), skipping .gdb folders and nested zips.
+
+    Gated on .shp/.dbf actually being present, mirroring discover_gdb_folders' own gate on
+    .gdb - a directory holding only reference files (e.g. pluto_datadictionary.pdf sitting
+    alongside a .gdb folder at a zip's root) can never be identified by the Shapefile driver,
+    so there's no point asking GDAL to try.
+    """
     dirs = set()
     for name in names:
         lower = name.lower()
         if ".gdb/" in lower or lower.endswith(".zip"):
             continue
-        dirs.add(posixpath.dirname(name))
+        if lower.endswith((".shp", ".dbf")):
+            dirs.add(posixpath.dirname(name))
     return sorted(dirs)
 
 
