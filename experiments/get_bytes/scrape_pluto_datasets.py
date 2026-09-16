@@ -7,9 +7,7 @@ script hits directly instead (see README.md for how these were found).
 
 import csv
 import hashlib
-import io
 import re
-import zipfile
 from collections import defaultdict
 from pathlib import Path
 from urllib.parse import urlparse
@@ -17,12 +15,11 @@ from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup
 
+from common import get_zip_namelist, make_session
+
 CONTENT_PAGE_URL = "https://www.nyc.gov/content/planning/pages/resources/datasets/mappluto-pluto-change"
 CONTENT_API_URL = "https://apps.nyc.gov/content-api/v1/content/planning/resources/datasets/mappluto-pluto-change"
-ARCHIVE_JSON_URL = (
-    "https://www.nyc.gov/assets/planning/json/content/resources/dataset-archives/mappluto-pluto-change.json"
-)
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+ARCHIVE_JSON_URL = "https://www.nyc.gov/assets/planning/json/content/resources/dataset-archives/mappluto-pluto-change.json"
 OUTPUT_CSV = Path(__file__).parent / "pluto_datasets.csv"
 
 TM_SYMBOL = "™"
@@ -77,42 +74,6 @@ def infer_type_from_url(url: str) -> str | None:
     return None
 
 
-def get_zip_namelist(url: str, session: requests.Session) -> list[str] | None:
-    """Peek at a remote zip's member names without downloading the whole file.
-
-    Requests just the tail of the file (where the zip central directory lives) via a
-    suffix Range request. Falls back to a full download if Range isn't honored.
-    """
-    try:
-        resp = session.get(url, headers={"Range": "bytes=-262144"}, timeout=60)
-    except requests.RequestException as exc:
-        print(f"WARNING: request failed for {url}: {exc}")
-        return None
-
-    if resp.status_code not in (200, 206):
-        print(f"WARNING: unexpected status {resp.status_code} for {url}")
-        return None
-
-    try:
-        return zipfile.ZipFile(io.BytesIO(resp.content)).namelist()
-    except zipfile.BadZipFile:
-        if resp.status_code == 200:
-            # Already had the full file (server ignored Range) and it's still not a
-            # valid zip - no point retrying.
-            print(f"WARNING: could not read zip contents for {url}")
-            return None
-
-    # Range was honored (206) but didn't happen to contain a valid central directory
-    # (unexpected, but be defensive) - retry with a full download.
-    try:
-        resp = session.get(url, timeout=120)
-        resp.raise_for_status()
-        return zipfile.ZipFile(io.BytesIO(resp.content)).namelist()
-    except (requests.RequestException, zipfile.BadZipFile) as exc:
-        print(f"WARNING: could not inspect zip contents for {url}: {exc}")
-        return None
-
-
 def infer_type_from_zip_contents(url: str, session: requests.Session) -> str:
     names = get_zip_namelist(url, session)
     if names is None:
@@ -132,7 +93,11 @@ def infer_type_from_zip_contents(url: str, session: requests.Session) -> str:
 def infer_type(label_text: str, url: str, session: requests.Session) -> str:
     if url.lower().endswith(".pdf"):
         return "pdf"
-    return infer_type_from_label(label_text) or infer_type_from_url(url) or infer_type_from_zip_contents(url, session)
+    return (
+        infer_type_from_label(label_text)
+        or infer_type_from_url(url)
+        or infer_type_from_zip_contents(url, session)
+    )
 
 
 def strip_cache_buster(url: str) -> str:
@@ -228,8 +193,7 @@ def assign_identifiers(rows: list[dict]) -> None:
 
 
 def main() -> None:
-    session = requests.Session()
-    session.headers.update({"User-Agent": USER_AGENT})
+    session = make_session()
 
     content_resp = session.get(CONTENT_API_URL, timeout=30)
     content_resp.raise_for_status()
@@ -239,11 +203,15 @@ def main() -> None:
     archive_resp.raise_for_status()
     archive_entries = archive_resp.json()
 
-    rows = parse_recent_release(html_fragment, session) + parse_archive(archive_entries, session)
+    rows = parse_recent_release(html_fragment, session) + parse_archive(
+        archive_entries, session
+    )
     assign_identifiers(rows)
 
     with OUTPUT_CSV.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["identifier", "dataset_name", "type", "version", "url"])
+        writer = csv.DictWriter(
+            f, fieldnames=["identifier", "dataset_name", "type", "version", "url"]
+        )
         writer.writeheader()
         writer.writerows(rows)
 
