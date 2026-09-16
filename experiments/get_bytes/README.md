@@ -106,3 +106,17 @@ If any command can't reach the network (PyPI for `uv sync`, or `nyc.gov`/`apps.n
 $env:HTTP_PROXY = "http://bcpxy.nycnet:8080"
 $env:HTTPS_PROXY = "http://bcpxy.nycnet:8080"
 ```
+
+## Testing
+
+`uv run pytest` runs the suite in `tests/` - fully offline, no proxy needed. HTTP calls are
+mocked (`requests.Session.get`/`.head` patched per test via `tests/conftest.py`'s
+`MockResponse`/`mock_session_call` helpers - no third-party mocking library, matching this
+org's own convention found in both this repo and the sibling `data-engineering` repo) and an
+autouse `block_network` fixture fails any test that tries to open a real socket regardless.
+GDAL/pyogrio code is tested against small real fixture zips under `tests/resources/` via local
+(non-`vsicurl`) `/vsizip/` paths - never the network - also matching precedent in both repos.
+
+`uv run pytest --cov=. --cov-report=term-missing` adds a coverage report (`pytest-cov`).
+`main()` in each script is intentionally not covered - both are thin CLI/IO wrappers; the
+logic they call is what's under test.
