@@ -46,9 +46,7 @@ IN_SCOPE_TYPES = {"shp", "fgdb"}
 CURRENT_PRODUCT = "mappluto"
 CURRENT_DATASET = "mappluto"
 
-# The clipped/unclipped split (see mappluto_sub_dataset below) began with this year's
-# releases, per scrape_pluto_datasets.py's own finding while parsing the archive page.
-CLIPPED_SPLIT_YEAR = 2019
+UNCLIPPED_PATTERN = re.compile(r"unclipped|water included|\bwi\b", re.IGNORECASE)
 
 
 def configure_gdal() -> None:
@@ -66,31 +64,33 @@ def configure_gdal() -> None:
     )
 
 
-def version_year(version: str) -> int:
-    """'09v1' -> 2009, '25v2' -> 2025."""
-    match = re.match(r"(\d{2})", version)
-    return 2000 + int(match.group(1))
+def has_unclipped_signal(text: str) -> bool:
+    return bool(UNCLIPPED_PATTERN.search(text))
 
 
-def mappluto_sub_dataset(version: str, *name_parts: str) -> str:
+def apply_mappluto_sub_dataset(rows: list[dict], sibling_has_unclipped: bool) -> None:
     """MapPLUTO-specific clipped/unclipped label - lives in its own function rather than
     the generic discovery logic below, since other products have no such concept at all.
 
-    Pre-2019 vintages predate the clipped/unclipped split entirely, so every dataset in
-    those zips gets "". From 2019 on, "clipped" is the implicit default (its zips/folders
-    usually don't say "clipped" anywhere) unless "unclipped"/"wi"/"water included" appears
-    in the gdb folder / directory / layer name for that specific dataset.
+    Mutates `sub_dataset` in place for every row already collected from *one* zip, since
+    the decision for any single row depends on what else was found alongside it:
+    - A row whose own path already says unclipped/wi/water included -> "unclipped".
+    - Otherwise, if this zip demonstrably bundles both variants internally (some other row
+      from the same zip matched above), or a sibling row in pluto_datasets.csv for the same
+      version+type is the unclipped one (the modern one-zip-per-variant pattern) ->
+      "clipped", the implicit default.
+    - Otherwise - no evidence of an unclipped counterpart anywhere for this vintage -> "".
+      (Not derived from a version/year cutoff - that was tried and found wrong: some
+      pre-2019 zips, e.g. 18v1.1, already bundle both variants internally.)
     """
-    if version_year(version) < CLIPPED_SPLIT_YEAR:
-        return ""
-    haystack = " ".join(name_parts).lower()
-    if (
-        "unclipped" in haystack
-        or "water included" in haystack
-        or re.search(r"\bwi\b", haystack)
-    ):
-        return "unclipped"
-    return "clipped"
+    zip_has_internal_split = any(has_unclipped_signal(r["path_in_zip"]) for r in rows)
+    for row in rows:
+        if has_unclipped_signal(row["path_in_zip"]):
+            row["sub_dataset"] = "unclipped"
+        elif zip_has_internal_split or sibling_has_unclipped:
+            row["sub_dataset"] = "clipped"
+        else:
+            row["sub_dataset"] = ""
 
 
 def to_windows_path(*parts: str) -> str:
@@ -127,12 +127,13 @@ def discover_nested_zips(names: list[str]) -> list[str]:
 def read_layer_rows(
     vsi_path: str,
     identifier: str,
-    version: str,
     path_prefix_for_display: str,
     layer_path_key: "str | None",
 ) -> list[dict]:
     """Open a VSI path (a gdb folder, or a directory-like shapefile datasource) and
-    return one output row per layer/table found in it.
+    return one output row per layer/table found in it. `sub_dataset` is intentionally
+    left unset here - apply_mappluto_sub_dataset fills it in afterward, once every
+    dataset in the containing zip has been collected (see discover_zip).
 
     layer_path_key is the gdb folder's own path (used verbatim in path_in_zip, no
     extension) when opening a gdb; None when opening a shapefile-style directory
@@ -166,9 +167,6 @@ def read_layer_rows(
                 "identifier": identifier,
                 "product": CURRENT_PRODUCT,
                 "dataset": CURRENT_DATASET,
-                "sub_dataset": mappluto_sub_dataset(
-                    version, path_prefix_for_display, layer_path_key or "", name
-                ),
                 "spatial": spatial,
                 "row_count": info["features"],
                 "path_in_zip": path_in_zip,
@@ -177,7 +175,9 @@ def read_layer_rows(
     return rows
 
 
-def discover_zip(url: str, version: str, identifier: str, session) -> list[dict]:
+def discover_zip(
+    url: str, identifier: str, sibling_has_unclipped: bool, session
+) -> list[dict]:
     names = get_zip_namelist(url, session)
     if names is None:
         return []
@@ -187,20 +187,33 @@ def discover_zip(url: str, version: str, identifier: str, session) -> list[dict]
 
     for gdb_path in discover_gdb_folders(names):
         rows.extend(
-            read_layer_rows(
-                f"{vsi_prefix}/{gdb_path}", identifier, version, gdb_path, gdb_path
-            )
+            read_layer_rows(f"{vsi_prefix}/{gdb_path}", identifier, gdb_path, gdb_path)
         )
 
     for dir_path in discover_loose_dirs(names):
         folder_vsi = f"{vsi_prefix}/{dir_path}" if dir_path else vsi_prefix
-        rows.extend(read_layer_rows(folder_vsi, identifier, version, dir_path, None))
+        rows.extend(read_layer_rows(folder_vsi, identifier, dir_path, None))
 
     for nested_zip in discover_nested_zips(names):
         nested_vsi = f"/vsizip/{vsi_prefix}/{nested_zip}"
-        rows.extend(read_layer_rows(nested_vsi, identifier, version, nested_zip, None))
+        rows.extend(read_layer_rows(nested_vsi, identifier, nested_zip, None))
 
+    apply_mappluto_sub_dataset(rows, sibling_has_unclipped)
     return rows
+
+
+def find_versions_with_unclipped_sibling(
+    source_rows: list[dict],
+) -> set[tuple[str, str]]:
+    """(version, type) pairs where some pluto_datasets.csv row for that pair is the
+    unclipped variant - signals "the complementary clipped zip for this version/type
+    exists as a separate row" for zips that don't bundle both variants internally.
+    """
+    return {
+        (row["version"], row["type"])
+        for row in source_rows
+        if has_unclipped_signal(row["identifier"]) or has_unclipped_signal(row["url"])
+    }
 
 
 def main() -> None:
@@ -212,14 +225,19 @@ def main() -> None:
             row for row in csv.DictReader(f) if row["type"] in IN_SCOPE_TYPES
         ]
 
+    unclipped_siblings = find_versions_with_unclipped_sibling(source_rows)
+
     print(
         f"Processing {len(source_rows)} rows with type in {sorted(IN_SCOPE_TYPES)}..."
     )
 
     all_rows: list[dict] = []
     for i, row in enumerate(source_rows, 1):
+        sibling_has_unclipped = (row["version"], row["type"]) in unclipped_siblings
         try:
-            found = discover_zip(row["url"], row["version"], row["identifier"], session)
+            found = discover_zip(
+                row["url"], row["identifier"], sibling_has_unclipped, session
+            )
         except (RuntimeError, OSError) as exc:
             print(
                 f"WARNING: failed processing {row['identifier']} ({row['url']}): {exc}"
