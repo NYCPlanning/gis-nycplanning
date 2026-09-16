@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup
 
-from common import get_zip_namelist, make_session
+from common import get_response_code, get_zip_namelist, make_session
 
 CONTENT_PAGE_URL = "https://www.nyc.gov/content/planning/pages/resources/datasets/mappluto-pluto-change"
 CONTENT_API_URL = "https://apps.nyc.gov/content-api/v1/content/planning/resources/datasets/mappluto-pluto-change"
@@ -208,9 +208,20 @@ def main() -> None:
     )
     assign_identifiers(rows)
 
+    for row in rows:
+        row["response_code"] = get_response_code(row["url"], session)
+
     with OUTPUT_CSV.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(
-            f, fieldnames=["identifier", "dataset_name", "type", "version", "url"]
+            f,
+            fieldnames=[
+                "identifier",
+                "dataset_name",
+                "type",
+                "version",
+                "url",
+                "response_code",
+            ],
         )
         writer.writeheader()
         writer.writerows(rows)

@@ -10,8 +10,9 @@ Two tools, meant to be run in sequence:
 NYC DCP's [PLUTO, MapPLUTO and PLUTO Change File page](https://www.nyc.gov/content/planning/pages/resources/datasets/mappluto-pluto-change)
 lists download links for every current and historical release of PLUTO, MapPLUTO, and the
 PLUTO Change File. This script scrapes both the "Most Recent Release" and "Previous Releases
-Archive" sections into a single CSV manifest (`identifier,dataset_name,type,version,url`)
-intended as ground truth for this repo's own PLUTO-related tooling.
+Archive" sections into a single CSV manifest
+(`identifier,dataset_name,type,version,url,response_code`) intended as ground truth for this
+repo's own PLUTO-related tooling.
 
 The page itself is a client-rendered SPA (its `<main>` is empty on a plain fetch) - the script
 instead hits the two JSON endpoints the page's own JS calls to render that content:
@@ -26,6 +27,13 @@ ranged HTTP request for just the zip's central directory and inspecting the real
 extensions inside it. `identifier` is the URL's filename (extension stripped), with a
 deterministic 5-digit suffix added whenever that collides with another row's - which itself
 has caught a handful of real upstream errors (see Known gaps).
+
+`response_code` is a cheap, unconditional per-row check of the download URL's actual HTTP
+status - a `HEAD` request, falling back to a minimal ranged `GET` if the server rejects or
+mishandles `HEAD` outright. Any status the request actually completes with (404 included) is
+recorded as-is; it's left blank only if neither request could complete at all. This surfaces
+dead links (like the already-known `nyc_mappluto_23v1_arc_fgdb.zip` 404, previously only
+discovered downstream by `summarize_zip_datasets.py`) directly in this report.
 
 ### Known gaps in `pluto_datasets.csv`
 
@@ -50,6 +58,9 @@ has caught a handful of real upstream errors (see Known gaps).
   the Most Recent Release section), `nyc_mappluto_22v2_arc_shp.zip` (`22v2` and `22v3`),
   `nyc_mappluto_21v1_arc_fgdb.zip` (`21v1` and `21v2`), `nyc_mappluto_20v2_arc_shp.zip`
   (`20v2` and `21v2`).
+- 2 links 404 as of this writing, per `response_code` - real archive errors, not scraper bugs:
+  `nyc_mappluto_23v1_arc_fgdb.zip` (already known from `summarize_zip_datasets.py`'s own gaps
+  below) and `nyc_pluto_21v1_csv.zip` (newly surfaced by this column).
 
 ## `summarize_zip_datasets.py`
 

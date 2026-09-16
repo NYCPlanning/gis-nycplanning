@@ -4,8 +4,9 @@ import csv
 import json
 
 import requests
-import scrape_pluto_datasets as spd
 from conftest import MockResponse, make_zip_bytes, mock_session_call
+
+import scrape_pluto_datasets as spd
 
 # --- pure functions -----------------------------------------------------------------
 
@@ -47,7 +48,9 @@ def test_infer_type_pdf_shortcut_ignores_label(monkeypatch):
         raise AssertionError("should not make a request for a .pdf URL")
 
     monkeypatch.setattr(requests.Session, "get", _boom)
-    assert spd.infer_type("anything", "https://x/readme.pdf", requests.Session()) == "pdf"
+    assert (
+        spd.infer_type("anything", "https://x/readme.pdf", requests.Session()) == "pdf"
+    )
 
 
 def test_infer_type_from_zip_contents(monkeypatch):
@@ -74,7 +77,9 @@ def test_infer_type_from_zip_contents(monkeypatch):
 
 def test_infer_type_from_zip_contents_unlistable_zip_is_unknown(monkeypatch):
     url = "https://x/broken.zip"
-    monkeypatch.setattr(requests.Session, "get", mock_session_call({url: MockResponse(404)}))
+    monkeypatch.setattr(
+        requests.Session, "get", mock_session_call({url: MockResponse(404)})
+    )
     assert spd.infer_type_from_zip_contents(url, requests.Session()) == "unknown"
 
 
@@ -163,7 +168,12 @@ def test_parse_recent_release(mocked_responses_path):
 
 
 def test_parse_recent_release_no_recent_release_section_returns_empty():
-    assert spd.parse_recent_release("<html><body>nothing here</body></html>", requests.Session()) == []
+    assert (
+        spd.parse_recent_release(
+            "<html><body>nothing here</body></html>", requests.Session()
+        )
+        == []
+    )
 
 
 def test_parse_recent_release_skips_sub_section_without_h3():
@@ -235,8 +245,12 @@ def test_main_writes_expected_csv(monkeypatch, tmp_path, mocked_responses_path):
     html_fragment = (mocked_responses_path / "recent_release_fragment.html").read_text()
 
     routes = {
-        spd.CONTENT_API_URL: MockResponse(200, json.dumps({"description": html_fragment}).encode()),
-        spd.ARCHIVE_JSON_URL: MockResponse(200, (mocked_responses_path / "archive_entries.json").read_bytes()),
+        spd.CONTENT_API_URL: MockResponse(
+            200, json.dumps({"description": html_fragment}).encode()
+        ),
+        spd.ARCHIVE_JSON_URL: MockResponse(
+            200, (mocked_responses_path / "archive_entries.json").read_bytes()
+        ),
         "https://s-media.nyc.gov/agencies/dcp/assets/files/zip/data-tools/bytes/mappluto/mappluto_18v1.zip": MockResponse(
             206, make_zip_bytes(["MapPLUTO18v1.gdb/a00000001.gdbtable"])
         ),
@@ -248,6 +262,19 @@ def test_main_writes_expected_csv(monkeypatch, tmp_path, mocked_responses_path):
         ),
     }
     monkeypatch.setattr(requests.Session, "get", mock_session_call(routes))
+
+    # response_code is checked for every row via a HEAD request - one row routed to 200,
+    # one to 404 (simulating a dead archive link, like the real nyc_mappluto_23v1_arc_fgdb.zip
+    # case), the rest left unmocked (-> None -> blank in the CSV).
+    head_routes = {
+        "https://s-media.nyc.gov/agencies/dcp/assets/files/zip/data-tools/bytes/mappluto/nyc_mappluto_26v2_shp.zip": MockResponse(
+            200
+        ),
+        "https://s-media.nyc.gov/agencies/dcp/assets/files/zip/data-tools/bytes/mappluto/mappluto_18v1.zip": MockResponse(
+            404
+        ),
+    }
+    monkeypatch.setattr(requests.Session, "head", mock_session_call(head_routes))
 
     output_csv = tmp_path / "pluto_datasets.csv"
     monkeypatch.setattr(spd, "OUTPUT_CSV", output_csv)
@@ -269,3 +296,6 @@ def test_main_writes_expected_csv(monkeypatch, tmp_path, mocked_responses_path):
     assert by_identifier["mappluto_18v1"]["type"] == "fgdb"
     assert by_identifier["mappluto_17v1_1"]["type"] == "shp"
     assert by_identifier["PLUTOChangeFile18v1"]["dataset_name"] == "pluto_change_file"
+    assert by_identifier["nyc_mappluto_26v2_shp"]["response_code"] == "200"
+    assert by_identifier["mappluto_18v1"]["response_code"] == "404"
+    assert by_identifier["pluto_datadictionary"]["response_code"] == ""
