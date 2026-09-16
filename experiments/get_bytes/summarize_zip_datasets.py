@@ -32,6 +32,7 @@ FIELDNAMES = [
     "product",
     "dataset",
     "sub_dataset",
+    "extent",
     "spatial",
     "row_count",
     "path_in_zip",
@@ -47,6 +48,7 @@ CURRENT_PRODUCT = "mappluto"
 CURRENT_DATASET = "mappluto"
 
 UNCLIPPED_PATTERN = re.compile(r"unclipped|water included|\bwi\b", re.IGNORECASE)
+BOROUGH_PATTERN = re.compile(r"^(bx|bk|mn|qn|si)(?=_|[A-Z]|$)", re.IGNORECASE)
 
 
 def configure_gdal() -> None:
@@ -91,6 +93,17 @@ def apply_mappluto_sub_dataset(rows: list[dict], sibling_has_unclipped: bool) ->
             row["sub_dataset"] = "clipped"
         else:
             row["sub_dataset"] = ""
+
+
+def extent_from_filename(name: str) -> str:
+    """'BKMapPLUTO' -> 'bk'; 'bx_pluto' -> 'bx'; 'MapPLUTO_25v2_clipped' -> 'citywide'.
+
+    Derived from the dataset's own name, never its containing directory - some zips (e.g.
+    mappluto_17v1_1.zip) bundle all five boroughs' files together inside one real folder
+    misleadingly named 'citywide/', so the directory name can't be trusted.
+    """
+    match = BOROUGH_PATTERN.match(name)
+    return match.group(1).lower() if match else "citywide"
 
 
 def to_windows_path(*parts: str) -> str:
@@ -167,6 +180,7 @@ def read_layer_rows(
                 "identifier": identifier,
                 "product": CURRENT_PRODUCT,
                 "dataset": CURRENT_DATASET,
+                "extent": extent_from_filename(name),
                 "spatial": spatial,
                 "row_count": info["features"],
                 "path_in_zip": path_in_zip,
