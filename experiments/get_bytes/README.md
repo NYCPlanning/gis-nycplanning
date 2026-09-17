@@ -35,6 +35,17 @@ recorded as-is; it's left blank only if neither request could complete at all. T
 dead links (like the already-known `nyc_mappluto_23v1_arc_fgdb.zip` 404, previously only
 discovered downstream by `summarize_zip_datasets.py`) directly in this report.
 
+`version` always comes from the page's own label text, never reconstructed from the download
+URL - the two sections do this differently, intentionally: archive rows get their own
+per-release label (`release["text"]` in the archive JSON), while every row scraped from the
+Most Recent Release section shares a single page-level `"Latest Release: NNvN"` label, because
+that's the only version concept that section actually has (confirmed by inspecting the real
+page - there is no per-dataset version label anywhere in it, just the one page-wide string).
+Label-vs-URL disagreement does happen for a handful of rows - see the 4 duplicate-link cases
+below - but detecting that automatically is a separate concern from this column and isn't done
+here; `tests/test_scrape_pluto_datasets.py` has regression tests locking in that the label
+wins whenever the two would otherwise conflict.
+
 ### Known gaps in `pluto_datasets.csv`
 
 - MapPLUTO 2016v2 and 2017v1 are each a zip-of-per-borough-zips (e.g. `Bronx16V2.zip`,

@@ -193,6 +193,23 @@ def test_parse_recent_release_skips_non_zip_pdf_links():
     assert spd.parse_recent_release(html, requests.Session()) == []
 
 
+def test_parse_recent_release_version_comes_from_label_not_url():
+    # The page-level "Latest Release" label is the only version signal that exists in this
+    # section (confirmed by inspecting the real page - no per-dataset label exists there), so
+    # it must win even when a download URL visibly embeds a different version.
+    html = """
+    <p>Latest Release: 26v2</p>
+    <div id="recent-release">
+      <div class="sub-section">
+        <h3>MapPLUTO</h3>
+        <table><tr><td><a class="download" href="https://x/nyc_mappluto_25v4_shp.zip">Download</a></td></tr></table>
+      </div>
+    </div>
+    """
+    rows = spd.parse_recent_release(html, requests.Session())
+    assert rows[0]["version"] == "26v2"
+
+
 def test_parse_archive(monkeypatch, mocked_responses_path):
     entries = json.loads((mocked_responses_path / "archive_entries.json").read_text())
 
@@ -236,6 +253,29 @@ def test_parse_archive(monkeypatch, mocked_responses_path):
     ]
     assert change_file["dataset_name"] == "pluto_change_file"
     assert change_file["type"] == "csv"
+
+
+def test_parse_archive_version_comes_from_label_not_url(monkeypatch):
+    # Mirrors the real PLUTOChangeFile26v1.zip case documented in README's Known Gaps: NYC's
+    # own archive page links a "26v2" release label to a file whose name says "26v1" - the
+    # label must still win, per-release, regardless of what the URL embeds.
+    entries = [
+        {
+            "dataset": "PLUTO Change File",
+            "releases": [
+                {"text": "26v2", "link": "https://x/PLUTOChangeFile26v1.zip"},
+            ],
+        }
+    ]
+    routes = {
+        "https://x/PLUTOChangeFile26v1.zip": MockResponse(
+            206, make_zip_bytes(["a.csv"])
+        )
+    }
+    monkeypatch.setattr(requests.Session, "get", mock_session_call(routes))
+
+    rows = spd.parse_archive(entries, requests.Session())
+    assert rows[0]["version"] == "26v2"
 
 
 # --- main(), end-to-end through the CSV file -----------------------------------------
