@@ -5,6 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dcpgis"
 version = "0.0.1"
+dependencies = [
+    "fiona",
+    "pandas",
+]
+
+[project.scripts]
+dcpgis-compare-schema = "dcpgis.compare_schema:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
