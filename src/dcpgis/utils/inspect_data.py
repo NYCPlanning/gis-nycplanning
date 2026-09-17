@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pathlib import Path
 
 import fiona
@@ -94,3 +95,119 @@ def get_record_count_comparison(
         dataset_2_count = len(src_2)
 
     return dataset_1_count, dataset_2_count
+
+
+def load_reference_schema(reference: Path | str, layer: str | None = None) -> pd.DataFrame:
+    """Load a reference schema to compare a dataset against.
+
+    Args:
+        reference (Union[Path, str]): Path to either a CSV with "name", "type", and
+            "length" columns, or a vector dataset to inspect with `get_dataset_schema`.
+        layer (Optional[str]): Layer name within `reference`, if it is a dataset.
+
+    Returns:
+        pd.DataFrame: Reference schema, in the same shape returned by
+            `get_dataset_schema`.
+    """
+    reference = Path(reference)
+    if reference.suffix.lower() == ".csv":
+        return pd.read_csv(reference)
+
+    return get_dataset_schema(reference, layer=layer)
+
+
+@dataclass
+class SchemaDiff:
+    """Result of comparing a test dataset's schema against a reference schema."""
+
+    added_fields: pd.DataFrame
+    removed_fields: pd.DataFrame
+    changed_fields: pd.DataFrame
+
+    @property
+    def is_match(self) -> bool:
+        return self.added_fields.empty and self.removed_fields.empty and self.changed_fields.empty
+
+    def __str__(self) -> str:
+        if self.is_match:
+            return "Schemas match."
+
+        sections = []
+        if not self.added_fields.empty:
+            sections.append(
+                "Fields present in the test dataset but not the reference:\n"
+                f"{self.added_fields.to_string(index=False)}"
+            )
+        if not self.removed_fields.empty:
+            sections.append(
+                "Fields expected by the reference but missing from the test dataset:\n"
+                f"{self.removed_fields.to_string(index=False)}"
+            )
+        if not self.changed_fields.empty:
+            sections.append(
+                f"Fields with mismatched type or length:\n{self.changed_fields.to_string(index=False)}"
+            )
+
+        return "\n\n".join(sections)
+
+
+def compare_schema(
+    test: Path | str,
+    reference: Path | str,
+    test_layer: str | None = None,
+    reference_layer: str | None = None,
+) -> SchemaDiff:
+    """Compare a test dataset's schema against a reference schema.
+
+    Args:
+        test (Union[Path, str]): Path to the dataset being vetted.
+        reference (Union[Path, str]): Path to the known-good schema to compare against;
+            either a dataset or a CSV with "name", "type", and "length" columns.
+        test_layer (Optional[str]): Layer name within `test`, if applicable.
+        reference_layer (Optional[str]): Layer name within `reference`, if it is a
+            dataset.
+
+    Returns:
+        SchemaDiff: The fields added, removed, and changed relative to the reference
+            schema. `SchemaDiff.is_match` is True when the two schemas are identical.
+    """
+    test_schema = get_dataset_schema(test, layer=test_layer)
+    reference_schema = load_reference_schema(reference, layer=reference_layer)
+
+    merged = test_schema.merge(
+        reference_schema,
+        on="name",
+        how="outer",
+        suffixes=("_test", "_reference"),
+        indicator=True,
+    )
+
+    added_fields = (
+        merged.loc[merged["_merge"] == "left_only", ["name", "type_test", "length_test"]]
+        .rename(columns={"type_test": "type", "length_test": "length"})
+        .sort_values("name")
+        .reset_index(drop=True)
+    )
+
+    removed_fields = (
+        merged.loc[merged["_merge"] == "right_only", ["name", "type_reference", "length_reference"]]
+        .rename(columns={"type_reference": "type", "length_reference": "length"})
+        .sort_values("name")
+        .reset_index(drop=True)
+    )
+
+    both = merged.loc[merged["_merge"] == "both"].copy()
+    type_mismatch = both["type_test"] != both["type_reference"]
+    both_lengths_missing = both["length_test"].isna() & both["length_reference"].isna()
+    length_mismatch = ~both_lengths_missing & (both["length_test"] != both["length_reference"])
+
+    changed_fields = (
+        both.loc[
+            type_mismatch | length_mismatch,
+            ["name", "type_test", "type_reference", "length_test", "length_reference"],
+        ]
+        .sort_values("name")
+        .reset_index(drop=True)
+    )
+
+    return SchemaDiff(added_fields=added_fields, removed_fields=removed_fields, changed_fields=changed_fields)
