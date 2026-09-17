@@ -1,10 +1,12 @@
-from pytest import fixture
+import os
 import shutil
 import zipfile
-import os
-from utilities.python import inspect_data
+
 import pandas as pd
 from pandas.testing import assert_frame_equal
+from pytest import fixture
+
+from dcpgis.utils import inspect_data
 
 GDB_ZIP = "geodatabase_zoning_data.zip"
 SHP_ZIP = "shapefile_nyzd_one_row.zip"
@@ -16,9 +18,7 @@ def temp_shp_zip(resources_path, tmp_path):
         src=resources_path / SHP_ZIP,
         dst=tmp_path / SHP_ZIP,
     )
-    assert zipfile.is_zipfile(tmp_path / SHP_ZIP), (
-        f"'{SHP_ZIP}' should be a valid zip file"
-    )
+    assert zipfile.is_zipfile(tmp_path / SHP_ZIP), f"'{SHP_ZIP}' should be a valid zip file"
     return tmp_path / SHP_ZIP
 
 
@@ -36,9 +36,7 @@ def temp_gdb_zip(resources_path, tmp_path):
         src=resources_path / GDB_ZIP,
         dst=tmp_path / GDB_ZIP,
     )
-    assert zipfile.is_zipfile(tmp_path / GDB_ZIP), (
-        f"'{GDB_ZIP}' should be a valid zip file"
-    )
+    assert zipfile.is_zipfile(tmp_path / GDB_ZIP), f"'{GDB_ZIP}' should be a valid zip file"
     return tmp_path / GDB_ZIP
 
 
@@ -51,8 +49,6 @@ def temp_gdb_nonzipped(temp_gdb_zip, tmp_path):
 
 
 def test_get_gdb_schema(temp_gdb_nonzipped):
-    dataset_path = os.path.join(temp_gdb_nonzipped, "nyzd_one_row")
-
     expected_schema = pd.DataFrame(
         {
             "name": [
@@ -79,18 +75,16 @@ def test_get_gdb_schema(temp_gdb_nonzipped):
                 "Double",
                 "Double",
             ],
-            "length": [4, 0, 15, 8, 50, 50, 8, 50, 8, 8],
+            "length": [None, None, 15, None, 50, 50, None, 50, None, None],
         }
     )
 
-    actual_schema = inspect_data.get_dataset_schema(dataset_path)
+    actual_schema = inspect_data.get_dataset_schema(temp_gdb_nonzipped, layer="nyzd_one_row")
 
     assert_frame_equal(expected_schema, actual_schema)
 
 
 def test_get_shp_schema(temp_shp_nonzipped):
-    shp = temp_shp_nonzipped
-
     expected_schema = pd.DataFrame(
         {
             "name": [
@@ -113,10 +107,32 @@ def test_get_shp_schema(temp_shp_nonzipped):
                 "Date",
                 "String",
             ],
-            "length": [4, 0, 15, 8, 50, 50, 8, 50],
+            "length": [None, None, 15, None, 50, 50, None, 50],
         }
     )
 
-    actual_schema = inspect_data.get_dataset_schema(shp)
+    actual_schema = inspect_data.get_dataset_schema(temp_shp_nonzipped)
 
     assert_frame_equal(expected_schema, actual_schema)
+
+
+def test_get_record_count_comparison_gdb(temp_gdb_nonzipped):
+    dataset_1, dataset_2 = inspect_data.get_record_count_comparison(
+        dataset_1=temp_gdb_nonzipped,
+        dataset_2=temp_gdb_nonzipped,
+        layer_1="nyzd_one_row",
+        layer_2="nyzd_one_row",
+    )
+
+    assert dataset_1 == 1
+    assert dataset_2 == 1
+
+
+def test_get_record_count_comparison_shp(temp_shp_nonzipped):
+    dataset_1, dataset_2 = inspect_data.get_record_count_comparison(
+        dataset_1=temp_shp_nonzipped,
+        dataset_2=temp_shp_nonzipped,
+    )
+
+    assert dataset_1 == 1
+    assert dataset_2 == 1
