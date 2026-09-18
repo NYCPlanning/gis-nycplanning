@@ -50,6 +50,71 @@ def get_zip_namelist(url: str, session: requests.Session) -> list[str] | None:
         return None
 
 
+class _HTTPRangeFile:
+    """Minimal seekable, readable file-like object over a remote file, backed by ranged GET
+    requests - just enough for zipfile.ZipFile's random-access needs (it seeks to find the
+    central directory, then seeks again per-member to its local header + compressed data),
+    without ever downloading the whole remote file.
+
+    Unlike get_zip_namelist (which only fetches the zip's tail to list member names cheaply),
+    reading an arbitrary member's actual bytes needs real random access, since that member's
+    compressed data can live anywhere earlier in the file.
+    """
+
+    def __init__(self, url: str, session: requests.Session):
+        self._url = url
+        self._session = session
+        self._pos = 0
+        resp = session.head(url, timeout=30)
+        resp.raise_for_status()
+        self._size = int(resp.headers["Content-Length"])
+
+    def seek(self, offset: int, whence: int = 0) -> int:
+        if whence == 0:
+            self._pos = offset
+        elif whence == 1:
+            self._pos += offset
+        elif whence == 2:
+            self._pos = self._size + offset
+        else:
+            raise ValueError(f"unsupported whence: {whence}")
+        return self._pos
+
+    def tell(self) -> int:
+        return self._pos
+
+    def seekable(self) -> bool:
+        return True
+
+    def read(self, size: int = -1) -> bytes:
+        end = (
+            self._size - 1
+            if size is None or size < 0
+            else min(self._pos + size, self._size) - 1
+        )
+        if end < self._pos:
+            return b""
+        resp = self._session.get(
+            self._url, headers={"Range": f"bytes={self._pos}-{end}"}, timeout=60
+        )
+        resp.raise_for_status()
+        data = resp.content
+        self._pos += len(data)
+        return data
+
+
+def get_zip_member_bytes(
+    url: str, member_name: str, session: requests.Session
+) -> bytes | None:
+    """Read one member's bytes out of a remote zip via ranged HTTP requests, without
+    downloading the whole file."""
+    try:
+        return zipfile.ZipFile(_HTTPRangeFile(url, session)).read(member_name)
+    except (requests.RequestException, zipfile.BadZipFile, KeyError, OSError) as exc:
+        print(f"WARNING: could not read member {member_name!r} from {url}: {exc}")
+        return None
+
+
 def get_response_code(url: str, session: requests.Session) -> int | None:
     """Cheaply check a URL's HTTP status without downloading its body.
 

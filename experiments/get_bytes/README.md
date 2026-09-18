@@ -51,9 +51,9 @@ wins whenever the two would otherwise conflict.
 - MapPLUTO 2016v2 and 2017v1 are each a zip-of-per-borough-zips (e.g. `Bronx16V2.zip`,
   `bk_mappluto_17v1.zip` inside the outer zip), so single-level content inspection can't see
   the `.shp` files nested a level down. They come out as `type=unknown`; the real format is
-  `shp`. **Because of this, `summarize_zip_datasets.py`'s `{shp, fgdb}` filter skips them** -
-  confirmed separately that its nested-zip handling does work correctly against these two
-  URLs directly, they just never reach it through the normal pipeline. Everything else
+  `shp`. **Because of this, `summarize_zip_datasets.py`'s `{shp, fgdb, csv, txt}` filter skips
+  them** - confirmed separately that its nested-zip handling does work correctly against these
+  two URLs directly, they just never reach it through the normal pipeline. Everything else
   inspected cleanly at one level.
 - 3 archive links carry a leftover cache-busting query string (`?r=1`/`?r=2`) on NYC's own
   site - likely added when DCP re-uploaded a corrected file at the same path and needed to
@@ -75,14 +75,24 @@ wins whenever the two would otherwise conflict.
 
 ## `summarize_zip_datasets.py`
 
-Reads `pluto_datasets.csv`, filters to rows where `type` is `shp` or `fgdb` (104 of 212 as of
-this writing), and for each one opens the zip *remotely* via GDAL's
-`/vsizip//vsicurl/<url>/<path>` virtual file system (via `pyogrio`) - no local download, not
-even a full in-memory fetch of the zip. Reports one row per distinct spatial layer or
-standalone table found inside, into `zip_contents.csv`
-(`identifier,product,dataset,sub_dataset,spatial,row_count,path_in_zip`).
+Reads `pluto_datasets.csv`, filters to rows where `type` is `shp`, `fgdb`, `csv`, or `txt`
+(most of 212 as of this writing), and reports one row per distinct spatial layer, standalone
+table, or standalone tabular file found inside each zip, into `zip_contents.csv`
+(`identifier,product,dataset,sub_dataset,extent,spatial,row_count,path_in_zip`).
 
-Two GDAL behaviors this leans on, confirmed empirically before writing the discovery logic:
+Two different access paths, depending on content type, both avoiding a local download of the
+zip:
+- **Spatial** (`.shp`/`.gdb` layers and standalone `.dbf` tables): opened *remotely* via GDAL's
+  `/vsizip//vsicurl/<url>/<path>` virtual file system (via `pyogrio`) - not even a full
+  in-memory fetch of the zip.
+- **Tabular** (standalone `.csv`/`.txt` members, e.g. the plain-CSV PLUTO product and the PLUTO
+  Change File releases): read via plain `requests` + stdlib `zipfile` random-access reads
+  (`common.get_zip_member_bytes`, backed by ranged HTTP requests for whatever byte offsets
+  `zipfile` needs - not GDAL/VSI), then parsed with `pandas` for a row count. No GDAL
+  involvement anywhere in this path.
+
+Two GDAL behaviors the spatial path leans on, confirmed empirically before writing the
+discovery logic:
 - Opening a bare directory-like VSI path (a folder inside a zip, or a whole zip's root) with
   the ESRI Shapefile driver returns one layer per `.shp` bundle plus one table layer per
   standalone `.dbf` with no matching `.shp` - exactly the shapefile/table grouping needed,
@@ -91,7 +101,9 @@ Two GDAL behaviors this leans on, confirmed empirically before writing the disco
   wrapping the whole VSI path in another `/vsizip/`, e.g.
   `/vsizip//vsizip//vsicurl/<url>/outer.zip/inner.zip` - confirmed working directly against
   both known zip-of-zips URLs even though they don't reach this script through the normal
-  `pluto_datasets.csv` pipeline (see above).
+  `pluto_datasets.csv` pipeline (see above). The tabular path does not yet do the equivalent for
+  a `.csv`/`.txt` member sitting inside a nested zip - a known, documented limitation, not a
+  silent gap.
 
 `product`/`dataset` are both hardcoded `"mappluto"` for this pass (single named constants at
 the top of the file) - the instructions call for `"pluto"` (tabular) and other DCP products to
@@ -112,6 +124,35 @@ sizes, `VSI_CACHE`) giving a further ~14% for free. The full 104-row run took a 
   opening every loose-file parent directory as a shapefile datasource, including the root.
   GDAL correctly rejects a directory containing only PDFs; zero rows are contributed by that
   attempt and the `.gdb` folder itself is still found and read normally.
+- Previously, standalone tabular data was invisible for two independent reasons: `type=csv`/
+  `type=txt` source rows (the plain-CSV PLUTO product, PLUTO Change File releases) were
+  filtered out before ever reaching `discover_zip`, and even inside an in-scope `shp`/`fgdb`
+  zip, a loose `.csv`/`.txt` member alongside the shapefile/gdb was silently skipped the same
+  way `pluto_readme.pdf` still is. Both are now covered (see above) - confirmed against the
+  real, live `nyc_pluto_26v2_csv.zip`, which now produces a real row (858,284 records) instead
+  of none.
+- Gut-checked the tabular path against all 101 real `csv`/`txt` source rows before trusting it.
+  Found and fixed two real bugs in the process: `product`/`dataset` were hardcoded to
+  `"mappluto"` for every row regardless of source (every real `csv`/`txt` row is actually
+  `"pluto"` or `"pluto_change_file"`, never `"mappluto"` - now derived from `pluto_datasets.csv`'s
+  own `dataset_name` column instead); and a UTF-8-only decode assumption failed outright on
+  several older-vintage releases authored on Windows before UTF-8 was a practical default -
+  now tried as UTF-8, then `cp1252`, then `latin-1` (which can never fail to decode, since it
+  maps every byte 0x00-0xFF), closing that gap for any encoding a future release might use.
+  Two genuine, newly-discovered upstream data defects surfaced by this same gut-check (not
+  bugs in this tool, confirmed by reproducing each independently of this codebase) remain and
+  are correctly handled by the existing warn-and-skip pattern, not silently swallowed:
+  - `nyc_pluto_25v1_arc_csv.zip`'s central directory records the wrong byte offset for
+    `pluto_25v1.csv` - a raw ranged HTTP fetch at that exact offset (bypassing this tool's code
+    entirely) confirms the bytes there aren't a valid ZIP local file header. Not a Zip64 issue
+    (no Zip64 extra field present); the archive itself appears to be malformed at the source.
+  - `nyc_pluto_20v5_arc_csv.zip`'s `pluto_20v5.csv` has a CSV quoting defect
+    (`',' expected after '"'`) that fails to parse under every encoding tried - a genuine
+    malformed-CSV issue in that file, not an encoding problem.
+  Both produce a `WARNING: could not read/parse ...` and a blank `row_count` rather than
+  crashing the run; per-encoding brute-forcing stops at `latin-1` deliberately - anything
+  that still fails past that point is a real structural defect worth a human's attention (see
+  future item 9's error report), not something worth adding more auto-repair logic for.
 
 ## Execution
 
@@ -138,6 +179,11 @@ org's own convention found in both this repo and the sibling `data-engineering` 
 autouse `block_network` fixture fails any test that tries to open a real socket regardless.
 GDAL/pyogrio code is tested against small real fixture zips under `tests/resources/` via local
 (non-`vsicurl`) `/vsizip/` paths - never the network - also matching precedent in both repos.
+The tabular (`.csv`/`.txt`) read path doesn't go through GDAL at all, so it's tested instead via
+`tests/conftest.py`'s `mock_ranged_file_session` - a mocked `requests.Session.get`/`.head` that
+actually honors the `Range` header's byte offsets against an in-memory zip's real bytes, so
+`get_zip_member_bytes`'s random-access reads get correct slices back without any real network
+call.
 
 `uv run pytest --cov=. --cov-report=term-missing` adds a coverage report (`pytest-cov`).
 `main()` in each script is intentionally not covered - both are thin CLI/IO wrappers; the

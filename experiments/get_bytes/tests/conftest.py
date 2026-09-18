@@ -50,9 +50,12 @@ def block_network(monkeypatch):
 class MockResponse:
     """Minimal stand-in for requests.Response - only what this codebase's HTTP calls use."""
 
-    def __init__(self, status_code: int, content: bytes = b""):
+    def __init__(
+        self, status_code: int, content: bytes = b"", headers: dict | None = None
+    ):
         self.status_code = status_code
         self.content = content
+        self.headers = headers or {}
 
     def raise_for_status(self) -> None:
         if self.status_code >= 400:
@@ -94,14 +97,39 @@ def mock_session_call(
     return _call
 
 
-def make_zip_bytes(names: list[str]) -> bytes:
-    """Small in-memory zip with empty-content members - for tests that only need
-    get_zip_namelist's namelist() output, not real spatial content."""
+def make_zip_bytes(names: list[str], content: dict[str, bytes] | None = None) -> bytes:
+    """Small in-memory zip. Members default to empty content (enough for tests that only need
+    get_zip_namelist's namelist() output) - pass `content` to give specific members real bytes
+    (e.g. for get_zip_member_bytes tests that need to actually read a member back)."""
+    content = content or {}
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as zf:
         for name in names:
-            zf.writestr(name, b"")
+            zf.writestr(name, content.get(name, b""))
     return buf.getvalue()
+
+
+def mock_ranged_file_session(full_bytes: bytes):
+    """Returns (get, head) callables for monkeypatching requests.Session.get/.head, simulating
+    a real ranged-HTTP file server backed by in-memory bytes.
+
+    Unlike mock_session_call's fixed-response-per-call model, this actually honors the Range
+    header's byte offsets, so a caller doing real random-access reads against it (e.g.
+    common._HTTPRangeFile, which zipfile.ZipFile drives to find the central directory and then
+    a specific member's local header + compressed data) gets back correct slices.
+    """
+
+    def _get(self, url, *args, **kwargs):
+        range_header = kwargs.get("headers", {}).get("Range")
+        if range_header is None:
+            return MockResponse(200, full_bytes)
+        start, end = range_header.removeprefix("bytes=").split("-")
+        return MockResponse(206, full_bytes[int(start) : int(end) + 1])
+
+    def _head(self, url, *args, **kwargs):
+        return MockResponse(200, headers={"Content-Length": str(len(full_bytes))})
+
+    return _get, _head
 
 
 @pytest.fixture()

@@ -17,13 +17,14 @@ Two GDAL behaviors this leans on heavily (confirmed empirically before writing t
 """
 
 import csv
+import io
 import posixpath
 import re
 from pathlib import Path
 
+import pandas
 import pyogrio
-
-from common import get_zip_namelist, make_session
+from common import get_zip_member_bytes, get_zip_namelist, make_session
 
 INPUT_CSV = Path(__file__).parent / "pluto_datasets.csv"
 OUTPUT_CSV = Path(__file__).parent / "zip_contents.csv"
@@ -38,14 +39,7 @@ FIELDNAMES = [
     "path_in_zip",
 ]
 
-IN_SCOPE_TYPES = {"shp", "fgdb"}
-
-# Both constants for this pass, per the instructions file - "pluto" (tabular) and other DCP
-# products are future scope. Nothing in the discovery/classification logic below depends on
-# these values; extending to another product means a second pass with different constants
-# and a different source row filter, not touching the logic in this file.
-CURRENT_PRODUCT = "mappluto"
-CURRENT_DATASET = "mappluto"
+IN_SCOPE_TYPES = {"shp", "fgdb", "csv", "txt"}
 
 UNCLIPPED_PATTERN = re.compile(r"unclipped|water included|\bwi\b", re.IGNORECASE)
 BOROUGH_PATTERN = re.compile(r"^(bx|bk|mn|qn|si)(?=_|[A-Z]|$)", re.IGNORECASE)
@@ -144,9 +138,90 @@ def discover_nested_zips(names: list[str]) -> list[str]:
     return sorted(n for n in names if n.lower().endswith(".zip"))
 
 
+def discover_tabular_files(names: list[str]) -> list[str]:
+    """Distinct standalone '.csv'/'.txt' member paths found in a flat zip member list.
+
+    Skips anything under a '.gdb/' folder (a gdb's own tabular attribute data already comes
+    through read_layer_rows) and nested zips (handled recursively by discover_nested_zips'
+    own discover_zip pass, not this one) - mirrors discover_loose_dirs' own skip logic.
+    """
+    tabular = []
+    for name in names:
+        lower = name.lower()
+        if ".gdb/" in lower or lower.endswith(".zip"):
+            continue
+        if lower.endswith((".csv", ".txt")):
+            tabular.append(name)
+    return sorted(tabular)
+
+
+def read_tabular_row(url: str, identifier: str, dataset_name: str, member_name: str, session) -> "dict | None":
+    """Read one standalone tabular (.csv/.txt) zip member and return its output row.
+
+    These files are never spatial, so they're read via pandas rather than GDAL/pyogrio (the
+    way shapefile/gdb layers are) - get_zip_member_bytes hands back the member's raw bytes via
+    ranged HTTP requests, no VSI/GDAL involvement anywhere in this path.
+    """
+    data = get_zip_member_bytes(url, member_name, session)
+    if data is None:
+        return None
+
+    # dtype=str: only the row count is needed, never column values - this also sidesteps
+    # pandas' per-column type-inference entirely, avoiding spurious DtypeWarnings on large
+    # real-world PLUTO CSVs that mix numeric and blank/text values in the same column.
+    #
+    # cp1252/latin-1 fallbacks: confirmed empirically against real older-vintage PLUTO
+    # releases (nyc_pluto_20v5_arc_csv, nyc_pluto_07c) - PLUTO's pre-2015-ish tabular files
+    # were authored on Windows and predate UTF-8 as a practical default, so a handful contain
+    # legacy single-byte characters (smart quotes/accented letters in owner or address
+    # fields) that fail a strict UTF-8 decode outright. cp1252 alone isn't quite enough
+    # either - a couple of real files use byte values (e.g. 0x81, 0x90) that cp1252 itself
+    # leaves undefined - so latin-1 is tried last as a guaranteed-to-decode safety net (it
+    # maps every byte 0x00-0xFF to some codepoint, so it can never raise
+    # UnicodeDecodeError; only a genuine structural ParserError can still fail past this
+    # point).
+    row_count = None
+    last_exc = None
+    for kwargs in (
+        {"encoding": "utf-8"},
+        {"encoding": "cp1252"},
+        {"encoding": "latin-1"},
+        {"encoding": "utf-8", "sep": None, "engine": "python"},
+        {"encoding": "cp1252", "sep": None, "engine": "python"},
+        {"encoding": "latin-1", "sep": None, "engine": "python"},
+    ):
+        try:
+            row_count = len(pandas.read_csv(io.BytesIO(data), dtype=str, **kwargs))
+            break
+        except (
+            pandas.errors.ParserError,
+            pandas.errors.EmptyDataError,
+            UnicodeDecodeError,
+            csv.Error,
+        ) as exc:
+            # csv.Error: the sep=None attempts delegate delimiter-sniffing to the stdlib
+            # csv.Sniffer, which raises this directly (not a pandas.errors.* type) when it
+            # can't find a delimiter at all - e.g. genuinely empty content.
+            last_exc = exc
+    else:
+        print(f"WARNING: could not parse {member_name!r} in {url} as tabular data: {last_exc}")
+
+    stem = posixpath.splitext(posixpath.basename(member_name))[0]
+    return {
+        "identifier": identifier,
+        "product": dataset_name,
+        "dataset": dataset_name,
+        "extent": extent_from_filename(stem),
+        "spatial": False,
+        "row_count": row_count,
+        "path_in_zip": to_windows_path(member_name),
+    }
+
+
 def read_layer_rows(
     vsi_path: str,
     identifier: str,
+    dataset_name: str,
     path_prefix_for_display: str,
     layer_path_key: "str | None",
 ) -> list[dict]:
@@ -185,8 +260,8 @@ def read_layer_rows(
         rows.append(
             {
                 "identifier": identifier,
-                "product": CURRENT_PRODUCT,
-                "dataset": CURRENT_DATASET,
+                "product": dataset_name,
+                "dataset": dataset_name,
                 "extent": extent_from_filename(name),
                 "spatial": spatial,
                 "row_count": info["features"],
@@ -196,9 +271,7 @@ def read_layer_rows(
     return rows
 
 
-def discover_zip(
-    url: str, identifier: str, sibling_has_unclipped: bool, session
-) -> list[dict]:
+def discover_zip(url: str, identifier: str, dataset_name: str, sibling_has_unclipped: bool, session) -> list[dict]:
     names = get_zip_namelist(url, session)
     if names is None:
         return []
@@ -207,17 +280,20 @@ def discover_zip(
     rows: list[dict] = []
 
     for gdb_path in discover_gdb_folders(names):
-        rows.extend(
-            read_layer_rows(f"{vsi_prefix}/{gdb_path}", identifier, gdb_path, gdb_path)
-        )
+        rows.extend(read_layer_rows(f"{vsi_prefix}/{gdb_path}", identifier, dataset_name, gdb_path, gdb_path))
 
     for dir_path in discover_loose_dirs(names):
         folder_vsi = f"{vsi_prefix}/{dir_path}" if dir_path else vsi_prefix
-        rows.extend(read_layer_rows(folder_vsi, identifier, dir_path, None))
+        rows.extend(read_layer_rows(folder_vsi, identifier, dataset_name, dir_path, None))
 
     for nested_zip in discover_nested_zips(names):
         nested_vsi = f"/vsizip/{vsi_prefix}/{nested_zip}"
-        rows.extend(read_layer_rows(nested_vsi, identifier, nested_zip, None))
+        rows.extend(read_layer_rows(nested_vsi, identifier, dataset_name, nested_zip, None))
+
+    for tabular_file in discover_tabular_files(names):
+        row = read_tabular_row(url, identifier, dataset_name, tabular_file, session)
+        if row is not None:
+            rows.append(row)
 
     apply_mappluto_sub_dataset(rows, sibling_has_unclipped)
     return rows
@@ -242,27 +318,25 @@ def main() -> None:
     session = make_session()
 
     with INPUT_CSV.open(newline="", encoding="utf-8") as f:
-        source_rows = [
-            row for row in csv.DictReader(f) if row["type"] in IN_SCOPE_TYPES
-        ]
+        source_rows = [row for row in csv.DictReader(f) if row["type"] in IN_SCOPE_TYPES]
 
     unclipped_siblings = find_versions_with_unclipped_sibling(source_rows)
 
-    print(
-        f"Processing {len(source_rows)} rows with type in {sorted(IN_SCOPE_TYPES)}..."
-    )
+    print(f"Processing {len(source_rows)} rows with type in {sorted(IN_SCOPE_TYPES)}...")
 
     all_rows: list[dict] = []
     for i, row in enumerate(source_rows, 1):
         sibling_has_unclipped = (row["version"], row["type"]) in unclipped_siblings
         try:
             found = discover_zip(
-                row["url"], row["identifier"], sibling_has_unclipped, session
+                row["url"],
+                row["identifier"],
+                row["dataset_name"],
+                sibling_has_unclipped,
+                session,
             )
         except (RuntimeError, OSError) as exc:
-            print(
-                f"WARNING: failed processing {row['identifier']} ({row['url']}): {exc}"
-            )
+            print(f"WARNING: failed processing {row['identifier']} ({row['url']}): {exc}")
             found = []
         if not found:
             print(f"WARNING: no datasets found in {row['identifier']} ({row['url']})")
