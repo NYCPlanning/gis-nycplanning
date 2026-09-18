@@ -105,9 +105,13 @@ discovery logic:
   a `.csv`/`.txt` member sitting inside a nested zip - a known, documented limitation, not a
   silent gap.
 
-`product`/`dataset` are both hardcoded `"mappluto"` for this pass (single named constants at
-the top of the file) - the instructions call for `"pluto"` (tabular) and other DCP products to
-be added later as a second pass, not by extending this file's discovery logic.
+`product` is a fixed `"pluto"` constant (`PRODUCT` at the top of the file) - the umbrella product
+name for every row this tool ever produces, matching the main `dcpgis` repo's own product
+vocabulary (`src/dcpgis/cli.py`'s `PRODUCT_CHOICES` lists `"pluto"` as one flat choice). `dataset`
+is derived per-row from `pluto_datasets.csv`'s own `dataset_name` column (`mappluto`, `pluto`,
+`pluto_change_file`, `mappluto_metadata`, etc.) - the two fields intentionally differ: `product`
+never varies, `dataset` always does. Other DCP products (non-PLUTO) are out of scope for this
+tool entirely, not a second pass planned within it.
 
 Performance was benchmarked, not assumed - plain `vsicurl` averaged ~1s/row across a diverse
 sample, with GDAL config tuning (`GDAL_DISABLE_READDIR_ON_OPEN`, larger curl chunk/cache
@@ -134,11 +138,14 @@ sizes, `VSI_CACHE`) giving a further ~14% for free. The full 104-row run took a 
 - Gut-checked the tabular path against all 101 real `csv`/`txt` source rows before trusting it.
   Found and fixed two real bugs in the process: `product`/`dataset` were hardcoded to
   `"mappluto"` for every row regardless of source (every real `csv`/`txt` row is actually
-  `"pluto"` or `"pluto_change_file"`, never `"mappluto"` - now derived from `pluto_datasets.csv`'s
-  own `dataset_name` column instead); and a UTF-8-only decode assumption failed outright on
-  several older-vintage releases authored on Windows before UTF-8 was a practical default -
-  now tried as UTF-8, then `cp1252`, then `latin-1` (which can never fail to decode, since it
-  maps every byte 0x00-0xFF), closing that gap for any encoding a future release might use.
+  `"pluto"` or `"pluto_change_file"`, never `"mappluto"`); and a UTF-8-only decode assumption
+  failed outright on several older-vintage releases authored on Windows before UTF-8 was a
+  practical default - now tried as UTF-8, then `cp1252`, then `latin-1` (which can never fail to
+  decode, since it maps every byte 0x00-0xFF), closing that gap for any encoding a future
+  release might use. **Follow-up correction**: the first fix set both `product` and `dataset` to
+  the row's `dataset_name`, which was still wrong for every MapPLUTO-derived row (`product`
+  came out `"mappluto"` instead of the umbrella `"pluto"`) - `product` is now a fixed `"pluto"`
+  constant instead (see above), independent of `dataset_name`.
   Two genuine, newly-discovered upstream data defects surfaced by this same gut-check (not
   bugs in this tool, confirmed by reproducing each independently of this codebase) remain and
   are correctly handled by the existing warn-and-skip pattern, not silently swallowed:

@@ -24,6 +24,7 @@ from pathlib import Path
 
 import pandas
 import pyogrio
+
 from common import get_zip_member_bytes, get_zip_namelist, make_session
 
 INPUT_CSV = Path(__file__).parent / "pluto_datasets.csv"
@@ -40,6 +41,8 @@ FIELDNAMES = [
 ]
 
 IN_SCOPE_TYPES = {"shp", "fgdb", "csv", "txt"}
+
+PRODUCT = "pluto"
 
 UNCLIPPED_PATTERN = re.compile(r"unclipped|water included|\bwi\b", re.IGNORECASE)
 BOROUGH_PATTERN = re.compile(r"^(bx|bk|mn|qn|si)(?=_|[A-Z]|$)", re.IGNORECASE)
@@ -155,7 +158,9 @@ def discover_tabular_files(names: list[str]) -> list[str]:
     return sorted(tabular)
 
 
-def read_tabular_row(url: str, identifier: str, dataset_name: str, member_name: str, session) -> "dict | None":
+def read_tabular_row(
+    url: str, identifier: str, dataset_name: str, member_name: str, session
+) -> "dict | None":
     """Read one standalone tabular (.csv/.txt) zip member and return its output row.
 
     These files are never spatial, so they're read via pandas rather than GDAL/pyogrio (the
@@ -204,12 +209,14 @@ def read_tabular_row(url: str, identifier: str, dataset_name: str, member_name: 
             # can't find a delimiter at all - e.g. genuinely empty content.
             last_exc = exc
     else:
-        print(f"WARNING: could not parse {member_name!r} in {url} as tabular data: {last_exc}")
+        print(
+            f"WARNING: could not parse {member_name!r} in {url} as tabular data: {last_exc}"
+        )
 
     stem = posixpath.splitext(posixpath.basename(member_name))[0]
     return {
         "identifier": identifier,
-        "product": dataset_name,
+        "product": PRODUCT,
         "dataset": dataset_name,
         "extent": extent_from_filename(stem),
         "spatial": False,
@@ -260,7 +267,7 @@ def read_layer_rows(
         rows.append(
             {
                 "identifier": identifier,
-                "product": dataset_name,
+                "product": PRODUCT,
                 "dataset": dataset_name,
                 "extent": extent_from_filename(name),
                 "spatial": spatial,
@@ -271,7 +278,9 @@ def read_layer_rows(
     return rows
 
 
-def discover_zip(url: str, identifier: str, dataset_name: str, sibling_has_unclipped: bool, session) -> list[dict]:
+def discover_zip(
+    url: str, identifier: str, dataset_name: str, sibling_has_unclipped: bool, session
+) -> list[dict]:
     names = get_zip_namelist(url, session)
     if names is None:
         return []
@@ -280,15 +289,23 @@ def discover_zip(url: str, identifier: str, dataset_name: str, sibling_has_uncli
     rows: list[dict] = []
 
     for gdb_path in discover_gdb_folders(names):
-        rows.extend(read_layer_rows(f"{vsi_prefix}/{gdb_path}", identifier, dataset_name, gdb_path, gdb_path))
+        rows.extend(
+            read_layer_rows(
+                f"{vsi_prefix}/{gdb_path}", identifier, dataset_name, gdb_path, gdb_path
+            )
+        )
 
     for dir_path in discover_loose_dirs(names):
         folder_vsi = f"{vsi_prefix}/{dir_path}" if dir_path else vsi_prefix
-        rows.extend(read_layer_rows(folder_vsi, identifier, dataset_name, dir_path, None))
+        rows.extend(
+            read_layer_rows(folder_vsi, identifier, dataset_name, dir_path, None)
+        )
 
     for nested_zip in discover_nested_zips(names):
         nested_vsi = f"/vsizip/{vsi_prefix}/{nested_zip}"
-        rows.extend(read_layer_rows(nested_vsi, identifier, dataset_name, nested_zip, None))
+        rows.extend(
+            read_layer_rows(nested_vsi, identifier, dataset_name, nested_zip, None)
+        )
 
     for tabular_file in discover_tabular_files(names):
         row = read_tabular_row(url, identifier, dataset_name, tabular_file, session)
@@ -318,11 +335,15 @@ def main() -> None:
     session = make_session()
 
     with INPUT_CSV.open(newline="", encoding="utf-8") as f:
-        source_rows = [row for row in csv.DictReader(f) if row["type"] in IN_SCOPE_TYPES]
+        source_rows = [
+            row for row in csv.DictReader(f) if row["type"] in IN_SCOPE_TYPES
+        ]
 
     unclipped_siblings = find_versions_with_unclipped_sibling(source_rows)
 
-    print(f"Processing {len(source_rows)} rows with type in {sorted(IN_SCOPE_TYPES)}...")
+    print(
+        f"Processing {len(source_rows)} rows with type in {sorted(IN_SCOPE_TYPES)}..."
+    )
 
     all_rows: list[dict] = []
     for i, row in enumerate(source_rows, 1):
@@ -336,7 +357,9 @@ def main() -> None:
                 session,
             )
         except (RuntimeError, OSError) as exc:
-            print(f"WARNING: failed processing {row['identifier']} ({row['url']}): {exc}")
+            print(
+                f"WARNING: failed processing {row['identifier']} ({row['url']}): {exc}"
+            )
             found = []
         if not found:
             print(f"WARNING: no datasets found in {row['identifier']} ({row['url']})")

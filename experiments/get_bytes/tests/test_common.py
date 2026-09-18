@@ -2,18 +2,19 @@
 
 import pytest
 import requests
+from conftest import (
+    MockResponse,
+    make_zip_bytes,
+    mock_ranged_file_session,
+    mock_session_call,
+)
+
 from common import (
     _HTTPRangeFile,
     get_response_code,
     get_zip_member_bytes,
     get_zip_namelist,
     make_session,
-)
-from conftest import (
-    MockResponse,
-    make_zip_bytes,
-    mock_ranged_file_session,
-    mock_session_call,
 )
 
 URL = "https://s-media.nyc.gov/example.zip"
@@ -83,13 +84,17 @@ def test_get_zip_namelist_request_exception_returns_none(monkeypatch, capsys):
 
 
 def test_get_response_code_head_200(monkeypatch):
-    monkeypatch.setattr(requests.Session, "head", mock_session_call({URL: MockResponse(200)}))
+    monkeypatch.setattr(
+        requests.Session, "head", mock_session_call({URL: MockResponse(200)})
+    )
     assert get_response_code(URL, make_session()) == 200
 
 
 def test_get_response_code_head_404_no_get_fallback(monkeypatch):
     # A completed HEAD request is not a failure, even with a 404 - no GET should be attempted.
-    monkeypatch.setattr(requests.Session, "head", mock_session_call({URL: MockResponse(404)}))
+    monkeypatch.setattr(
+        requests.Session, "head", mock_session_call({URL: MockResponse(404)})
+    )
     assert get_response_code(URL, make_session()) == 404
 
 
@@ -99,7 +104,9 @@ def test_get_response_code_head_fails_falls_back_to_get(monkeypatch):
         "head",
         mock_session_call({URL: requests.RequestException("HEAD not allowed")}),
     )
-    monkeypatch.setattr(requests.Session, "get", mock_session_call({URL: MockResponse(200)}))
+    monkeypatch.setattr(
+        requests.Session, "get", mock_session_call({URL: MockResponse(200)})
+    )
     assert get_response_code(URL, make_session()) == 200
 
 
@@ -119,12 +126,17 @@ def test_get_response_code_both_fail_returns_none(monkeypatch, capsys):
 
 
 def test_get_zip_member_bytes_reads_real_member_via_ranged_requests(monkeypatch):
-    zip_bytes = make_zip_bytes(["a.shp", "data.csv"], content={"data.csv": b"col1,col2\n1,2\n3,4\n"})
+    zip_bytes = make_zip_bytes(
+        ["a.shp", "data.csv"], content={"data.csv": b"col1,col2\n1,2\n3,4\n"}
+    )
     get, head = mock_ranged_file_session(zip_bytes)
     monkeypatch.setattr(requests.Session, "get", get)
     monkeypatch.setattr(requests.Session, "head", head)
 
-    assert get_zip_member_bytes(URL, "data.csv", make_session()) == b"col1,col2\n1,2\n3,4\n"
+    assert (
+        get_zip_member_bytes(URL, "data.csv", make_session())
+        == b"col1,col2\n1,2\n3,4\n"
+    )
 
 
 def test_get_zip_member_bytes_missing_member_returns_none(monkeypatch, capsys):

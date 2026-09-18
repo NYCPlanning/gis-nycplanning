@@ -6,8 +6,9 @@ real local fixture zips via plain local /vsizip/ paths - never /vsicurl/, so ful
 """
 
 import requests
-import summarize_zip_datasets as szd
 from conftest import make_zip_bytes, mock_ranged_file_session
+
+import summarize_zip_datasets as szd
 
 # --- pure-logic unit tests ------------------------------------------------------------
 
@@ -188,7 +189,7 @@ def test_read_layer_rows_shapefile_fixture(resources_path):
     assert len(rows) == 1
     row = rows[0]
     assert row["identifier"] == "test_id"
-    assert row["product"] == "mappluto"
+    assert row["product"] == "pluto"
     assert row["dataset"] == "mappluto"
     assert row["spatial"] is True
     assert row["row_count"] == 1
@@ -226,12 +227,16 @@ def test_read_layer_rows_nested_zip_fixture(nested_zip_path):
 
 
 def test_read_layer_rows_unopenable_path_warns_and_returns_empty(capsys):
-    rows = szd.read_layer_rows("/vsizip/does/not/exist.zip", "test_id", "mappluto", "", None)
+    rows = szd.read_layer_rows(
+        "/vsizip/does/not/exist.zip", "test_id", "mappluto", "", None
+    )
     assert rows == []
     assert "WARNING: could not list layers" in capsys.readouterr().out
 
 
-def test_read_layer_rows_skips_layer_whose_info_fails(monkeypatch, resources_path, capsys):
+def test_read_layer_rows_skips_layer_whose_info_fails(
+    monkeypatch, resources_path, capsys
+):
     # list_layers succeeds, but read_info fails for one specific layer - that layer should be
     # skipped with a warning, not abort the whole zip.
     import pyogrio
@@ -264,13 +269,17 @@ def test_discover_zip_orchestration(monkeypatch):
 
     calls = []
 
-    def fake_read_layer_rows(vsi_path, identifier, dataset_name, path_prefix_for_display, layer_path_key):
+    def fake_read_layer_rows(
+        vsi_path, identifier, dataset_name, path_prefix_for_display, layer_path_key
+    ):
         calls.append(vsi_path)
         return [{"identifier": identifier, "path_in_zip": f"{vsi_path}-row"}]
 
     monkeypatch.setattr(szd, "read_layer_rows", fake_read_layer_rows)
 
-    rows = szd.discover_zip("https://x/some.zip", "some_id", "mappluto", False, session=object())
+    rows = szd.discover_zip(
+        "https://x/some.zip", "some_id", "mappluto", False, session=object()
+    )
 
     vsi_prefix = "/vsizip//vsicurl/https://x/some.zip"
     assert f"{vsi_prefix}/Foo.gdb" in calls
@@ -282,21 +291,30 @@ def test_discover_zip_orchestration(monkeypatch):
 
 
 def test_discover_zip_threads_sibling_flag_into_sub_dataset(monkeypatch):
-    monkeypatch.setattr(szd, "get_zip_namelist", lambda url, session: ["Foo.gdb/a.gdbtable"])
+    monkeypatch.setattr(
+        szd, "get_zip_namelist", lambda url, session: ["Foo.gdb/a.gdbtable"]
+    )
     monkeypatch.setattr(
         szd,
         "read_layer_rows",
         lambda *a: [{"identifier": a[1], "path_in_zip": "Foo.gdb\\MapPLUTO"}],
     )
 
-    rows = szd.discover_zip("https://x/some.zip", "some_id", "mappluto", True, session=object())
+    rows = szd.discover_zip(
+        "https://x/some.zip", "some_id", "mappluto", True, session=object()
+    )
 
     assert rows[0]["sub_dataset"] == "clipped"
 
 
 def test_discover_zip_returns_empty_when_namelist_unavailable(monkeypatch):
     monkeypatch.setattr(szd, "get_zip_namelist", lambda url, session: None)
-    assert szd.discover_zip("https://x/some.zip", "some_id", "mappluto", False, session=object()) == []
+    assert (
+        szd.discover_zip(
+            "https://x/some.zip", "some_id", "mappluto", False, session=object()
+        )
+        == []
+    )
 
 
 def test_discover_zip_includes_tabular_rows(monkeypatch):
@@ -311,13 +329,19 @@ def test_discover_zip_includes_tabular_rows(monkeypatch):
         },
     )
 
-    rows = szd.discover_zip("https://x/some.zip", "some_id", "pluto", False, session=object())
+    rows = szd.discover_zip(
+        "https://x/some.zip", "some_id", "pluto", False, session=object()
+    )
 
-    assert rows == [{"identifier": "some_id", "path_in_zip": "data.csv", "sub_dataset": ""}]
+    assert rows == [
+        {"identifier": "some_id", "path_in_zip": "data.csv", "sub_dataset": ""}
+    ]
 
 
 def test_discover_zip_skips_unreadable_tabular_file(monkeypatch):
-    monkeypatch.setattr(szd, "get_zip_namelist", lambda url, session: ["good.csv", "bad.csv"])
+    monkeypatch.setattr(
+        szd, "get_zip_namelist", lambda url, session: ["good.csv", "bad.csv"]
+    )
     monkeypatch.setattr(szd, "read_layer_rows", lambda *a: [])
 
     def fake_read_tabular_row(url, identifier, dataset_name, member_name, session):
@@ -327,7 +351,9 @@ def test_discover_zip_skips_unreadable_tabular_file(monkeypatch):
 
     monkeypatch.setattr(szd, "read_tabular_row", fake_read_tabular_row)
 
-    rows = szd.discover_zip("https://x/some.zip", "some_id", "pluto", False, session=object())
+    rows = szd.discover_zip(
+        "https://x/some.zip", "some_id", "pluto", False, session=object()
+    )
 
     assert [r["path_in_zip"] for r in rows] == ["good.csv"]
 
@@ -339,21 +365,27 @@ URL = "https://s-media.nyc.gov/example.zip"
 
 
 def test_read_tabular_row_reads_csv(monkeypatch):
-    # dataset_name deliberately "pluto", not "mappluto" - regression test for the bug where
-    # product/dataset were hardcoded to "mappluto" for every tabular row regardless of the
-    # source row's real dataset_name (confirmed against real data: every csv/txt-typed
+    # dataset_name deliberately "pluto_change_file", not "mappluto" - regression test for the
+    # bug where product/dataset were hardcoded to "mappluto" for every tabular row regardless
+    # of the source row's real dataset_name (confirmed against real data: every csv/txt-typed
     # pluto_datasets.csv row is actually "pluto" or "pluto_change_file", never "mappluto").
-    zip_bytes = make_zip_bytes(["data.csv"], content={"data.csv": b"col1,col2\n1,2\n3,4\n5,6\n"})
+    # Also distinguishes product ("pluto", the fixed umbrella product) from dataset (the
+    # varying dataset_name) - a dataset_name of "pluto" alone can't tell the two apart.
+    zip_bytes = make_zip_bytes(
+        ["data.csv"], content={"data.csv": b"col1,col2\n1,2\n3,4\n5,6\n"}
+    )
     get, head = mock_ranged_file_session(zip_bytes)
     monkeypatch.setattr(requests.Session, "get", get)
     monkeypatch.setattr(requests.Session, "head", head)
 
-    row = szd.read_tabular_row(URL, "test_id", "pluto", "data.csv", requests.Session())
+    row = szd.read_tabular_row(
+        URL, "test_id", "pluto_change_file", "data.csv", requests.Session()
+    )
 
     assert row == {
         "identifier": "test_id",
         "product": "pluto",
-        "dataset": "pluto",
+        "dataset": "pluto_change_file",
         "extent": "citywide",
         "spatial": False,
         "row_count": 3,
@@ -370,7 +402,9 @@ def test_read_tabular_row_borough_prefixed_extent(monkeypatch):
     monkeypatch.setattr(requests.Session, "get", get)
     monkeypatch.setattr(requests.Session, "head", head)
 
-    row = szd.read_tabular_row(URL, "test_id", "pluto", "Bronx/bx_pluto_extra.csv", requests.Session())
+    row = szd.read_tabular_row(
+        URL, "test_id", "pluto", "Bronx/bx_pluto_extra.csv", requests.Session()
+    )
 
     assert row["extent"] == "bx"
     assert row["path_in_zip"] == "Bronx\\bx_pluto_extra.csv"
@@ -382,7 +416,10 @@ def test_read_tabular_row_missing_member_returns_none(monkeypatch):
     monkeypatch.setattr(requests.Session, "get", get)
     monkeypatch.setattr(requests.Session, "head", head)
 
-    assert szd.read_tabular_row(URL, "test_id", "pluto", "data.csv", requests.Session()) is None
+    assert (
+        szd.read_tabular_row(URL, "test_id", "pluto", "data.csv", requests.Session())
+        is None
+    )
 
 
 def test_read_tabular_row_cp1252_fallback(monkeypatch):
@@ -417,7 +454,9 @@ def test_read_tabular_row_latin1_fallback_for_bytes_undefined_in_cp1252(monkeypa
     assert row["row_count"] == 1
 
 
-def test_read_tabular_row_unparseable_content_warns_and_returns_row_with_no_count(monkeypatch, capsys):
+def test_read_tabular_row_unparseable_content_warns_and_returns_row_with_no_count(
+    monkeypatch, capsys
+):
     # latin-1 decodes any byte sequence, so the only way every attempt can still fail is a
     # genuine structural problem, not an encoding one - a zero-byte member is EmptyDataError
     # under every encoding. The file is still listed (partial visibility), just with
