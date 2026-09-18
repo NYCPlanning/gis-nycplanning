@@ -9,3 +9,10 @@ version = "0.0.1"
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["dcpgis*"]
+
+[tool.mypy]
+ignore_missing_imports = false
+
+[[tool.mypy.overrides]]
+module = "arcpy"
+ignore_missing_imports = true
