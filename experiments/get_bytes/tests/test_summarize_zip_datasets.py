@@ -334,8 +334,54 @@ def test_discover_zip_includes_tabular_rows(monkeypatch):
     )
 
     assert rows == [
-        {"identifier": "some_id", "path_in_zip": "data.csv", "sub_dataset": ""}
+        {
+            "identifier": "some_id",
+            "path_in_zip": "data.csv",
+            "sub_dataset": "",
+            "has_lock_files": False,
+        }
     ]
+
+
+def test_discover_zip_detects_lock_files(monkeypatch):
+    # A stray .lock file (an artifact of an interrupted upload/write on DCP's end) is a
+    # whole-zip fact - confirm it lands on every row this zip produces, not just one.
+    monkeypatch.setattr(
+        szd,
+        "get_zip_namelist",
+        lambda url, session: ["Bronx/BXMapPLUTO.shp", "Bronx/BXMapPLUTO.shp.lock"],
+    )
+    monkeypatch.setattr(
+        szd,
+        "read_layer_rows",
+        lambda *a: [
+            {"identifier": a[1], "path_in_zip": "Bronx\\BXMapPLUTO.shp"},
+            {"identifier": a[1], "path_in_zip": "Bronx\\BXMapPLUTO.dbf"},
+        ],
+    )
+
+    rows = szd.discover_zip(
+        "https://x/some.zip", "some_id", "mappluto", False, session=object()
+    )
+
+    assert all(r["has_lock_files"] is True for r in rows)
+
+
+def test_discover_zip_no_lock_files(monkeypatch):
+    monkeypatch.setattr(
+        szd, "get_zip_namelist", lambda url, session: ["Bronx/BXMapPLUTO.shp"]
+    )
+    monkeypatch.setattr(
+        szd,
+        "read_layer_rows",
+        lambda *a: [{"identifier": a[1], "path_in_zip": "Bronx\\BXMapPLUTO.shp"}],
+    )
+
+    rows = szd.discover_zip(
+        "https://x/some.zip", "some_id", "mappluto", False, session=object()
+    )
+
+    assert all(r["has_lock_files"] is False for r in rows)
 
 
 def test_discover_zip_skips_unreadable_tabular_file(monkeypatch):
@@ -454,14 +500,34 @@ def test_read_tabular_row_latin1_fallback_for_bytes_undefined_in_cp1252(monkeypa
     assert row["row_count"] == 1
 
 
-def test_read_tabular_row_unparseable_content_warns_and_returns_row_with_no_count(
+def test_read_tabular_row_empty_content_warns_and_returns_row_with_no_count(
     monkeypatch, capsys
 ):
-    # latin-1 decodes any byte sequence, so the only way every attempt can still fail is a
-    # genuine structural problem, not an encoding one - a zero-byte member is EmptyDataError
-    # under every encoding. The file is still listed (partial visibility), just with
-    # row_count left blank.
+    # latin-1 decodes any byte sequence, so the only way decoding can still fail is a
+    # genuine structural problem, not an encoding one - a zero-byte member has nothing to
+    # parse under any encoding. The file is still listed (partial visibility), just with
+    # row_count left blank. Exercises the explicit `if not text.strip()` empty-content check.
     zip_bytes = make_zip_bytes(["data.csv"], content={"data.csv": b""})
+    get, head = mock_ranged_file_session(zip_bytes)
+    monkeypatch.setattr(requests.Session, "get", get)
+    monkeypatch.setattr(requests.Session, "head", head)
+
+    row = szd.read_tabular_row(URL, "test_id", "pluto", "data.csv", requests.Session())
+
+    assert row["row_count"] is None
+    assert "could not parse" in capsys.readouterr().out
+
+
+def test_read_tabular_row_malformed_content_warns_and_returns_row_with_no_count(
+    monkeypatch, capsys
+):
+    # Reproduces the real nyc_pluto_20v5_arc_csv.zip defect's failure mode: a lone \r
+    # embedded in an unquoted field triggers csv.reader's own
+    # "new-line character seen in unquoted field" error mid-iteration - a genuine structural
+    # defect distinct from the empty-content case above, exercising the `except csv.Error`
+    # branch rather than the `if not text.strip()` one.
+    content = b"a,b\n1,2\x0d3,4\n"
+    zip_bytes = make_zip_bytes(["data.csv"], content={"data.csv": content})
     get, head = mock_ranged_file_session(zip_bytes)
     monkeypatch.setattr(requests.Session, "get", get)
     monkeypatch.setattr(requests.Session, "head", head)

@@ -37,6 +37,7 @@ FIELDNAMES = [
     "spatial",
     "row_count",
     "path_in_zip",
+    "has_lock_files",
 ]
 
 IN_SCOPE_TYPES = {"shp", "fgdb", "csv", "txt"}
@@ -312,6 +313,15 @@ def discover_zip(
             rows.append(row)
 
     apply_mappluto_sub_dataset(rows, sibling_has_unclipped)
+
+    # A zip's namelist is already fetched above for discovery purposes - checking it for a
+    # stray .lock file (an artifact of an interrupted upload/write on DCP's end) here is free,
+    # no extra network call. This is a whole-zip fact, so it's written identically onto every
+    # row this zip produced, not just one of them.
+    has_lock_files = any(n.lower().endswith(".lock") for n in names)
+    for row in rows:
+        row["has_lock_files"] = has_lock_files
+
     return rows
 
 

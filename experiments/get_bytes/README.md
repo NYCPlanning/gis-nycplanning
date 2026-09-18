@@ -1,11 +1,12 @@
 # Getting the BYTES of the Big Apple: PLUTO dataset tooling
 
-Three tools, meant to be run in sequence:
+Four tools, meant to be run in sequence:
 
 1. **`scrape_pluto_datasets.py`** - what dataset zip URLs exist, and what format is each.
 2. **`summarize_zip_datasets.py`** - for the spatial ones, what's actually inside each zip.
 3. **`spatial_index_report.py`** - for the shapefiles found above, is each one's spatial index
    actually trustworthy.
+4. **`error_report.py`** - pulls every problem the first three tools found into one place.
 
 ## `scrape_pluto_datasets.py`
 
@@ -80,7 +81,13 @@ wins whenever the two would otherwise conflict.
 Reads `pluto_datasets.csv`, filters to rows where `type` is `shp`, `fgdb`, `csv`, or `txt`
 (most of 212 as of this writing), and reports one row per distinct spatial layer, standalone
 table, or standalone tabular file found inside each zip, into `zip_contents.csv`
-(`identifier,product,dataset,sub_dataset,extent,spatial,row_count,path_in_zip`).
+(`identifier,product,dataset,sub_dataset,extent,spatial,row_count,path_in_zip,has_lock_files`).
+
+`has_lock_files` is whether that identifier's zip namelist contains any `.lock`-suffixed
+member (an artifact of an interrupted upload/write on DCP's end) - computed for free from the
+namelist already fetched for discovery, no extra network call. It's a whole-zip fact, so it's
+written identically onto every row that zip produced, not just one of them. Feeds directly into
+`error_report.py` below.
 
 Two different access paths, depending on content type, both avoiding a local download of the
 zip:
@@ -225,9 +232,11 @@ trivially consistent, mostly seen on pre-2010 vintages), or `ERROR` (couldn't op
    without any real risk of masking the latter.
 
 **Correctness of the `struct`-based parser was independently verified**, not just trusted
-because the end-to-end verdicts looked right: a sample of FIDs on real files (including one of
-the findings below) had their parsed bounding boxes checked directly against GDAL's own
-`GetGeometryRef().GetEnvelope()` - exact match on every sample, zero discrepancies.
+because the end-to-end verdicts looked right: 60 sampled FIDs (first 5, last 5, 20 random) across
+two real files - one known-valid, one of the new findings below - had their parsed bounding
+boxes checked directly against GDAL's own `GetGeometryRef().GetEnvelope()`. Exact match on
+every sample, zero discrepancies - and specifically rules out "the parser is buggy on this
+vintage" as an explanation for the new finding.
 
 ### Known findings (from the real, current data)
 
@@ -249,6 +258,42 @@ The 8 identifiers with at least one `INCONSISTENT` layer:
   underlying 22v2 release itself is affected, not that one of the two duplicate download entries
   happens to be a mismatched file.
 
+## `error_report.py`
+
+Grounded in `problem_log.xlsx`, a real historical error sheet DCP staff previously tracked by
+hand (`Sheet3`, 15 rows, one row per problem with a `Problem` column naming 6 categories).
+**Pure offline join, zero network calls** - unlike every other tool in this project - over
+`pluto_datasets.csv` + `zip_contents.csv` (+ `spatial_index_results.csv` if it exists), into
+`error_report.csv` (`identifier,level,path_in_zip,problem,detail`).
+
+One row per **detected problem instance**, not one row per subject - matching the reference
+sheet's own real shape (a `Problem` column, one row per issue) rather than a fixed row per
+identifier padded with blank/false columns for everything that didn't happen. A fully clean
+dataset shrinks this report toward nothing.
+
+The problems this tool detects span three different grains, distinguished by `level`:
+- **`"url"`** - about the download URL itself, before any zip is ever opened:
+  `broken_link` (`pluto_datasets.csv`'s `response_code` not in `200`/`206`, `detail` = the
+  actual code) and `duplicate_identifier` (a regex match on the `_\d{5}$` disambiguation suffix
+  `scrape_pluto_datasets.py`'s `assign_identifiers` appends on collision).
+- **`"zip"`** - about the archive as a whole: `extra_zip_nesting` (`pluto_datasets.csv`'s
+  `type == "unknown"` - the 2016v2/2017v1 zip-of-zips case) and `has_lock_files` (from
+  `zip_contents.csv`'s column of the same name - one row per affected identifier, not per
+  dataset row, since it's a whole-zip fact repeated across however many rows that zip produced).
+  `detail` is left blank for `has_lock_files`: `zip_contents.csv` only records *whether* a zip
+  has a stray `.lock` file, not which one, and finding the actual filename would need a fresh
+  namelist fetch - which this script's offline-only design rules out.
+- **`"file"`** - tied to one specific `path_in_zip` within an archive: `corrupted_spatial_index`,
+  one row per `(identifier, path_in_zip)` where `spatial_index_results.csv` says
+  `verdict == "INCONSISTENT"`. Skipped entirely (not an error) if that file doesn't exist yet -
+  Plan G's spatial index check is a separate, slower, opt-in stage this script must tolerate the
+  absence of.
+
+One category from the reference sheet needed no new detection at all: **cache buster on url** is
+already fully resolved at the source - `strip_cache_buster()` strips `?r=` before the URL is
+ever stored (`scrape_pluto_datasets.py`), confirmed by its own regression test. Not surfaced as
+a live issue by design, not a gap in this report.
+
 ## Execution
 
 (assumes `experiments/get_bytes` is the current working directory)
@@ -269,6 +314,9 @@ The 8 identifiers with at least one `INCONSISTENT` layer:
   (sharing one GDAL-having environment for everything), this split disappears on its own. A
   full run against all real shapefile rows takes roughly half an hour - practical as an
   occasional/manual check, not meant to run on every invocation of the other two scripts.
+- `uv run error_report.py` - reads `pluto_datasets.csv` + `zip_contents.csv` (+
+  `spatial_index_results.csv` if present), writes `error_report.csv`. No network access at all,
+  so unlike every other step here it doesn't need the DCP proxy and runs in well under a second.
 
 If any command can't reach the network (PyPI for `uv sync`, or `nyc.gov`/`apps.nyc.gov`/
 `s-media.nyc.gov` for the scripts themselves), set the DCP proxy from `.condarc` first:
@@ -294,8 +342,12 @@ actually honors the `Range` header's byte offsets against an in-memory zip's rea
 call.
 
 `uv run pytest --cov=. --cov-report=term-missing` adds a coverage report (`pytest-cov`).
-`main()` in each script is intentionally not covered - both are thin CLI/IO wrappers; the
-logic they call is what's under test.
+`main()` in `scrape_pluto_datasets.py`/`summarize_zip_datasets.py` is intentionally not
+covered - both are thin CLI/IO wrappers around real network/GDAL calls; the logic they call is
+what's under test. `error_report.py`'s `main()` is the one exception and **is** covered - it has
+no network or GDAL dependency at all, just file I/O, so `tests/test_error_report.py` exercises
+it directly (via `monkeypatch` on its module-level `Path` constants against `tmp_path` fixture
+files) rather than only testing its constituent functions in isolation.
 
 `spatial_index_report.py` has **no automated pytest coverage at all**, by deliberate choice, not
 oversight: it needs `osgeo`, which isn't importable under this project's own `uv` venv (no
