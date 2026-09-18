@@ -264,7 +264,11 @@ Grounded in `problem_log.xlsx`, a real historical error sheet DCP staff previous
 hand (`Sheet3`, 15 rows, one row per problem with a `Problem` column naming 6 categories).
 **Pure offline join, zero network calls** - unlike every other tool in this project - over
 `pluto_datasets.csv` + `zip_contents.csv` (+ `spatial_index_results.csv` if it exists), into
-`error_report.csv` (`identifier,level,path_in_zip,problem,detail`).
+`error_report.csv` (`identifier,level,path_in_zip,problem,detail,url`). `url` (looked up from
+`pluto_datasets.csv` by `identifier`, since neither `zip_contents.csv` nor
+`spatial_index_results.csv` carries its own copy) is placed last, not next to `identifier`, so
+it doesn't push the narrower, more-often-scanned columns off-screen when the CSV is opened in
+spreadsheet software.
 
 One row per **detected problem instance**, not one row per subject - matching the reference
 sheet's own real shape (a `Problem` column, one row per issue) rather than a fixed row per

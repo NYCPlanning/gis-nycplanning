@@ -23,7 +23,7 @@ DATASETS_CSV = Path(__file__).parent / "pluto_datasets.csv"
 ZIP_CONTENTS_CSV = Path(__file__).parent / "zip_contents.csv"
 SPATIAL_INDEX_CSV = Path(__file__).parent / "spatial_index_results.csv"
 OUTPUT_CSV = Path(__file__).parent / "error_report.csv"
-FIELDNAMES = ["identifier", "level", "path_in_zip", "problem", "detail"]
+FIELDNAMES = ["identifier", "level", "path_in_zip", "problem", "detail", "url"]
 
 # Matches the deterministic 5-digit disambiguation suffix scrape_pluto_datasets.py's own
 # assign_identifiers appends whenever two rows would otherwise share an identifier.
@@ -121,6 +121,12 @@ def main() -> None:
             "checks (run spatial_index_report.py under gis-env first if this report should "
             "include them)"
         )
+
+    # zip_contents.csv/spatial_index_results.csv don't carry their own url column, so every
+    # problem instance's url is looked up from pluto_datasets.csv - the one place it's stored.
+    url_by_identifier = {row["identifier"]: row["url"] for row in source_rows}
+    for problem in problems:
+        problem["url"] = url_by_identifier.get(problem["identifier"], "")
 
     problems.sort(key=lambda r: (r["identifier"], r["level"], r["problem"]))
 

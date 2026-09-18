@@ -107,7 +107,9 @@ def test_main_produces_zero_rows_for_clean_data(tmp_path, monkeypatch, capsys):
     # nothing, not pad it with all-false/blank rows for every identifier.
     datasets_csv = tmp_path / "pluto_datasets.csv"
     datasets_csv.write_text(
-        "identifier,response_code,type\nclean_one,200,shp\n", encoding="utf-8"
+        "identifier,response_code,type,url\n"
+        "clean_one,200,shp,https://example.com/clean_one.zip\n",
+        encoding="utf-8",
     )
     zip_contents_csv = tmp_path / "zip_contents.csv"
     zip_contents_csv.write_text(
@@ -126,7 +128,7 @@ def test_main_produces_zero_rows_for_clean_data(tmp_path, monkeypatch, capsys):
     # csv module itself writes \r\n (open(..., newline="") in main() preserves that correctly).
     assert (
         output_csv.read_text(encoding="utf-8")
-        == "identifier,level,path_in_zip,problem,detail\n"
+        == "identifier,level,path_in_zip,problem,detail,url\n"
     )
     assert "not found - skipping corrupted_spatial_index" in capsys.readouterr().out
 
@@ -136,7 +138,9 @@ def test_main_tolerates_missing_spatial_index_csv_but_includes_it_when_present(
 ):
     datasets_csv = tmp_path / "pluto_datasets.csv"
     datasets_csv.write_text(
-        "identifier,response_code,type\nsome_id,200,shp\n", encoding="utf-8"
+        "identifier,response_code,type,url\n"
+        "some_id,200,shp,https://example.com/some_id.zip\n",
+        encoding="utf-8",
     )
     zip_contents_csv = tmp_path / "zip_contents.csv"
     zip_contents_csv.write_text(
@@ -161,6 +165,7 @@ def test_main_tolerates_missing_spatial_index_csv_but_includes_it_when_present(
     assert rows == [
         {
             "identifier": "some_id",
+            "url": "https://example.com/some_id.zip",
             "level": "file",
             "path_in_zip": "Manhattan\\MNMapPLUTO.shp",
             "problem": "corrupted_spatial_index",
