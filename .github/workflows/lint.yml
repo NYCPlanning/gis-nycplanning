@@ -1,0 +1,46 @@
+name: Lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.11"
+          channels: conda-forge
+
+      - name: Install dev tooling via conda
+        shell: bash -el {0}
+        run: conda install --file deployment/conda-requirements-dev.txt -c conda-forge --yes
+
+      - name: Run ruff
+        # run even if an earlier step failed. skip only on manual cancel
+        if: ${{ !cancelled() }}
+        shell: bash -el {0}
+        run: ruff check .
+
+      - name: Run mypy
+        if: ${{ !cancelled() }}
+        shell: bash -el {0}
+        run: mypy src tests
+
+      - name: Run PSScriptAnalyzer
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
+          if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) {
+              Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+          }
+          Invoke-ScriptAnalyzer -Path . -Recurse | Tee-Object -Variable results
+          if ($results | Where-Object { $_.Severity -in 'Error', 'ParseError' }) {
+              Write-Output "::error::PSScriptAnalyzer found Error/ParseError-severity issues"
+              exit 1
+          }

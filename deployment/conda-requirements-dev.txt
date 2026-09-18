@@ -1,0 +1,14 @@
+# Dev tooling installed alongside the base packages, via conda only (conda-forge channel).
+# Pinned so local devs and CI see identical lint/type-check results.
+# Kept separate from conda-requirements.txt so this file alone is enough for CI's lint job --
+# installing the full geo stack there would slow every run for no benefit.
+# pin ruff at 0.12.0 and mypy at 1.16.1: the last versions on conda-forge before
+# vc14_runtime >=14.44.35208 is required, which gis-env's vs2015_runtime 14.38.33130
+# (from the arcgispro-py3 base) does not satisfy.
+ruff==0.12.0
+mypy==1.16.1
+types-pyyaml>=6.0.12
+# bounded to the 2.2.x line to match gis-env's installed pandas==2.2.3
+pandas-stubs>=2.2.3,<2.3
+# pinned to match the esri-bundled version.
+pytest==7.4.3
