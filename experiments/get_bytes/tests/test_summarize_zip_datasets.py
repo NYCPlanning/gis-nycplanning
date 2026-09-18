@@ -358,7 +358,7 @@ def test_discover_zip_skips_unreadable_tabular_file(monkeypatch):
     assert [r["path_in_zip"] for r in rows] == ["good.csv"]
 
 
-# --- read_tabular_row (ranged-HTTP + pandas, no GDAL/VSI involved) ---------------------
+# --- read_tabular_row (ranged-HTTP + stdlib csv, no GDAL/VSI involved) -----------------
 
 
 URL = "https://s-media.nyc.gov/example.zip"

@@ -22,7 +22,6 @@ import posixpath
 import re
 from pathlib import Path
 
-import pandas
 import pyogrio
 
 from common import get_zip_member_bytes, get_zip_namelist, make_session
@@ -163,18 +162,19 @@ def read_tabular_row(
 ) -> "dict | None":
     """Read one standalone tabular (.csv/.txt) zip member and return its output row.
 
-    These files are never spatial, so they're read via pandas rather than GDAL/pyogrio (the
-    way shapefile/gdb layers are) - get_zip_member_bytes hands back the member's raw bytes via
-    ranged HTTP requests, no VSI/GDAL involvement anywhere in this path.
+    These files are never spatial, so they're read via stdlib csv rather than GDAL/pyogrio
+    (the way shapefile/gdb layers are) - get_zip_member_bytes hands back the member's raw
+    bytes via ranged HTTP requests, no VSI/GDAL involvement anywhere in this path. Only the
+    row count is needed, never column values, so a single pass with csv.reader is enough -
+    no need for a full DataFrame (benchmarked against pandas.read_csv(dtype=str) on real
+    full-scale PLUTO files before switching: ~28% faster on an 858K-row citywide CSV, no
+    correctness difference found on any case tested, including the one known real
+    CSV-quoting-defect file).
     """
     data = get_zip_member_bytes(url, member_name, session)
     if data is None:
         return None
 
-    # dtype=str: only the row count is needed, never column values - this also sidesteps
-    # pandas' per-column type-inference entirely, avoiding spurious DtypeWarnings on large
-    # real-world PLUTO CSVs that mix numeric and blank/text values in the same column.
-    #
     # cp1252/latin-1 fallbacks: confirmed empirically against real older-vintage PLUTO
     # releases (nyc_pluto_20v5_arc_csv, nyc_pluto_07c) - PLUTO's pre-2015-ish tabular files
     # were authored on Windows and predate UTF-8 as a practical default, so a handful contain
@@ -182,36 +182,35 @@ def read_tabular_row(
     # fields) that fail a strict UTF-8 decode outright. cp1252 alone isn't quite enough
     # either - a couple of real files use byte values (e.g. 0x81, 0x90) that cp1252 itself
     # leaves undefined - so latin-1 is tried last as a guaranteed-to-decode safety net (it
-    # maps every byte 0x00-0xFF to some codepoint, so it can never raise
-    # UnicodeDecodeError; only a genuine structural ParserError can still fail past this
-    # point).
-    row_count = None
-    last_exc = None
-    for kwargs in (
-        {"encoding": "utf-8"},
-        {"encoding": "cp1252"},
-        {"encoding": "latin-1"},
-        {"encoding": "utf-8", "sep": None, "engine": "python"},
-        {"encoding": "cp1252", "sep": None, "engine": "python"},
-        {"encoding": "latin-1", "sep": None, "engine": "python"},
-    ):
+    # maps every byte 0x00-0xFF to some codepoint, so this loop always finds a decoding -
+    # only a genuine structural error in the parse step below can still fail past this point).
+    text = None
+    for encoding in ("utf-8", "cp1252", "latin-1"):
         try:
-            row_count = len(pandas.read_csv(io.BytesIO(data), dtype=str, **kwargs))
+            text = data.decode(encoding)
             break
-        except (
-            pandas.errors.ParserError,
-            pandas.errors.EmptyDataError,
-            UnicodeDecodeError,
-            csv.Error,
-        ) as exc:
-            # csv.Error: the sep=None attempts delegate delimiter-sniffing to the stdlib
-            # csv.Sniffer, which raises this directly (not a pandas.errors.* type) when it
-            # can't find a delimiter at all - e.g. genuinely empty content.
-            last_exc = exc
-    else:
+        except UnicodeDecodeError:
+            continue
+
+    # No delimiter sniffing: row counting only needs correct row/quote/newline handling,
+    # which csv.reader does regardless of delimiter - the actual character never matters
+    # here. Sniffing was tried and reverted after it failed outright ("Could not determine
+    # delimiter") on real, unambiguously comma-delimited wide PLUTO CSVs (e.g.
+    # nyc_pluto_15v1's BK.csv, ~80 columns of space-padded fixed-width text) - a known
+    # Sniffer weakness on this exact file shape, not a delimiter this data actually has.
+    row_count = None
+    if not text.strip():
         print(
-            f"WARNING: could not parse {member_name!r} in {url} as tabular data: {last_exc}"
+            f"WARNING: could not parse {member_name!r} in {url} as tabular data: empty content"
         )
+    else:
+        try:
+            row_count = sum(1 for _ in csv.reader(io.StringIO(text))) - 1
+        except csv.Error as exc:
+            # a real structural defect, e.g. an unclosed/malformed quoted field mid-file.
+            print(
+                f"WARNING: could not parse {member_name!r} in {url} as tabular data: {exc}"
+            )
 
     stem = posixpath.splitext(posixpath.basename(member_name))[0]
     return {

@@ -88,8 +88,24 @@ zip:
 - **Tabular** (standalone `.csv`/`.txt` members, e.g. the plain-CSV PLUTO product and the PLUTO
   Change File releases): read via plain `requests` + stdlib `zipfile` random-access reads
   (`common.get_zip_member_bytes`, backed by ranged HTTP requests for whatever byte offsets
-  `zipfile` needs - not GDAL/VSI), then parsed with `pandas` for a row count. No GDAL
-  involvement anywhere in this path.
+  `zipfile` needs - not GDAL/VSI), then parsed with stdlib `csv` for a row count (a
+  `bytes.decode()` fallback chain - `utf-8`/`cp1252`/`latin-1` - then a plain `csv.reader()`
+  pass, no delimiter sniffing - see below for why). No GDAL, and no third-party parsing
+  library, involvement anywhere in this path - originally used `pandas`, swapped out after
+  benchmarking against real full-scale files showed it was ~28% slower on an 858K-row citywide
+  CSV (pandas builds a full typed DataFrame just to discard every value except the row count)
+  with no correctness difference found on any case tested, including the one known real
+  CSV-quoting-defect file below.
+  - **No `csv.Sniffer()`**: an early version of this swap used `csv.Sniffer().sniff()` to
+    detect the delimiter before parsing, matching what `pandas`'s `sep=None` fallback did
+    internally. Found (via a real regeneration run, not a benchmark file) that Sniffer fails
+    outright - `"Could not determine delimiter"` - on real, unambiguously comma-delimited wide
+    PLUTO CSVs (e.g. `nyc_pluto_15v1.zip`'s `BK.csv`/`BX.csv`/`QN.csv`/`SI.csv`, ~80 columns of
+    space-padded fixed-width text) - a known Sniffer weakness on this file shape. Fixed by
+    dropping Sniffer entirely: row counting only needs correct row/quote/newline handling,
+    which `csv.reader` does regardless of which delimiter character is configured - the actual
+    delimiter never affects the count. Simpler than the Sniffer-based version, not just more
+    correct.
 
 Two GDAL behaviors the spatial path leans on, confirmed empirically before writing the
 discovery logic:
