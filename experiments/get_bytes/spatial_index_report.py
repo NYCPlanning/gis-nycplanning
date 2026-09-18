@@ -51,7 +51,9 @@ def configure_gdal() -> None:
         gdal.SetConfigOption(key, value)
 
 
-def read_shp_bboxes(url: str, member_name: str, session) -> "list[tuple[float, float, float, float] | None] | None":
+def read_shp_bboxes(
+    url: str, member_name: str, session
+) -> "list[tuple[float, float, float, float] | None] | None":
     """Parse a remote .shp file's records directly via struct, returning each record's
     bounding box (xmin, ymin, xmax, ymax), or None for a null-shape record. Returns None (the
     whole thing) if the member couldn't be fetched, or is truncated/malformed mid-record.
@@ -77,7 +79,9 @@ def read_shp_bboxes(url: str, member_name: str, session) -> "list[tuple[float, f
                 bboxes.append(struct.unpack("<dddd", data[pos + 12 : pos + 44]))
             pos += 8 + content_length
     except struct.error as exc:
-        print(f"WARNING: malformed/truncated .shp record in {member_name!r} from {url}: {exc}")
+        print(
+            f"WARNING: malformed/truncated .shp record in {member_name!r} from {url}: {exc}"
+        )
         return None
     return bboxes
 
@@ -90,7 +94,12 @@ def make_grid(
     width = (maxx - minx) / n
     height = (maxy - miny) / n
     return [
-        (minx + col * width, miny + row * height, minx + (col + 1) * width, miny + (row + 1) * height)
+        (
+            minx + col * width,
+            miny + row * height,
+            minx + (col + 1) * width,
+            miny + (row + 1) * height,
+        )
         for row in range(n)
         for col in range(n)
     ]
@@ -102,7 +111,13 @@ def truth_count(
 ) -> int:
     cminx, cminy, cmaxx, cmaxy = cell
     return sum(
-        1 for b in bboxes if b is not None and b[2] >= cminx and b[0] <= cmaxx and b[3] >= cminy and b[1] <= cmaxy
+        1
+        for b in bboxes
+        if b is not None
+        and b[2] >= cminx
+        and b[0] <= cmaxx
+        and b[3] >= cminy
+        and b[1] <= cmaxy
     )
 
 
@@ -122,7 +137,9 @@ def indexed_count(layer, cell: tuple[float, float, float, float]) -> int:
 # exactly 1 - vs. the known-corrupted mappluto_14v2 case, where every populated cell was
 # off by 90%+. The two failure modes sit many orders of magnitude apart, so a small
 # relative tolerance safely absorbs the former without masking the latter.
-CELL_MISMATCH_TOLERANCE = 0.01  # 1% relative difference, or 2 features, whichever is larger
+CELL_MISMATCH_TOLERANCE = (
+    0.01  # 1% relative difference, or 2 features, whichever is larger
+)
 
 
 def cells_mismatch(indexed: int, truth: int) -> bool:
@@ -164,7 +181,9 @@ def main() -> None:
 
     with ZIP_CONTENTS_CSV.open(newline="", encoding="utf-8") as f:
         shapefile_rows = [
-            row for row in csv.DictReader(f) if row["spatial"] == "True" and row["path_in_zip"].lower().endswith(".shp")
+            row
+            for row in csv.DictReader(f)
+            if row["spatial"] == "True" and row["path_in_zip"].lower().endswith(".shp")
         ]
 
     print(f"Checking {len(shapefile_rows)} shapefile-backed layers...")
@@ -173,10 +192,14 @@ def main() -> None:
     for i, row in enumerate(shapefile_rows, 1):
         url = url_by_identifier.get(row["identifier"])
         if url is None:
-            print(f"WARNING: no url found for identifier {row['identifier']!r}, skipping")
+            print(
+                f"WARNING: no url found for identifier {row['identifier']!r}, skipping"
+            )
             continue
         has_spatial_index, verdict = check_shapefile(url, row["path_in_zip"], session)
-        print(f"[{i}/{len(shapefile_rows)}] {row['identifier']} {row['path_in_zip']}: {verdict}")
+        print(
+            f"[{i}/{len(shapefile_rows)}] {row['identifier']} {row['path_in_zip']}: {verdict}"
+        )
         results.append(
             {
                 "identifier": row["identifier"],

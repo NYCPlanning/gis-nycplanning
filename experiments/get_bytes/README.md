@@ -1,9 +1,11 @@
 # Getting the BYTES of the Big Apple: PLUTO dataset tooling
 
-Two tools, meant to be run in sequence:
+Three tools, meant to be run in sequence:
 
 1. **`scrape_pluto_datasets.py`** - what dataset zip URLs exist, and what format is each.
 2. **`summarize_zip_datasets.py`** - for the spatial ones, what's actually inside each zip.
+3. **`spatial_index_report.py`** - for the shapefiles found above, is each one's spatial index
+   actually trustworthy.
 
 ## `scrape_pluto_datasets.py`
 
@@ -177,6 +179,76 @@ sizes, `VSI_CACHE`) giving a further ~14% for free. The full 104-row run took a 
   that still fails past that point is a real structural defect worth a human's attention (see
   future item 9's error report), not something worth adding more auto-repair logic for.
 
+## `spatial_index_report.py`
+
+ESRI's `.sbn`/`.sbx` shapefile spatial index format is unofficial and reverse-engineered - GDAL
+(and by extension ArcGIS, QGIS, and every other GDAL-backed consumer) trusts it blindly.
+`lyr.TestCapability("FastSpatialFilter")` reports an index as usable **even when it's actually
+corrupted** - confirmed directly against a known-bad file, where it still returned `True`. The
+only way to actually catch this is to run a real spatially-filtered query and compare it
+against an index-free "truth" for the same window.
+
+Reads `zip_contents.csv` + `pluto_datasets.csv` (joined on `identifier` for `url`), filtered to
+`spatial == True` rows whose `path_in_zip` ends in `.shp` (`.gdb`-backed layers have their own
+separate `.spx` indexing mechanism, out of scope here). For each one, writes a row to
+`spatial_index_results.csv` (`identifier,path_in_zip,has_spatial_index,verdict`), where
+`verdict` is `CONSISTENT`, `INCONSISTENT`, `NOT_APPLICABLE` (no spatial index present at all -
+trivially consistent, mostly seen on pre-2010 vintages), or `ERROR` (couldn't open/read).
+
+**How the check works**, for each shapefile:
+1. Open remotely via `/vsizip//vsicurl/<url>/<path>` (same no-local-download approach as
+   `summarize_zip_datasets.py`) and record `has_spatial_index` - informational only, per the
+   above, never treated as a correctness signal itself.
+2. Compute a **truth baseline without ever touching the index**: fetch the `.shp` member's raw
+   bytes (`common.get_zip_member_bytes`, the same ranged-HTTP machinery `summarize_zip_datasets.py`
+   uses for tabular files) and parse its binary records directly with `struct` - each record's
+   bounding box lives in a fixed 32-byte field right after the record header, before the
+   variable-length point/vertex array, so jumping straight to the next record via the header's
+   declared content-length skips the expensive part entirely. This is dramatically faster than
+   asking GDAL to decode full geometry for every feature (confirmed empirically during design:
+   ~20-24x faster at real full-scale files) - the speed win is in *parsing*, not in avoiding the
+   fetch itself, which still has to happen either way.
+3. Sweep a 3x3 grid over the layer's extent (not just one whole-extent query) - for each cell,
+   compare GDAL's indexed count (`SetSpatialFilterRect` + `GetFeatureCount(force=0)`, confirmed
+   the fastest validated approach for this half) against the truth count (a pure Python
+   bbox-intersects-rect test over the struct-parsed bboxes). A grid catches corruption
+   localized to only part of a shapefile's extent that a single query might miss.
+4. **Comparison uses a small tolerance, not exact equality** - `cells_mismatch()` flags a cell
+   only if the two counts differ by more than 1% (or 2 features, whichever is larger). This
+   isn't laziness: GDAL's spatial filter tests actual geometry intersection, but the struct-based
+   truth only has each record's bounding box, not its real shape, so a polygon whose bbox
+   straddles a grid boundary line can appear in a neighboring cell's truth count even though its
+   actual body never reaches there. Confirmed directly against a known-good file: summing every
+   cell's truth count exceeded the file's real total feature count, with 3 of 9 cells off by
+   exactly 1 - vs. every populated cell being off by 90%+ on a known-corrupted file. The two
+   failure modes sit orders of magnitude apart, so a small tolerance safely absorbs the former
+   without any real risk of masking the latter.
+
+**Correctness of the `struct`-based parser was independently verified**, not just trusted
+because the end-to-end verdicts looked right: a sample of FIDs on real files (including one of
+the findings below) had their parsed bounding boxes checked directly against GDAL's own
+`GetGeometryRef().GetEnvelope()` - exact match on every sample, zero discrepancies.
+
+### Known findings (from the real, current data)
+
+Running against all 257 real shapefile-backed rows: **214 `CONSISTENT`, 30 `INCONSISTENT`
+(across 8 identifiers), 11 `NOT_APPLICABLE`, 2 `ERROR`** (`nyc_mappluto_20v1_arc_shp`, both
+layers - `cpl_unzOpenCurrentFile() failed`, the same compression-quirk family already logged as
+warnings for `nyc_mappluto_20v2`/`20v6` elsewhere in this project - a pre-existing zip quirk,
+not a bug in this script).
+
+The 8 identifiers with at least one `INCONSISTENT` layer:
+- `mappluto_14v2` and `mappluto_17v1_1` - previously known corrupted-index cases, now confirmed
+  end-to-end by this script rather than a one-off manual check.
+- `mappluto_14v1`, `mappluto_15v1`, `mappluto_16v1` - **new findings**. These sit contiguously
+  with the two known cases (14v1 through 17v1_1 is essentially the entire 2014-2017 mappluto
+  release run), suggesting a **systemic issue across that whole era**, not isolated corruption.
+- `nyc_mappluto_20v5_arc_shp` - another new, standalone finding.
+- `nyc_mappluto_22v2_arc_shp_05298`/`_05299` - both halves of a known duplicate-identifier
+  collision pair show the same corruption across both clipped/unclipped variants, suggesting the
+  underlying 22v2 release itself is affected, not that one of the two duplicate download entries
+  happens to be a mismatched file.
+
 ## Execution
 
 (assumes `experiments/get_bytes` is the current working directory)
@@ -184,6 +256,19 @@ sizes, `VSI_CACHE`) giving a further ~14% for free. The full 104-row run took a 
 - `uv sync` - creates `.venv` and `uv.lock` scoped to this directory
 - `uv run scrape_pluto_datasets.py` - writes `pluto_datasets.csv` alongside the script
 - `uv run summarize_zip_datasets.py` - reads `pluto_datasets.csv`, writes `zip_contents.csv`
+- `spatial_index_report.py` needs `osgeo`/GDAL, which has no working prebuilt wheel for this
+  `uv`-managed venv on Windows (confirmed - building from source needs MSVC). Run it instead
+  under the team's existing `gis-env` conda environment, which already bundles a working GDAL
+  (built by `utilities/powershell/deploy_esri_py_env_pro.ps1` by cloning ArcGIS Pro's own
+  `arcgispro-py3` environment - not a one-off workaround, the team's actual sanctioned way of
+  getting a GDAL-capable Python on this machine):
+  ```powershell
+  & "$env:LOCALAPPDATA\miniforge3\envs\gis-env\python.exe" spatial_index_report.py
+  ```
+  This is expected to be temporary - once this toolset migrates into the main `dcpgis` repo
+  (sharing one GDAL-having environment for everything), this split disappears on its own. A
+  full run against all real shapefile rows takes roughly half an hour - practical as an
+  occasional/manual check, not meant to run on every invocation of the other two scripts.
 
 If any command can't reach the network (PyPI for `uv sync`, or `nyc.gov`/`apps.nyc.gov`/
 `s-media.nyc.gov` for the scripts themselves), set the DCP proxy from `.condarc` first:
@@ -211,3 +296,12 @@ call.
 `uv run pytest --cov=. --cov-report=term-missing` adds a coverage report (`pytest-cov`).
 `main()` in each script is intentionally not covered - both are thin CLI/IO wrappers; the
 logic they call is what's under test.
+
+`spatial_index_report.py` has **no automated pytest coverage at all**, by deliberate choice, not
+oversight: it needs `osgeo`, which isn't importable under this project's own `uv` venv (no
+working prebuilt Windows wheel - see above) or the pytest suite's environment. Its correctness
+was instead verified manually and directly, twice: end-to-end against the two known real
+corrupted/valid shapefiles, and independently at the binary-parsing level (a sample of FIDs'
+`struct`-parsed bounding boxes cross-checked against GDAL's own `GetGeometryRef().GetEnvelope()`,
+exact match). Same precedent as `main()`/`configure_gdal()` above - environment-bound code
+accepts a deliberate coverage gap, backed by manual verification instead.
