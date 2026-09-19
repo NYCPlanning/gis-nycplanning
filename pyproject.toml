@@ -12,6 +12,12 @@ include = ["dcpgis*"]
 
 [tool.mypy]
 ignore_missing_imports = false
+# processes/ holds standalone scripts rather than an installed package
+# Treating the repo root as the package base gives every file one 
+# unambiguous module name, matching how tests import them.
+explicit_package_bases = true
+# "." for processes/ and tests/, "src" so the package resolves as dcpgis.*
+mypy_path = [".", "src"]
 
 [[tool.mypy.overrides]]
 module = "arcpy"

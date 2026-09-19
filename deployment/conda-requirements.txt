@@ -6,3 +6,7 @@
 geopandas
 numpy
 fiona
+# Declares existing dependencies rather than adding them -- listed so a future base that
+# drops either fails loudly at deploy time instead of silently at run time.
+requests
+beautifulsoup4
