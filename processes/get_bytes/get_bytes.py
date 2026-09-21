@@ -7,12 +7,11 @@ derive the CSV reports from it.
     depth 0 (default)  url-level only: observed JSON, url report, error summary
     depth 1            adds zip-level and dataset-level inspection, plus the dataset report
 
-Depth 1 takes about an hour, so it flushes the observed report as it goes and --resume picks
+For PLUTO, depth 1 takes about an hour, so it flushes the observed report as it goes and --resume picks
 up where a previous run stopped, skipping entries already inspected. A finished depth-0 report
 is therefore a valid starting point for depth 1.
 
-Reports are written to the current directory unless --output-dir says otherwise. Scheduled
-runs should pass it explicitly: trigger_process.ps1 sets cwd to its own location first.
+Reports are written to the current directory unless --output-dir says otherwise.
 
 "Observed" means anything that took a network call to learn. Everything else - format
 inference, identifier disambiguation, the spatial flag, every problem rule - is derived from
@@ -27,8 +26,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Run by script path, sys.path[0] is this file's own directory, so the absolute imports below
-# would not resolve without this.
+# sys.path[0] is this file's own directory when run by path, so the absolute imports
+# below need this to resolve.
+# TODO: find a cleaner solution to this path-editing import logic
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -40,8 +40,7 @@ from processes.get_bytes.common import get_response_code, make_session  # noqa: 
 # inspect, and unknown-typed ones are the zip-of-zips cases GDAL cannot reach single-level.
 IN_SCOPE_ZIP_TYPES = {"shp", "fgdb", "csv", "txt"}
 
-# Response-code lookups are pure I/O wait with no decompression behind them, so threads help
-# here in a way they demonstrably do not for the CPU-bound zip work at depth 1.
+# Response-code lookups are pure I/O wait with no decompression behind them, so threads help here
 RESPONSE_CODE_WORKERS = 8
 
 # How often depth 1 flushes the observed report to disk, in entries.
@@ -107,8 +106,8 @@ def load_observed(path: Path, depth: int) -> dict:
 def add_zip_and_dataset_levels(observed: dict, session, out_dir: "Path | None" = None) -> None:
     """Fill in zip_level/dataset_level for every in-scope entry, in place.
 
-    Imported here rather than at module scope because it pulls in osgeo, which only exists
-    under gis-env - depth 0 stays runnable in any environment.
+    Imported here rather than at module scope because it pulls in osgeo - depth 0 stays 
+    runnable in any environment.
 
     With out_dir, the observed report is flushed every OBSERVED_WRITE_BATCH entries so an
     hour-long run leaves usable partial output if it dies, and can be resumed rather than
@@ -159,9 +158,7 @@ def observed_path(observed: dict, out_dir: Path) -> Path:
 
 
 def write_observed(observed: dict, out_dir: Path) -> Path:
-    """Written via temp-then-rename, because depth 1 rewrites this file repeatedly while the
-    run is in progress and a crash mid-write would otherwise leave truncated JSON - which is
-    exactly the file a resume needs to be able to read."""
+    """Use a temp-then-rename method to avoind truncated JSON on mid-write crash"""
     path = observed_path(observed, out_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")

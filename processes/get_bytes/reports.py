@@ -37,7 +37,9 @@ ERROR_SUMMARY_FIELDS = [
     "url",
 ]
 
-# Types that carry geometry. Everything else (csv/txt/dbf/gdb_tb/pdf) is non-spatial.
+# Types that carry geometry.
+# TODO: gdb_raster isn't included here yet - revisit once a raster-bearing product (e.g.
+# Zoning) actually exercises this path.
 SPATIAL_TYPES = {"shp", "gdb_fc"}
 
 # Matches the deterministic 5-digit disambiguation suffix scrape.assign_identifiers appends
@@ -81,8 +83,7 @@ def lock_objects(entry: dict) -> list[dict]:
 
 def build_dataset_rows(observed: dict) -> list[dict]:
     """One row per dataset_level item. `spatial` and `has_lock_files` are derived here rather
-    than stored in the JSON - both are fully determined by data already in it, so persisting
-    them would be duplicated state."""
+    than stored in the JSON"""
     rows = []
     for entry in observed["entries"]:
         has_lock_files = bool(lock_objects(entry)) if entry.get("zip_level") else ""
@@ -117,6 +118,8 @@ def _problem(
 
 
 def find_broken_links(entry: dict) -> list[dict]:
+    # None or "" means the request itself failed - a different claim from "the server said
+    # this is missing" - so it isn't reported as a broken link.
     code = entry["url_level"]["response_code"]
     if code in (None, "", 200, 206):
         return []
@@ -136,11 +139,7 @@ def find_extra_zip_nesting(entry: dict) -> list[dict]:
 
 
 def find_lock_files(entry: dict) -> list[dict]:
-    """One row per lock file, naming it in path_in_zip.
-
-    The old CSV pipeline could only report that a zip held one, because knowing which would
-    have cost another fetch. The object inventory names them, so the report does too.
-    """
+    """One row per lock file, naming it in path_in_zip."""
     return [
         _problem(entry, "zip", "has_lock_files", path_in_zip=obj["path"])
         for obj in lock_objects(entry)
@@ -164,7 +163,7 @@ def find_corrupted_spatial_indexes(entry: dict) -> list[dict]:
 
 
 def build_error_rows(observed: dict) -> list[dict]:
-    """One row per detected problem instance, not one per subject - a clean dataset shrinks
+    """One row per detected problem instance, not one per subject. A clean dataset shrinks
     this report toward nothing rather than padding it with all-blank rows.
 
     The zip- and file-level rules simply find nothing at depth 0, where zip_level is null and

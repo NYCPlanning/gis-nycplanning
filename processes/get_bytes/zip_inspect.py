@@ -1,18 +1,12 @@
 """Zip-level and dataset-level inspection - everything depth 1 adds over depth 0.
 
-Merges what used to be two separate scripts (summarize_zip_datasets.py's layer discovery and
-spatial_index_report.py's index validation) into one pass per zip. That merge is the point:
-both halves need the same open GDAL layer, so doing them together means opening each
-shapefile datasource once instead of once per script, in one process instead of two.
+One pass per zip. 
 
-Uses raw osgeo rather than pyogrio, because pyogrio's list_layers/read_info each open and
-close their own dataset internally and cannot hand back a live layer for the index check to
-reuse. pyogrio is also absent from gis-env, where this runs.
+"zip_level" is the container's object inventory - one entry per shapefile, .gdb, lock file or
+loose file, rather than per zip member. "dataset_level" describes what is inside each of those datasets. 
 
-zip_level is the container's object inventory - one entry per shapefile, .gdb, lock file or
-loose file, rather than per zip member. dataset_level describes what is inside each of those
-datasets. The two answer different questions, so a .gdb appears once in zip_level, naming its
-feature classes, and once per feature class in dataset_level.
+The two answer different questions, so a .gdb appears once in zip_level, naming its feature classes, 
+and once per feature class in dataset_level.
 """
 
 import csv
@@ -26,14 +20,12 @@ from osgeo import gdal, ogr
 
 from processes.get_bytes.common import get_zip_central_directory, get_zip_member_bytes
 
-# Raw osgeo returns None and logs a CPLError instead of raising, unless this is on - without
-# it a failed open surfaces as an AttributeError on the next call rather than something
-# catchable.
+# Without this, a failed open returns None instead of raising, so the crash happens one
+# call later as a confusing AttributeError.
 gdal.UseExceptions()
 
 GRID_SIZE = 3
 
-# 1% relative difference, or 2 features, whichever is larger.
 CELL_MISMATCH_TOLERANCE = 0.01
 
 UNCLIPPED_PATTERN = re.compile(r"unclipped|water included|\bwi\b", re.IGNORECASE)
@@ -150,9 +142,9 @@ def _discover_by_suffix(names: list[str], suffixes: tuple[str, ...]) -> list[str
 
 
 def discover_tabular_files(names: list[str]) -> list[str]:
-    """Standalone .csv/.txt members. Skips .gdb-internal files (a gdb's tabular data already
-    arrives as layers) and nested zips (a documented gap - tabular members inside a nested
-    zip are not read)."""
+    """Standalone .csv/.txt members. 
+
+    Skips .gdb-internal files (a gdb's tabular data already arrives as layers) and nested zips."""
     return _discover_by_suffix(names, (".csv", ".txt"))
 
 
@@ -228,11 +220,10 @@ def indexed_count(layer, cell: tuple[float, float, float, float]) -> int:
 
 
 def cells_mismatch(indexed: int, truth: int) -> bool:
-    """Tolerant rather than exact, because GDAL filters on real geometry while the truth
-    baseline only has bounding boxes - a polygon whose bbox straddles a grid line lands in a
-    neighbouring cell's truth count. Measured: that artifact is ~0.01% per cell on a
-    known-good file, versus 90%+ on a known-corrupted one, so the two regimes sit orders of
-    magnitude apart.
+    """Tolerant rather than exact: GDAL filters by real geometry while the truth baseline only
+    has bounding boxes, so a polygon whose bbox straddles a grid line lands in a neighbouring
+    cell's truth count. Measured on real data, that noise stays under 1% per cell, while
+    genuine corruption drops counts by 90%+ - the two regimes don't overlap.
     """
     return abs(indexed - truth) > max(2, CELL_MISMATCH_TOLERANCE * max(indexed, truth))
 
@@ -242,7 +233,7 @@ def check_layer_spatial_index(layer, url: str, posix_path: str, session) -> dict
 
     Takes a live layer rather than a path, so the caller's single OpenEx covers both layer
     discovery and this check. `present` is informational only - GDAL reports a corrupted
-    index as usable, which is the whole reason this comparison exists.
+    index as usable, which is why this comparison exists at all.
     """
     try:
         present = bool(layer.TestCapability("FastSpatialFilter"))
@@ -259,8 +250,8 @@ def check_layer_spatial_index(layer, url: str, posix_path: str, session) -> dict
                 return {"present": True, "status": "INCONSISTENT"}
         return {"present": True, "status": "CONSISTENT"}
     except RuntimeError as exc:
-        # Reaches here on the compression quirk some 20vN zips have, where the layer lists
-        # fine but reading its data fails.
+        # A compression quirk lands here: the layer lists fine, but reading its data fails.
+        # (initially observed with pluto 20vN)
         print(f"WARNING: spatial index check failed for {posix_path} in {url}: {exc}")
         return {"present": None, "status": "ERROR"}
 
@@ -269,14 +260,12 @@ def check_layer_spatial_index(layer, url: str, posix_path: str, session) -> dict
 
 
 def read_tabular_entry(url: str, member_name: str, session) -> "dict | None":
-    """One standalone .csv/.txt member, read via ranged HTTP and stdlib csv - no GDAL in
-    this path at all.
+    """One standalone .csv/.txt member, via ranged HTTP and stdlib csv - no GDAL here.
 
-    The encoding chain is empirical: PLUTO's pre-2015 tabular files predate UTF-8 as a
-    default, and a couple use bytes cp1252 leaves undefined, so latin-1 is the guaranteed
-    fallback (it maps every byte, so decoding always succeeds and only a structural parse
-    error can still fail). No delimiter sniffing - csv.reader counts rows correctly whatever
-    the delimiter, and sniffing was reverted after it failed on real wide space-padded files.
+    Encoding order: PLUTO's pre-2015 files predate UTF-8, a few use bytes cp1252
+    leaves undefined, and latin-1 decodes every byte, so it's the guaranteed fallback. No
+    delimiter sniffing - csv.reader counts rows correctly regardless, and sniffing broke on
+    really wide, space-padded files.
     """
     data = get_zip_member_bytes(url, member_name, session)
     if data is None:
@@ -330,7 +319,7 @@ def layers_from_vsi(
     be read at all.
 
     None rather than [] on failure, because zip_level's inventory has to tell "GDAL could not
-    open this" apart from "this really is empty" - the same distinction spatial_index keeps.
+    open this" apart from "this really is empty".
 
     `gdb_path` set means this is a .gdb folder (layers become gdb_fc/gdb_tb, path_in_zip is
     the gdb path plus layer name); None means a shapefile-style directory (layers become
@@ -340,9 +329,8 @@ def layers_from_vsi(
     bundle plus one per standalone .dbf - the grouping this needs, for free.
     """
     try:
-        # OF_RASTER costs nothing here - verified to return identical layers, driver and
-        # FastSpatialFilter for both shapefile directories and gdbs - and is the only way
-        # GetSubDatasets() reports a gdb's rasters.
+        # OF_RASTER is the only way
+        # GetSubDatasets() can see a gdb's rasters.
         dataset = gdal.OpenEx(vsi_path, gdal.OF_VECTOR | gdal.OF_RASTER)
     except RuntimeError as exc:
         print(f"WARNING: could not open {vsi_path}: {exc}")
@@ -359,9 +347,9 @@ def layers_from_vsi(
 
     entries = []
     for i in range(layer_count):
-        # GetLayer is inside the try, not just the reads: the Shapefile driver defers opening
-        # each member until asked for it, so a corrupt .shp raises here. Containing it per
-        # layer keeps the rest of the datasource, instead of losing the whole zip.
+        # GetLayer is inside the try too: the Shapefile driver defers opening each member, so a
+        # corrupt .shp raises here rather than at OpenEx - catching it per layer saves the rest
+        # of the datasource instead of losing the whole zip.
         try:
             layer = dataset.GetLayer(i)
             name = layer.GetName()
@@ -400,11 +388,11 @@ def layers_from_vsi(
 
 
 def raster_entries(dataset, gdb_path: str, vsi_path: str) -> list[dict]:
-    """A .gdb's raster datasets, which are invisible to the layer API.
+    """A .gdb's raster datasets, invisible to the layer API.
 
-    No PLUTO archive contains one, so this is covered by unit test only. GDAL names a
-    subdataset `DRIVER:"source":name`, but quoting varies by driver, so the trailing segment
-    is taken rather than the whole string parsed.
+    GDAL names each subdataset `DRIVER:"source":name`, but quoting varies by driver, so only
+    the trailing segment is taken rather than the whole string parsed. No observed archive has
+    one yet, so this path is covered by unit test only.
     """
     try:
         subdatasets = dataset.GetSubDatasets()
@@ -523,8 +511,6 @@ def build_zip_level(
     dataset_level: list[dict],
     unreadable: set[str],
 ) -> dict:
-    """Pure - the central directory is fetched once by the caller and shared with dataset
-    discovery, so nothing here touches the network."""
     return {
         "filename": posixpath.basename(url),
         "obs_size_bytes": total_size,
@@ -590,8 +576,8 @@ def build_dataset_level(
         if entry is not None:
             entries.append(entry)
 
-    # Reference docs shipped alongside the data. No counts to report - recorded so the
-    # inventory is complete rather than silently dropping them.
+    # No counts to report, but recorded anyway so PDFs aren't silently dropped from the
+    # inventory.
     for pdf_file in discover_pdf_files(names):
         entries.append(
             {
@@ -621,8 +607,7 @@ def inspect_zip(
 ) -> "tuple[dict | None, list[dict]]":
     """One zip's (zip_level, dataset_level).
 
-    The central directory is fetched once here and shared with both halves, which is what
-    removes the duplicate structural fetch the old two-script pipeline paid for.
+    The central directory is fetched once here and shared with both halves.
 
     dataset_level is built first because zip_level's inventory names each .gdb's contents
     from it, rather than opening the archive a second time.

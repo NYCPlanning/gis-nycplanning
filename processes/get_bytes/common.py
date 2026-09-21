@@ -1,7 +1,6 @@
 """Shared HTTP/zip plumbing for the get_bytes tool.
 
-Deliberately generic - nothing here is specific to PLUTO/MapPLUTO or any other single DCP
-product, since this tool is expected to grow to cover other datasets over time.
+Product agnostic - nothing here is specific to any single DCP product.
 """
 
 import io
@@ -35,10 +34,10 @@ def get_zip_central_directory(
 
     Returns (infolist, total_size_bytes). Prefer this over get_zip_namelist: the infolist
     carries each member's uncompressed `file_size`, and the total size comes free from the
-    same response's Content-Range header - both would otherwise cost extra requests.
+    same response's Content-Range headers.
 
     Requests just the tail of the file via a suffix Range request, falling back to a full
-    download if Range isn't honored. total_size is None only when the server answered 206
+    download if Range isn't honored. total_size is None only when the server answers 206
     without a usable Content-Range.
     """
     try:
@@ -67,8 +66,6 @@ def get_zip_central_directory(
         )
         return infolist, total
 
-    # The tail wasn't a readable zip and the server didn't already hand us the whole file,
-    # so the Range request was likely ignored or truncated mid-record - retry unranged.
     try:
         resp = session.get(url, timeout=120)
         resp.raise_for_status()
@@ -86,13 +83,12 @@ def get_zip_namelist(url: str, session: requests.Session) -> list[str] | None:
 
 class _HTTPRangeFile:
     """Minimal seekable, readable file-like object over a remote file, backed by ranged GET
-    requests - just enough for zipfile.ZipFile's random-access needs (it seeks to find the
-    central directory, then seeks again per-member to its local header + compressed data),
-    without ever downloading the whole remote file.
+    requests - enough for zipfile.ZipFile's random-access needs (one seek to find the
+    central directory, another per-member to its local header + compressed data), without 
+    ever downloading the whole remote file.
 
     Unlike get_zip_central_directory (which only fetches the zip's tail), reading an arbitrary
-    member's actual bytes needs real random access, since that member's compressed data can
-    live anywhere earlier in the file.
+    member's actual bytes needs real random access.
     """
 
     def __init__(self, url: str, session: requests.Session):
@@ -149,8 +145,8 @@ def get_zip_member_bytes(
         zipfile.BadZipFile,
         KeyError,
         OSError,
-        # Raised for compression methods stdlib zipfile cannot handle, which some older
-        # release archives use. Without it the failure escapes and costs the whole zip.
+        # Some older archives use compression stdlib zipfile can't decode; without this the
+        # failure escapes and costs the whole zip instead of just this member.
         NotImplementedError,
     ) as exc:
         print(f"WARNING: could not read member {member_name!r} from {url}: {exc}")
@@ -160,10 +156,9 @@ def get_zip_member_bytes(
 def get_response_code(url: str, session: requests.Session) -> int | None:
     """Cheaply check a URL's HTTP status without downloading its body.
 
-    Tries a HEAD request first; if that fails outright (some servers reject/mishandle HEAD),
-    falls back to a minimal ranged GET. Returns the status code from whichever request
-    actually completed - any code, 404 included, is a valid result, not a failure. None only
-    if neither request could complete at all.
+    Tries a HEAD request first; if that fails outright, falls back to a minimal ranged GET. 
+    Returns the status code from whichever request actually completed - any code, 404 included, 
+    is a valid result, not a failure. None only if neither request could complete at all.
     """
     try:
         resp = session.head(url, timeout=30)

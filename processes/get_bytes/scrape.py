@@ -6,7 +6,8 @@ directly. Both are derived from the page slug, so pointing this at a different D
 page of the same shape needs no code change.
 
 The parsing itself (release/label structure, format-inference heuristics) is still specific
-to how the PLUTO family of pages is built - see the plan's scope-boundaries note.
+to how the PLUTO family of pages is built. Supporting another product's page shape is a
+separate, larger effort.
 """
 
 import hashlib
@@ -144,8 +145,8 @@ def parse_recent_release(html_fragment: str, session: requests.Session) -> list[
 
     soup = BeautifulSoup(html_fragment, "html.parser")
     recent = soup.find(id="recent-release")
-    # isinstance rather than `is None`: find() can also return a bare NavigableString, which
-    # has no find_all and would blow up below.
+    # find() can return a bare NavigableString (no find_all), so check isinstance rather
+    # than `is None`.
     if not isinstance(recent, Tag):
         return []
 
@@ -169,9 +170,8 @@ def parse_recent_release(html_fragment: str, session: requests.Session) -> list[
                 if "download" in a.get("class", []):
                     dataset_name = base_name
                 else:
-                    # A reference doc (Data Dictionary / Read Me / MetaData), not the
-                    # dataset file itself - give it its own name instead of reusing the
-                    # dataset's, e.g. "pluto_datadictionary", "mappluto_metadata".
+                    # A reference doc, not the dataset file itself - name it separately (e.g.
+                    # pluto_datadictionary) instead of reusing the dataset's name.
                     suffix = reference_doc_suffix(a.get_text(strip=True))
                     dataset_name = f"{base_name}_{suffix}" if suffix else base_name
                 rows.append(
