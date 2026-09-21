@@ -14,12 +14,13 @@ import zipfile
 import pytest
 import requests
 
-from processes.get_bytes import zip_inspect
+from processes.get_bytes import reports, zip_inspect
 from processes.get_bytes.common import make_session
 from tests.processes.get_bytes.conftest import mock_ranged_file_session
 
 SHP_ZIP = "shapefile_nyzd_one_row.zip"
 GDB_ZIP = "geodatabase_zoning_data.zip"
+STALE_NAME = "shapefile_nyzd_stale_index"
 FAKE_URL = "https://s-media.nyc.gov/fixture.zip"
 
 
@@ -405,6 +406,139 @@ def test_spatial_index_absent_reports_present_false(
     index = entries[0]["spatial_index"]
     assert index["present"] is False
     assert index["status"] is None
+
+
+# Fractions of a grid cell, chosen to keep every square clear of a cell edge so no feature
+# is double-counted by the bbox-based truth pass.
+STALE_OFFSETS = ((0.15, 0.15), (0.35, 0.35), (0.55, 0.55), (0.75, 0.75), (0.35, 0.75))
+STALE_SQUARE_SIZE = 10.0
+
+
+def _square(x: float, y: float, size: float):
+    from osgeo import ogr
+
+    corners = ((x, y), (x + size, y), (x + size, y + size), (x, y + size), (x, y))
+    ring = ogr.Geometry(ogr.wkbLinearRing)
+    for corner in corners:
+        ring.AddPoint_2D(*corner)
+    polygon = ogr.Geometry(ogr.wkbPolygon)
+    polygon.AddGeometry(ring)
+    return polygon
+
+
+def _build_stale_index_zip(shp_zip_path, tmp_path):
+    """A shapefile carrying a real .sbn/.sbx that describes an earlier version of itself.
+
+    Reuses the checked-in fixture's genuine ESRI-written index rather than synthesizing or
+    byte-corrupting one, so the archive fails the same way the upstream ones do: features
+    were added and the index was never rebuilt. Feature 0 is the original polygon, so the
+    index's single entry stays truthful and the layer extent is unchanged - what makes this
+    INCONSISTENT is purely the 45 features the index has never heard of.
+    """
+    from osgeo import gdal, ogr
+
+    source = gdal.OpenEx(f"/vsizip/{shp_zip_path.as_posix()}", gdal.OF_VECTOR)
+    source_layer = source.GetLayer(0)
+    # Bound step by step, not chained: osgeo hands back borrowed views, so a chained call
+    # lets the owner be collected and the next call gets a dangling proxy.
+    source_feature = source_layer.GetNextFeature()
+    original = source_feature.GetGeometryRef().Clone()
+    source_srs = source_layer.GetSpatialRef()
+    minx, maxx, miny, maxy = source_layer.GetExtent()
+
+    work = tmp_path / "stale"
+    work.mkdir()
+    dataset = ogr.GetDriverByName("ESRI Shapefile").CreateDataSource(
+        str(work / f"{STALE_NAME}.shp")
+    )
+    layer = dataset.CreateLayer(STALE_NAME, source_srs, ogr.wkbPolygon)
+    layer.CreateField(ogr.FieldDefn("ZONEDIST", ogr.OFTString))
+
+    def add(geometry):
+        feature = ogr.Feature(layer.GetLayerDefn())
+        feature.SetGeometry(geometry)
+        layer.CreateFeature(feature)
+
+    add(original)
+    width, height = (maxx - minx) / 3, (maxy - miny) / 3
+    for row in range(3):
+        for col in range(3):
+            for fx, fy in STALE_OFFSETS:
+                x = minx + (col + fx) * width
+                y = miny + (row + fy) * height
+                add(_square(x, y, STALE_SQUARE_SIZE))
+    dataset = None  # flush to disk before zipping
+
+    with zipfile.ZipFile(shp_zip_path) as source_zip:
+        for suffix in (".sbn", ".sbx"):
+            member = f"{shp_zip_path.stem}{suffix}"
+            (work / f"{STALE_NAME}{suffix}").write_bytes(source_zip.read(member))
+
+    zip_path = tmp_path / f"{STALE_NAME}.zip"
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as out:
+        for member in sorted(work.iterdir()):
+            out.write(member, member.name)
+    return zip_path
+
+
+@pytest.fixture()
+def stale_index_zip_path(shp_zip_path, tmp_path):
+    return _build_stale_index_zip(shp_zip_path, tmp_path)
+
+
+def test_spatial_index_inconsistent_against_a_real_stale_sbn(
+    monkeypatch, stale_index_zip_path
+):
+    # The verdict this whole tool exists to produce, end to end through real GDAL: the index
+    # reports itself usable, so only the comparison against the .shp's own bboxes catches it.
+    _install_ranged(monkeypatch, stale_index_zip_path.read_bytes())
+
+    (entry,) = zip_inspect.layers_from_vsi(
+        vsi(stale_index_zip_path), "", None, FAKE_URL, make_session(), check_index=True
+    )
+    assert entry["row_count"] == 46
+    assert entry["spatial_index"] == {"present": True, "status": "INCONSISTENT"}
+
+
+def test_stale_index_verdict_comes_from_the_index_not_the_geometry(
+    monkeypatch, stale_index_zip_path, tmp_path
+):
+    # Control for the test above: identical features, index removed. Were the INCONSISTENT
+    # verdict an artifact of the grid or the truth parser, it would survive this.
+    control = tmp_path / "control.zip"
+    with (
+        zipfile.ZipFile(stale_index_zip_path) as src,
+        zipfile.ZipFile(control, "w") as dst,
+    ):
+        for info in src.infolist():
+            if info.filename.lower().endswith((".sbn", ".sbx")):
+                continue
+            renamed = info.filename.replace(STALE_NAME, "control")
+            dst.writestr(renamed, src.read(info.filename))
+
+    _install_ranged(monkeypatch, control.read_bytes())
+    (entry,) = zip_inspect.layers_from_vsi(
+        vsi(control), "", None, FAKE_URL, make_session(), check_index=True
+    )
+    assert entry["spatial_index"] == {"present": False, "status": None}
+
+
+def test_stale_index_reaches_the_error_summary(monkeypatch, stale_index_zip_path):
+    # Closes the loop from real GDAL to the row an analyst actually reads.
+    _install_ranged(monkeypatch, stale_index_zip_path.read_bytes())
+    entries = zip_inspect.layers_from_vsi(
+        vsi(stale_index_zip_path), "", None, FAKE_URL, make_session(), check_index=True
+    )
+    entry = {
+        "identifier": "nyc_nyzd_stale_shp",
+        "url_level": {"url_actual": FAKE_URL, "response_code": 200, "type": "shp"},
+        "zip_level": {"has_lock_files": False},
+        "dataset_level": entries,
+    }
+    (row,) = reports.build_error_rows({"entries": [entry]})
+    assert row["problem"] == "corrupted_spatial_index"
+    assert row["level"] == "file"
+    assert row["path_in_zip"] == f"{STALE_NAME}.shp"
 
 
 def test_gdb_layers_get_no_spatial_index_key(gdb_zip_path):
