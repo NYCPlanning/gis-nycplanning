@@ -9,6 +9,7 @@ import csv
 import json
 from pathlib import Path
 
+import pytest
 import requests
 
 from processes.get_bytes import get_bytes
@@ -180,3 +181,179 @@ def test_parse_args_output_dir_tracks_cwd_at_call_time(tmp_path, monkeypatch):
 
 def test_parse_args_accepts_depth_one():
     assert get_bytes.parse_args([PAGE_URL, "--depth", "1"]).depth == 1
+
+
+# --- depth 1 orchestration ------------------------------------------------------------------
+#
+# inspect_zip is stubbed: it needs real GDAL against remote paths, which is covered in
+# test_zip_inspect.py. What matters here is the wiring - which entries get inspected, how
+# results land on them, and that one bad archive cannot abort the run.
+
+
+def _entry(identifier, type_="shp", version="26v2"):
+    return {
+        "identifier": identifier,
+        "url_level": {
+            "dataset_name": "mappluto",
+            "type": type_,
+            "version": version,
+            "url_actual": f"https://x/{identifier}.zip",
+            "response_code": 200,
+            "product": "pluto",
+        },
+        "zip_level": None,
+        "dataset_level": [],
+    }
+
+
+def _stub_inspect(monkeypatch, result=None, raises=None):
+    from processes.get_bytes import zip_inspect
+
+    inspected = []
+
+    def _fake(url, dataset_name, sibling_has_unclipped, session, check_index=True):
+        inspected.append({"url": url, "sibling": sibling_has_unclipped})
+        if raises is not None:
+            raise raises
+        return result if result is not None else ({"has_lock_files": False}, [])
+
+    monkeypatch.setattr(zip_inspect, "inspect_zip", _fake)
+    monkeypatch.setattr(zip_inspect, "configure_gdal", lambda: None)
+    return inspected
+
+
+def test_depth_one_skips_out_of_scope_types(monkeypatch):
+    observed = {
+        "entries": [
+            _entry("a_shp", "shp"),
+            _entry("b_fgdb", "fgdb"),
+            _entry("c_csv", "csv"),
+            _entry("d_txt", "txt"),
+            _entry("e_pdf", "pdf"),
+            _entry("f_unknown", "unknown"),
+        ]
+    }
+    inspected = _stub_inspect(monkeypatch)
+
+    get_bytes.add_zip_and_dataset_levels(observed, session=None)
+
+    # pdf has no archive to open; unknown is the zip-of-zips case GDAL cannot reach
+    assert [i["url"].rsplit("/", 1)[1] for i in inspected] == [
+        "a_shp.zip",
+        "b_fgdb.zip",
+        "c_csv.zip",
+        "d_txt.zip",
+    ]
+    assert observed["entries"][4]["zip_level"] is None
+    assert observed["entries"][5]["zip_level"] is None
+
+
+def test_depth_one_attaches_results_to_the_entry(monkeypatch):
+    observed = {"entries": [_entry("a_shp")]}
+    zip_level = {"has_lock_files": True, "obs_size_bytes": 99}
+    dataset_level = [{"type": "shp", "path_in_zip": "a.shp"}]
+    _stub_inspect(monkeypatch, result=(zip_level, dataset_level))
+
+    get_bytes.add_zip_and_dataset_levels(observed, session=None)
+
+    assert observed["entries"][0]["zip_level"] == zip_level
+    assert observed["entries"][0]["dataset_level"] == dataset_level
+
+
+def test_depth_one_passes_unclipped_sibling_signal(monkeypatch):
+    # The clipped zip needs to know its unclipped counterpart exists as a separate entry,
+    # which is only knowable by looking across all entries, not at one in isolation.
+    observed = {
+        "entries": [
+            _entry("nyc_mappluto_26v2_unclipped_shp"),
+            _entry("nyc_mappluto_26v2_shp"),
+        ]
+    }
+    inspected = _stub_inspect(monkeypatch)
+
+    get_bytes.add_zip_and_dataset_levels(observed, session=None)
+    assert [i["sibling"] for i in inspected] == [True, True]
+
+
+def test_depth_one_flushes_progress_to_disk(monkeypatch, tmp_path):
+    # An hour-long run that writes nothing until the end loses everything on a crash.
+    observed = {
+        "page": "p",
+        "initiated_timestamp": "20260919T000000Z",
+        "entries": [_entry(f"z{i}_shp") for i in range(12)],
+    }
+    _stub_inspect(monkeypatch, result=({"has_lock_files": False}, []))
+
+    get_bytes.add_zip_and_dataset_levels(observed, session=None, out_dir=tmp_path)
+
+    written = json.loads(
+        get_bytes.observed_path(observed, tmp_path).read_text(encoding="utf-8")
+    )
+    assert len(written["entries"]) == 12
+
+
+def test_depth_one_skips_entries_already_inspected(monkeypatch):
+    # The resume contract: depth 0 sets zip_level to None explicitly, so a populated
+    # zip_level is the marker for "already done".
+    observed = {
+        "entries": [
+            _entry("done_shp") | {"zip_level": {"has_lock_files": False}},
+            _entry("pending_shp"),
+        ]
+    }
+    inspected = _stub_inspect(monkeypatch)
+
+    get_bytes.add_zip_and_dataset_levels(observed, session=None)
+
+    assert [i["url"].rsplit("/", 1)[1] for i in inspected] == ["pending_shp.zip"]
+
+
+def test_load_observed_keeps_timestamp_so_resume_rewrites_one_file(tmp_path):
+    source = tmp_path / "observed_report_p_20260919T000000Z.json"
+    source.write_text(
+        json.dumps(
+            {
+                "page": "p",
+                "initiated_timestamp": "20260919T000000Z",
+                "depth": 0,
+                "entries": [_entry("a_shp")],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    observed = get_bytes.load_observed(source, depth=1)
+    assert observed["depth"] == 1
+    assert observed["initiated_timestamp"] == "20260919T000000Z"
+    assert get_bytes.observed_path(observed, tmp_path) == source
+
+
+def test_write_observed_is_atomic(tmp_path):
+    # temp-then-rename: a crash mid-write must not truncate the file a resume depends on
+    observed = {
+        "page": "p",
+        "initiated_timestamp": "20260919T000000Z",
+        "entries": [],
+    }
+    path = get_bytes.write_observed(observed, tmp_path)
+    assert path.exists()
+    assert list(tmp_path.glob("*.tmp")) == []
+
+
+def test_parse_args_requires_url_unless_resuming(tmp_path):
+    with pytest.raises(SystemExit):
+        get_bytes.parse_args([])
+    args = get_bytes.parse_args(["--resume", str(tmp_path / "r.json"), "--depth", "1"])
+    assert args.url is None
+    assert args.depth == 1
+
+
+def test_depth_one_one_bad_archive_does_not_abort_the_run(monkeypatch, capsys):
+    observed = {"entries": [_entry("bad_shp"), _entry("also_bad_shp")]}
+    _stub_inspect(monkeypatch, raises=OSError("malformed central directory"))
+
+    get_bytes.add_zip_and_dataset_levels(observed, session=None)
+
+    # both were attempted and both left untouched, rather than the first killing the run
+    assert all(e["zip_level"] is None for e in observed["entries"])
+    assert capsys.readouterr().out.count("WARNING: failed inspecting") == 2

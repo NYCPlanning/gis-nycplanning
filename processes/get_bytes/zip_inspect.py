@@ -1,0 +1,512 @@
+"""Zip-level and dataset-level inspection - everything depth 1 adds over depth 0.
+
+Merges what used to be two separate scripts (summarize_zip_datasets.py's layer discovery and
+spatial_index_report.py's index validation) into one pass per zip. That merge is the point:
+both halves need the same open GDAL layer, so doing them together means opening each
+shapefile datasource once instead of once per script, in one process instead of two.
+
+Uses raw osgeo rather than pyogrio, because pyogrio's list_layers/read_info each open and
+close their own dataset internally and cannot hand back a live layer for the index check to
+reuse. pyogrio is also absent from gis-env, where this runs.
+
+zip_level stays deliberately dumb - a flat listing of what the archive physically contains,
+with no GDAL awareness, so a .gdb shows up as its raw member files. dataset_level is the
+GDAL-aware view, where that same .gdb appears as feature classes and tables.
+"""
+
+import csv
+import io
+import posixpath
+import re
+import struct
+import zipfile
+
+from osgeo import gdal, ogr
+
+from processes.get_bytes.common import get_zip_central_directory, get_zip_member_bytes
+
+# Raw osgeo returns None and logs a CPLError instead of raising, unless this is on - without
+# it a failed open surfaces as an AttributeError on the next call rather than something
+# catchable.
+gdal.UseExceptions()
+
+GRID_SIZE = 3
+
+# 1% relative difference, or 2 features, whichever is larger.
+CELL_MISMATCH_TOLERANCE = 0.01
+
+UNCLIPPED_PATTERN = re.compile(r"unclipped|water included|\bwi\b", re.IGNORECASE)
+BOROUGH_PATTERN = re.compile(r"^(bx|bk|mn|qn|si)(?=_|[A-Z]|$)", re.IGNORECASE)
+
+TABULAR_ENCODINGS = ("utf-8", "cp1252", "latin-1")
+
+
+def configure_gdal() -> None:
+    """Benchmarked tuning for vsicurl-heavy work. Call once at startup - SetConfigOption is
+    process-global, not thread-local."""
+    for key, value in {
+        "GDAL_DISABLE_READDIR_ON_OPEN": "EMPTY_DIR",
+        "CPL_VSIL_CURL_CHUNK_SIZE": "2097152",
+        "CPL_VSIL_CURL_CACHE_SIZE": "67108864",
+        "VSI_CACHE": "YES",
+        "VSI_CACHE_SIZE": "67108864",
+        "GDAL_HTTP_MULTIPLEX": "YES",
+    }.items():
+        gdal.SetConfigOption(key, value)
+
+
+# --- pure helpers ---------------------------------------------------------------------
+
+
+def has_unclipped_signal(text: str) -> bool:
+    return bool(UNCLIPPED_PATTERN.search(text))
+
+
+def extent_from_filename(name: str) -> str:
+    """'BKMapPLUTO' -> 'bk'; 'MapPLUTO_25v2_clipped' -> 'citywide'.
+
+    Derived from the dataset's own name, never its containing directory - some zips (e.g.
+    mappluto_17v1_1.zip) bundle all five boroughs inside one folder misleadingly named
+    'citywide/'.
+    """
+    match = BOROUGH_PATTERN.match(name)
+    return match.group(1).lower() if match else "citywide"
+
+
+def to_windows_path(*parts: str) -> str:
+    return "/".join(p for p in parts if p).replace("/", "\\")
+
+
+def apply_mappluto_sub_dataset(entries: list[dict], sibling_has_unclipped: bool) -> None:
+    """MapPLUTO-specific clipped/unclipped label, kept out of the generic discovery logic
+    since other products have no such concept.
+
+    Mutates in place across one zip's entries, because the answer for any single entry
+    depends on what else was found alongside it. Not derived from a version/year cutoff -
+    that was tried and found wrong, since some pre-2019 zips already bundle both variants.
+    """
+    zip_has_internal_split = any(has_unclipped_signal(e["path_in_zip"]) for e in entries)
+    for entry in entries:
+        if has_unclipped_signal(entry["path_in_zip"]):
+            entry["sub_dataset"] = "unclipped"
+        elif zip_has_internal_split or sibling_has_unclipped:
+            entry["sub_dataset"] = "clipped"
+        else:
+            entry["sub_dataset"] = ""
+
+
+def find_versions_with_unclipped_sibling(entries: list[dict]) -> set[tuple[str, str]]:
+    """(version, type) pairs whose zip is the unclipped variant - signals that a
+    complementary clipped zip exists as its own separate entry."""
+    return {
+        (e["url_level"]["version"], e["url_level"]["type"])
+        for e in entries
+        if has_unclipped_signal(e["identifier"]) or has_unclipped_signal(e["url_level"]["url_actual"])
+    }
+
+
+# --- discovery over a flat namelist ----------------------------------------------------
+
+
+def discover_gdb_folders(names: list[str]) -> list[str]:
+    folders = set()
+    for name in names:
+        idx = name.lower().find(".gdb/")
+        if idx != -1:
+            folders.add(name[: idx + 4])
+    return sorted(folders)
+
+
+def discover_loose_dirs(names: list[str]) -> list[str]:
+    """Parent directories ('' for top level) holding at least one .shp or standalone .dbf.
+
+    Gated on those actually being present: a directory of only PDFs can never be identified
+    by the Shapefile driver, so there is no point asking GDAL to try.
+    """
+    dirs = set()
+    for name in names:
+        lower = name.lower()
+        if ".gdb/" in lower or lower.endswith(".zip"):
+            continue
+        if lower.endswith((".shp", ".dbf")):
+            dirs.add(posixpath.dirname(name))
+    return sorted(dirs)
+
+
+def discover_nested_zips(names: list[str]) -> list[str]:
+    return sorted(n for n in names if n.lower().endswith(".zip"))
+
+
+def _discover_by_suffix(names: list[str], suffixes: tuple[str, ...]) -> list[str]:
+    found = []
+    for name in names:
+        lower = name.lower()
+        if ".gdb/" in lower or lower.endswith(".zip"):
+            continue
+        if lower.endswith(suffixes):
+            found.append(name)
+    return sorted(found)
+
+
+def discover_tabular_files(names: list[str]) -> list[str]:
+    """Standalone .csv/.txt members. Skips .gdb-internal files (a gdb's tabular data already
+    arrives as layers) and nested zips (a documented gap - tabular members inside a nested
+    zip are not read)."""
+    return _discover_by_suffix(names, (".csv", ".txt"))
+
+
+def discover_pdf_files(names: list[str]) -> list[str]:
+    return _discover_by_suffix(names, (".pdf",))
+
+
+# --- spatial index validation ----------------------------------------------------------
+
+
+def read_shp_bboxes(url: str, member_name: str, session) -> "list[tuple[float, float, float, float] | None] | None":
+    """Each record's bounding box, parsed straight out of the .shp binary.
+
+    Never consults the .sbn/.sbx index, which is what makes it a usable truth baseline.
+    Jumps past each record's vertex array via its declared content-length rather than
+    decoding it, where nearly all of a full GDAL feature scan's cost actually is.
+    """
+    data = get_zip_member_bytes(url, member_name, session)
+    if data is None:
+        return None
+
+    bboxes: list[tuple[float, float, float, float] | None] = []
+    pos = 100  # fixed 100-byte file header
+    try:
+        while pos < len(data):
+            content_length = struct.unpack(">i", data[pos + 4 : pos + 8])[0] * 2
+            shape_type = struct.unpack("<i", data[pos + 8 : pos + 12])[0]
+            if shape_type == 0:
+                bboxes.append(None)
+            else:
+                bboxes.append(struct.unpack("<dddd", data[pos + 12 : pos + 44]))
+            pos += 8 + content_length
+    except struct.error as exc:
+        print(f"WARNING: malformed .shp record in {member_name!r} from {url}: {exc}")
+        return None
+    return bboxes
+
+
+def make_grid(
+    minx: float, miny: float, maxx: float, maxy: float, n: int = GRID_SIZE
+) -> list[tuple[float, float, float, float]]:
+    """n x n cells over the extent - catches corruption localized to part of the extent that
+    a single whole-extent query would miss."""
+    width = (maxx - minx) / n
+    height = (maxy - miny) / n
+    return [
+        (
+            minx + col * width,
+            miny + row * height,
+            minx + (col + 1) * width,
+            miny + (row + 1) * height,
+        )
+        for row in range(n)
+        for col in range(n)
+    ]
+
+
+def truth_count(
+    bboxes: "list[tuple[float, float, float, float] | None]",
+    cell: tuple[float, float, float, float],
+) -> int:
+    cminx, cminy, cmaxx, cmaxy = cell
+    return sum(
+        1 for b in bboxes if b is not None and b[2] >= cminx and b[0] <= cmaxx and b[3] >= cminy and b[1] <= cmaxy
+    )
+
+
+def indexed_count(layer, cell: tuple[float, float, float, float]) -> int:
+    layer.SetSpatialFilterRect(*cell)
+    count = layer.GetFeatureCount(force=0)
+    layer.SetSpatialFilter(None)
+    return count
+
+
+def cells_mismatch(indexed: int, truth: int) -> bool:
+    """Tolerant rather than exact, because GDAL filters on real geometry while the truth
+    baseline only has bounding boxes - a polygon whose bbox straddles a grid line lands in a
+    neighbouring cell's truth count. Measured: that artifact is ~0.01% per cell on a
+    known-good file, versus 90%+ on a known-corrupted one, so the two regimes sit orders of
+    magnitude apart.
+    """
+    return abs(indexed - truth) > max(2, CELL_MISMATCH_TOLERANCE * max(indexed, truth))
+
+
+def check_layer_spatial_index(layer, url: str, posix_path: str, session) -> dict:
+    """Validate one already-open shapefile layer's .sbn/.sbx index.
+
+    Takes a live layer rather than a path, so the caller's single OpenEx covers both layer
+    discovery and this check. `present` is informational only - GDAL reports a corrupted
+    index as usable, which is the whole reason this comparison exists.
+    """
+    try:
+        present = bool(layer.TestCapability("FastSpatialFilter"))
+        minx, maxx, miny, maxy = layer.GetExtent()
+        if not present:
+            return {"present": False, "status": None}
+
+        bboxes = read_shp_bboxes(url, posix_path, session)
+        if bboxes is None:
+            return {"present": True, "status": "ERROR"}
+
+        for cell in make_grid(minx, miny, maxx, maxy):
+            if cells_mismatch(indexed_count(layer, cell), truth_count(bboxes, cell)):
+                return {"present": True, "status": "INCONSISTENT"}
+        return {"present": True, "status": "CONSISTENT"}
+    except RuntimeError as exc:
+        # Reaches here on the compression quirk some 20vN zips have, where the layer lists
+        # fine but reading its data fails.
+        print(f"WARNING: spatial index check failed for {posix_path} in {url}: {exc}")
+        return {"present": None, "status": "ERROR"}
+
+
+# --- dataset-level entries --------------------------------------------------------------
+
+
+def read_tabular_entry(url: str, member_name: str, session) -> "dict | None":
+    """One standalone .csv/.txt member, read via ranged HTTP and stdlib csv - no GDAL in
+    this path at all.
+
+    The encoding chain is empirical: PLUTO's pre-2015 tabular files predate UTF-8 as a
+    default, and a couple use bytes cp1252 leaves undefined, so latin-1 is the guaranteed
+    fallback (it maps every byte, so decoding always succeeds and only a structural parse
+    error can still fail). No delimiter sniffing - csv.reader counts rows correctly whatever
+    the delimiter, and sniffing was reverted after it failed on real wide space-padded files.
+    """
+    data = get_zip_member_bytes(url, member_name, session)
+    if data is None:
+        return None
+
+    text = ""
+    encoding = None
+    for candidate in TABULAR_ENCODINGS:
+        try:
+            text = data.decode(candidate)
+            encoding = candidate
+            break
+        except UnicodeDecodeError:
+            continue
+
+    row_count = None
+    col_count = None
+    if not text.strip():
+        print(f"WARNING: {member_name!r} in {url} is empty")
+    else:
+        try:
+            reader = csv.reader(io.StringIO(text))
+            header = next(reader, None)
+            col_count = len(header) if header else None
+            row_count = sum(1 for _ in reader)
+        except csv.Error as exc:
+            print(f"WARNING: could not parse {member_name!r} in {url}: {exc}")
+
+    stem = posixpath.splitext(posixpath.basename(member_name))[0]
+    return {
+        "dataset": None,  # filled in by build_dataset_level
+        "sub_dataset": "",
+        "path_in_zip": to_windows_path(member_name),
+        "geog_extent": extent_from_filename(stem),
+        "type": "txt" if member_name.lower().endswith(".txt") else "csv",
+        "encoding": encoding,
+        "row_count": row_count,
+        "col_count": col_count,
+    }
+
+
+def layers_from_vsi(
+    vsi_path: str,
+    path_prefix: str,
+    gdb_path: "str | None",
+    url: str,
+    session,
+    check_index: bool,
+) -> list[dict]:
+    """Open one datasource and return an entry per layer it contains.
+
+    `gdb_path` set means this is a .gdb folder (layers become gdb_fc/gdb_tb, path_in_zip is
+    the gdb path plus layer name); None means a shapefile-style directory (layers become
+    shp/dbf, path_in_zip is reconstructed with the matching extension).
+
+    Opening a directory-like VSI path with the Shapefile driver yields one layer per .shp
+    bundle plus one per standalone .dbf - the grouping this needs, for free.
+    """
+    try:
+        dataset = gdal.OpenEx(vsi_path, gdal.OF_VECTOR)
+    except RuntimeError as exc:
+        print(f"WARNING: could not open {vsi_path}: {exc}")
+        return []
+    if dataset is None:
+        print(f"WARNING: could not open {vsi_path}")
+        return []
+
+    try:
+        layer_count = dataset.GetLayerCount()
+    except RuntimeError as exc:
+        print(f"WARNING: could not list layers in {vsi_path}: {exc}")
+        return []
+
+    entries = []
+    for i in range(layer_count):
+        # GetLayer is inside the try, not just the reads: the Shapefile driver defers opening
+        # each member until asked for it, so a corrupt .shp raises here. Containing it per
+        # layer keeps the rest of the datasource, instead of losing the whole zip.
+        try:
+            layer = dataset.GetLayer(i)
+            name = layer.GetName()
+            spatial = layer.GetGeomType() != ogr.wkbNone
+            row_count = layer.GetFeatureCount()
+            col_count = layer.GetLayerDefn().GetFieldCount()
+        except RuntimeError as exc:
+            print(f"WARNING: could not read layer {i} in {vsi_path}: {exc}")
+            continue
+
+        if gdb_path is not None:
+            type_ = "gdb_fc" if spatial else "gdb_tb"
+            path_in_zip = to_windows_path(gdb_path, name)
+        else:
+            type_ = "shp" if spatial else "dbf"
+            path_in_zip = to_windows_path(path_prefix, f"{name}{'.shp' if spatial else '.dbf'}")
+
+        entry = {
+            "dataset": None,  # filled in by build_dataset_level
+            "sub_dataset": "",
+            "path_in_zip": path_in_zip,
+            "geog_extent": extent_from_filename(name),
+            "type": type_,
+            "encoding": None,
+            "row_count": row_count,
+            "col_count": col_count,
+        }
+        # .gdb layers use .spx, a different mechanism that this check does not cover.
+        if check_index and type_ == "shp":
+            entry["spatial_index"] = check_layer_spatial_index(layer, url, path_in_zip.replace("\\", "/"), session)
+        entries.append(entry)
+    return entries
+
+
+# --- the two depth-1 builders -------------------------------------------------------------
+
+
+def build_derived_file_list(infolist: list[zipfile.ZipInfo]) -> list[dict]:
+    """Flat inventory of what the archive physically holds. Directory entries are
+    synthesized from path prefixes, since plenty of zips omit explicit ones."""
+    files = []
+    dirs = set()
+    for info in infolist:
+        if info.is_dir():
+            dirs.add(info.filename)
+            continue
+        files.append({"path": info.filename, "type": "file", "size_bytes": info.file_size})
+        parent = posixpath.dirname(info.filename)
+        while parent:
+            dirs.add(f"{parent}/")
+            parent = posixpath.dirname(parent)
+    listing = files + [{"path": d, "type": "directory"} for d in dirs]
+    return sorted(listing, key=lambda e: e["path"])
+
+
+def build_zip_level(url: str, infolist: list[zipfile.ZipInfo], total_size: "int | None") -> dict:
+    """Pure - the central directory is fetched once by the caller and shared with dataset
+    discovery, so nothing here touches the network."""
+    names = [info.filename for info in infolist]
+    return {
+        "filename": posixpath.basename(url),
+        "obs_size_bytes": total_size,
+        "has_lock_files": any(n.lower().endswith(".lock") for n in names),
+        "nested_zip_paths": discover_nested_zips(names),
+        "derived_file_list": build_derived_file_list(infolist),
+    }
+
+
+def build_dataset_level(
+    url: str,
+    names: list[str],
+    dataset_name: str,
+    sibling_has_unclipped: bool,
+    session,
+    check_index: bool = True,
+) -> list[dict]:
+    """Every layer, table and standalone file in one zip, as dataset-level entries."""
+    vsi_prefix = f"/vsizip//vsicurl/{url}"
+    entries: list[dict] = []
+
+    for gdb_path in discover_gdb_folders(names):
+        entries.extend(
+            layers_from_vsi(
+                f"{vsi_prefix}/{gdb_path}",
+                gdb_path,
+                gdb_path,
+                url,
+                session,
+                check_index,
+            )
+        )
+
+    for dir_path in discover_loose_dirs(names):
+        folder_vsi = f"{vsi_prefix}/{dir_path}" if dir_path else vsi_prefix
+        entries.extend(layers_from_vsi(folder_vsi, dir_path, None, url, session, check_index))
+
+    for nested_zip in discover_nested_zips(names):
+        entries.extend(
+            layers_from_vsi(
+                f"/vsizip/{vsi_prefix}/{nested_zip}",
+                nested_zip,
+                None,
+                url,
+                session,
+                check_index,
+            )
+        )
+
+    for tabular_file in discover_tabular_files(names):
+        entry = read_tabular_entry(url, tabular_file, session)
+        if entry is not None:
+            entries.append(entry)
+
+    # Reference docs shipped alongside the data. No counts to report - recorded so the
+    # inventory is complete rather than silently dropping them.
+    for pdf_file in discover_pdf_files(names):
+        entries.append(
+            {
+                "dataset": None,
+                "sub_dataset": "",
+                "path_in_zip": to_windows_path(pdf_file),
+                "geog_extent": extent_from_filename(posixpath.splitext(posixpath.basename(pdf_file))[0]),
+                "type": "pdf",
+                "encoding": None,
+                "row_count": None,
+                "col_count": None,
+            }
+        )
+
+    apply_mappluto_sub_dataset(entries, sibling_has_unclipped)
+    for entry in entries:
+        entry["dataset"] = dataset_name
+    return entries
+
+
+def inspect_zip(
+    url: str,
+    dataset_name: str,
+    sibling_has_unclipped: bool,
+    session,
+    check_index: bool = True,
+) -> "tuple[dict | None, list[dict]]":
+    """One zip's (zip_level, dataset_level).
+
+    The central directory is fetched once here and shared with both halves, which is what
+    removes the duplicate structural fetch the old two-script pipeline paid for.
+    """
+    result = get_zip_central_directory(url, session)
+    if result is None:
+        return None, []
+    infolist, total_size = result
+    names = [info.filename for info in infolist]
+
+    zip_level = build_zip_level(url, infolist, total_size)
+    dataset_level = build_dataset_level(url, names, dataset_name, sibling_has_unclipped, session, check_index)
+    return zip_level, dataset_level

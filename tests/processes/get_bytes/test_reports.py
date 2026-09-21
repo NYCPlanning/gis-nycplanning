@@ -238,3 +238,44 @@ def test_write_url_report_creates_missing_output_dir(tmp_path):
     out_dir = tmp_path / "does" / "not" / "exist"
     path = reports.write_url_report(_observed([_entry("a")]), out_dir)
     assert path.exists()
+
+
+def test_write_dataset_report_matches_legacy_column_order(tmp_path):
+    entry = _entry("nyc_mappluto_26v2_shp")
+    entry["zip_level"] = {"has_lock_files": False}
+    entry["dataset_level"] = [
+        {
+            "dataset": "mappluto",
+            "sub_dataset": "clipped",
+            "path_in_zip": "Bronx\\BXMapPLUTO.shp",
+            "geog_extent": "bx",
+            "type": "shp",
+            "row_count": 89684,
+            "col_count": 86,
+            "spatial_index": {"present": True, "status": "INCONSISTENT"},
+        }
+    ]
+    path = reports.write_dataset_report(_observed([entry], depth=1), tmp_path)
+
+    assert path.name == "dataset_report_some-page_20260918T120000Z.csv"
+    with path.open(newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        assert reader.fieldnames == [
+            "identifier",
+            "product",
+            "dataset",
+            "sub_dataset",
+            "extent",
+            "spatial",
+            "row_count",
+            "path_in_zip",
+            "has_lock_files",
+        ]
+        rows = list(reader)
+
+    assert rows[0]["spatial"] == "True"
+    assert rows[0]["extent"] == "bx"
+    assert rows[0]["row_count"] == "89684"
+    # JSON-only fields stay out of this CSV, which deliberately keeps the legacy shape
+    assert "col_count" not in rows[0]
+    assert "spatial_index" not in rows[0]

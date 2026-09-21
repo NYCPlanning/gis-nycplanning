@@ -22,3 +22,8 @@ mypy_path = [".", "src"]
 [[tool.mypy.overrides]]
 module = "arcpy"
 ignore_missing_imports = true
+
+# Ships with ArcGIS Pro's conda env and has no stubs or py.typed marker.
+[[tool.mypy.overrides]]
+module = "osgeo.*"
+ignore_missing_imports = true
