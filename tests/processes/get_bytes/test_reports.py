@@ -85,26 +85,34 @@ def test_find_extra_zip_nesting():
     assert row["level"] == "zip"
 
 
-def test_find_lock_files_is_one_row_per_identifier():
-    # has_lock_files is a whole-zip fact, so it yields one problem row no matter how many
-    # datasets that zip produced.
+def test_find_lock_files_is_one_row_per_lock_file():
+    # One row each, naming the file. The count follows the locks, not the datasets - three
+    # datasets alongside two locks still yields two rows.
     entry = _entry("mappluto_19v1")
-    entry["zip_level"] = {"has_lock_files": True}
+    entry["zip_level"] = {
+        "objects": [
+            {"path": "MapPLUTO.gdb", "kind": "gdb"},
+            {"path": "MapPLUTO.gdb/_gdb.DCP-DELL.sr.lock", "kind": "lock"},
+            {"path": "MapPLUTO_unclipped.gdb/_gdb.DCP-DELL.sr.lock", "kind": "lock"},
+        ]
+    }
     entry["dataset_level"] = [
         {"path_in_zip": "a.shp"},
         {"path_in_zip": "b.shp"},
         {"path_in_zip": "c.shp"},
     ]
-    (row,) = reports.find_lock_files(entry)
-    assert row["problem"] == "has_lock_files"
-    assert row["level"] == "zip"
-    assert row["path_in_zip"] == ""
+    rows = reports.find_lock_files(entry)
+    assert [r["path_in_zip"] for r in rows] == [
+        "MapPLUTO.gdb/_gdb.DCP-DELL.sr.lock",
+        "MapPLUTO_unclipped.gdb/_gdb.DCP-DELL.sr.lock",
+    ]
+    assert all(r["problem"] == "has_lock_files" and r["level"] == "zip" for r in rows)
 
 
-def test_find_lock_files_absent_or_false():
+def test_find_lock_files_absent_or_none():
     assert reports.find_lock_files(_entry("no_zip_level")) == []
     entry = _entry("clean")
-    entry["zip_level"] = {"has_lock_files": False}
+    entry["zip_level"] = {"objects": [{"path": "a.shp", "kind": "shapefile"}]}
     assert reports.find_lock_files(entry) == []
 
 
@@ -169,7 +177,7 @@ def test_build_error_rows_sorted_and_carries_url():
 
 def test_build_dataset_rows_derives_spatial_from_type():
     entry = _entry("nyc_mappluto_26v2_fgdb")
-    entry["zip_level"] = {"has_lock_files": False}
+    entry["zip_level"] = {"objects": [{"path": "a.shp", "kind": "shapefile"}]}
     entry["dataset_level"] = [
         {
             "dataset": "mappluto",
@@ -242,7 +250,7 @@ def test_write_url_report_creates_missing_output_dir(tmp_path):
 
 def test_write_dataset_report_matches_legacy_column_order(tmp_path):
     entry = _entry("nyc_mappluto_26v2_shp")
-    entry["zip_level"] = {"has_lock_files": False}
+    entry["zip_level"] = {"objects": [{"path": "a.shp", "kind": "shapefile"}]}
     entry["dataset_level"] = [
         {
             "dataset": "mappluto",

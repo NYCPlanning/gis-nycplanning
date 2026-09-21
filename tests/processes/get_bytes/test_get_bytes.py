@@ -215,7 +215,7 @@ def _stub_inspect(monkeypatch, result=None, raises=None):
         inspected.append({"url": url, "sibling": sibling_has_unclipped})
         if raises is not None:
             raise raises
-        return result if result is not None else ({"has_lock_files": False}, [])
+        return result if result is not None else ({"objects": []}, [])
 
     monkeypatch.setattr(zip_inspect, "inspect_zip", _fake)
     monkeypatch.setattr(zip_inspect, "configure_gdal", lambda: None)
@@ -250,7 +250,7 @@ def test_depth_one_skips_out_of_scope_types(monkeypatch):
 
 def test_depth_one_attaches_results_to_the_entry(monkeypatch):
     observed = {"entries": [_entry("a_shp")]}
-    zip_level = {"has_lock_files": True, "obs_size_bytes": 99}
+    zip_level = {"objects": [{"path": "a.lock", "kind": "lock"}], "obs_size_bytes": 99}
     dataset_level = [{"type": "shp", "path_in_zip": "a.shp"}]
     _stub_inspect(monkeypatch, result=(zip_level, dataset_level))
 
@@ -282,7 +282,7 @@ def test_depth_one_flushes_progress_to_disk(monkeypatch, tmp_path):
         "initiated_timestamp": "20260919T000000Z",
         "entries": [_entry(f"z{i}_shp") for i in range(12)],
     }
-    _stub_inspect(monkeypatch, result=({"has_lock_files": False}, []))
+    _stub_inspect(monkeypatch, result=({"objects": []}, []))
 
     get_bytes.add_zip_and_dataset_levels(observed, session=None, out_dir=tmp_path)
 
@@ -297,7 +297,7 @@ def test_depth_one_skips_entries_already_inspected(monkeypatch):
     # zip_level is the marker for "already done".
     observed = {
         "entries": [
-            _entry("done_shp") | {"zip_level": {"has_lock_files": False}},
+            _entry("done_shp") | {"zip_level": {"objects": []}},
             _entry("pending_shp"),
         ]
     }

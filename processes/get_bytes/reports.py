@@ -74,12 +74,18 @@ def build_url_rows(observed: dict) -> list[dict]:
     ]
 
 
+def lock_objects(entry: dict) -> list[dict]:
+    zip_level = entry.get("zip_level") or {}
+    return [obj for obj in zip_level.get("objects") or [] if obj["kind"] == "lock"]
+
+
 def build_dataset_rows(observed: dict) -> list[dict]:
-    """One row per dataset_level item. `spatial` is derived here rather than stored in the
-    JSON - it is fully determined by `type`, so persisting it would be duplicated state."""
+    """One row per dataset_level item. `spatial` and `has_lock_files` are derived here rather
+    than stored in the JSON - both are fully determined by data already in it, so persisting
+    them would be duplicated state."""
     rows = []
     for entry in observed["entries"]:
-        zip_level = entry.get("zip_level") or {}
+        has_lock_files = bool(lock_objects(entry)) if entry.get("zip_level") else ""
         for dataset in entry.get("dataset_level") or []:
             rows.append(
                 {
@@ -91,7 +97,7 @@ def build_dataset_rows(observed: dict) -> list[dict]:
                     "spatial": dataset["type"] in SPATIAL_TYPES,
                     "row_count": dataset["row_count"],
                     "path_in_zip": dataset["path_in_zip"],
-                    "has_lock_files": zip_level.get("has_lock_files", ""),
+                    "has_lock_files": has_lock_files,
                 }
             )
     return rows
@@ -130,15 +136,15 @@ def find_extra_zip_nesting(entry: dict) -> list[dict]:
 
 
 def find_lock_files(entry: dict) -> list[dict]:
-    """One row per affected identifier - has_lock_files is a whole-zip fact.
+    """One row per lock file, naming it in path_in_zip.
 
-    detail is deliberately blank: the observed report records only whether a zip holds at
-    least one .lock member, not which one.
+    The old CSV pipeline could only report that a zip held one, because knowing which would
+    have cost another fetch. The object inventory names them, so the report does too.
     """
-    zip_level = entry.get("zip_level") or {}
-    if not zip_level.get("has_lock_files"):
-        return []
-    return [_problem(entry, "zip", "has_lock_files")]
+    return [
+        _problem(entry, "zip", "has_lock_files", path_in_zip=obj["path"])
+        for obj in lock_objects(entry)
+    ]
 
 
 def find_corrupted_spatial_indexes(entry: dict) -> list[dict]:

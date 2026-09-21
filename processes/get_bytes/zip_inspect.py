@@ -9,9 +9,10 @@ Uses raw osgeo rather than pyogrio, because pyogrio's list_layers/read_info each
 close their own dataset internally and cannot hand back a live layer for the index check to
 reuse. pyogrio is also absent from gis-env, where this runs.
 
-zip_level stays deliberately dumb - a flat listing of what the archive physically contains,
-with no GDAL awareness, so a .gdb shows up as its raw member files. dataset_level is the
-GDAL-aware view, where that same .gdb appears as feature classes and tables.
+zip_level is the container's object inventory - one entry per shapefile, .gdb, lock file or
+loose file, rather than per zip member. dataset_level describes what is inside each of those
+datasets. The two answer different questions, so a .gdb appears once in zip_level, naming its
+feature classes, and once per feature class in dataset_level.
 """
 
 import csv
@@ -324,8 +325,12 @@ def layers_from_vsi(
     url: str,
     session,
     check_index: bool,
-) -> list[dict]:
-    """Open one datasource and return an entry per layer it contains.
+) -> "list[dict] | None":
+    """Open one datasource and return an entry per layer it contains, or None if it could not
+    be read at all.
+
+    None rather than [] on failure, because zip_level's inventory has to tell "GDAL could not
+    open this" apart from "this really is empty" - the same distinction spatial_index keeps.
 
     `gdb_path` set means this is a .gdb folder (layers become gdb_fc/gdb_tb, path_in_zip is
     the gdb path plus layer name); None means a shapefile-style directory (layers become
@@ -335,19 +340,22 @@ def layers_from_vsi(
     bundle plus one per standalone .dbf - the grouping this needs, for free.
     """
     try:
-        dataset = gdal.OpenEx(vsi_path, gdal.OF_VECTOR)
+        # OF_RASTER costs nothing here - verified to return identical layers, driver and
+        # FastSpatialFilter for both shapefile directories and gdbs - and is the only way
+        # GetSubDatasets() reports a gdb's rasters.
+        dataset = gdal.OpenEx(vsi_path, gdal.OF_VECTOR | gdal.OF_RASTER)
     except RuntimeError as exc:
         print(f"WARNING: could not open {vsi_path}: {exc}")
-        return []
+        return None
     if dataset is None:
         print(f"WARNING: could not open {vsi_path}")
-        return []
+        return None
 
     try:
         layer_count = dataset.GetLayerCount()
     except RuntimeError as exc:
         print(f"WARNING: could not list layers in {vsi_path}: {exc}")
-        return []
+        return None
 
     entries = []
     for i in range(layer_count):
@@ -385,40 +393,142 @@ def layers_from_vsi(
         if check_index and type_ == "shp":
             entry["spatial_index"] = check_layer_spatial_index(layer, url, path_in_zip.replace("\\", "/"), session)
         entries.append(entry)
+
+    if gdb_path is not None:
+        entries.extend(raster_entries(dataset, gdb_path, vsi_path))
+    return entries
+
+
+def raster_entries(dataset, gdb_path: str, vsi_path: str) -> list[dict]:
+    """A .gdb's raster datasets, which are invisible to the layer API.
+
+    No PLUTO archive contains one, so this is covered by unit test only. GDAL names a
+    subdataset `DRIVER:"source":name`, but quoting varies by driver, so the trailing segment
+    is taken rather than the whole string parsed.
+    """
+    try:
+        subdatasets = dataset.GetSubDatasets()
+    except RuntimeError as exc:
+        print(f"WARNING: could not list rasters in {vsi_path}: {exc}")
+        return []
+
+    entries = []
+    for name, _description in subdatasets:
+        raster = name.rsplit(":", 1)[-1].strip('"')
+        entries.append(
+            {
+                "dataset": None,
+                "sub_dataset": "",
+                "path_in_zip": to_windows_path(gdb_path, raster),
+                "geog_extent": extent_from_filename(raster),
+                "type": "gdb_raster",
+                "encoding": None,
+                "row_count": None,
+                "col_count": None,
+            }
+        )
     return entries
 
 
 # --- the two depth-1 builders -------------------------------------------------------------
 
 
-def build_derived_file_list(infolist: list[zipfile.ZipInfo]) -> list[dict]:
-    """Flat inventory of what the archive physically holds. Directory entries are
-    synthesized from path prefixes, since plenty of zips omit explicit ones."""
-    files = []
-    dirs = set()
-    for info in infolist:
-        if info.is_dir():
-            dirs.add(info.filename)
+def object_key(path: str, shp_bases: set[str]) -> tuple[str, str]:
+    """Which object a zip member belongs to, and that object's kind.
+
+    Lock files are tested before the .gdb prefix so they stay top-level: whether an archive
+    ships one is the question being asked, and folding them into the gdb would hide it.
+    """
+    lower = path.lower()
+    if lower.endswith(".lock"):
+        return path, "lock"
+
+    idx = lower.find(".gdb/")
+    if idx != -1:
+        return path[: idx + 4], "gdb"
+
+    if lower.endswith(".zip"):
+        return path, "zip"
+
+    base, ext = shapefile_split(path)
+    if base in shp_bases:
+        return f"{base}.shp", "shapefile"
+    if ext in (".csv", ".txt", ".dbf"):
+        return path, "table"
+    return path, "file"
+
+
+def shapefile_split(path: str) -> tuple[str, str]:
+    """(basename, extension), treating .shp.xml as one extension so the metadata sidecar
+    groups with its shapefile rather than looking like a lone .xml."""
+    lower = path.lower()
+    if lower.endswith(".shp.xml"):
+        return path[: -len(".shp.xml")], ".shp.xml"
+    base, ext = posixpath.splitext(path)
+    return base, ext.lower()
+
+
+def build_object_inventory(
+    infolist: list[zipfile.ZipInfo],
+    dataset_level: list[dict],
+    unreadable: set[str],
+) -> list[dict]:
+    """What the archive holds, as objects rather than files.
+
+    Grouping is filename-only, so it still names a shapefile inside an archive GDAL cannot
+    open - the information otherwise lost on the 20vN releases. A .gdb's contents come from
+    dataset_level, already resolved, rather than from a second GDAL pass.
+    """
+    files = [i for i in infolist if not i.is_dir()]
+    shp_bases = {shapefile_split(i.filename)[0] for i in files if i.filename.lower().endswith(".shp")}
+
+    objects: dict[str, dict] = {}
+    parts: dict[str, set[str]] = {}
+    for info in files:
+        key, kind = object_key(info.filename, shp_bases)
+        obj = objects.setdefault(key, {"path": key, "kind": kind, "size_bytes": 0})
+        obj["size_bytes"] += info.file_size
+        if kind == "shapefile":
+            parts.setdefault(key, set()).add(shapefile_split(info.filename)[1])
+
+    contents = gdb_contents(dataset_level)
+    for key, obj in objects.items():
+        if obj["kind"] == "shapefile":
+            obj["parts"] = sorted(parts[key])
+        elif obj["kind"] == "gdb":
+            obj["contents"] = None if key in unreadable else contents.get(key, [])
+    return sorted(objects.values(), key=lambda o: o["path"])
+
+
+def gdb_contents(dataset_level: list[dict]) -> dict[str, list[dict]]:
+    """Each .gdb's datasets as Pro or QGIS would list them, keyed by gdb path."""
+    kinds = {"gdb_fc": "feature_class", "gdb_tb": "table", "gdb_raster": "raster"}
+    found: dict[str, list[dict]] = {}
+    for entry in dataset_level:
+        kind = kinds.get(entry["type"])
+        if kind is None:
             continue
-        files.append({"path": info.filename, "type": "file", "size_bytes": info.file_size})
-        parent = posixpath.dirname(info.filename)
-        while parent:
-            dirs.add(f"{parent}/")
-            parent = posixpath.dirname(parent)
-    listing = files + [{"path": d, "type": "directory"} for d in dirs]
-    return sorted(listing, key=lambda e: e["path"])
+        path = entry["path_in_zip"].replace("\\", "/")
+        idx = path.lower().find(".gdb/")
+        if idx == -1:
+            continue
+        found.setdefault(path[: idx + 4], []).append({"name": posixpath.basename(path), "kind": kind})
+    return found
 
 
-def build_zip_level(url: str, infolist: list[zipfile.ZipInfo], total_size: "int | None") -> dict:
+def build_zip_level(
+    url: str,
+    infolist: list[zipfile.ZipInfo],
+    total_size: "int | None",
+    dataset_level: list[dict],
+    unreadable: set[str],
+) -> dict:
     """Pure - the central directory is fetched once by the caller and shared with dataset
     discovery, so nothing here touches the network."""
-    names = [info.filename for info in infolist]
     return {
         "filename": posixpath.basename(url),
         "obs_size_bytes": total_size,
-        "has_lock_files": any(n.lower().endswith(".lock") for n in names),
-        "nested_zip_paths": discover_nested_zips(names),
-        "derived_file_list": build_derived_file_list(infolist),
+        "objects": build_object_inventory(infolist, dataset_level, unreadable),
     }
 
 
@@ -429,13 +539,24 @@ def build_dataset_level(
     sibling_has_unclipped: bool,
     session,
     check_index: bool = True,
-) -> list[dict]:
-    """Every layer, table and standalone file in one zip, as dataset-level entries."""
+) -> "tuple[list[dict], set[str]]":
+    """Every layer, table and standalone file in one zip, as dataset-level entries.
+
+    Also returns the paths GDAL could not read, so the object inventory can say "could not
+    look" instead of claiming a .gdb is empty.
+    """
     vsi_prefix = f"/vsizip//vsicurl/{url}"
     entries: list[dict] = []
+    unreadable: set[str] = set()
+
+    def collect(found: "list[dict] | None", path: str) -> None:
+        if found is None:
+            unreadable.add(path)
+        else:
+            entries.extend(found)
 
     for gdb_path in discover_gdb_folders(names):
-        entries.extend(
+        collect(
             layers_from_vsi(
                 f"{vsi_prefix}/{gdb_path}",
                 gdb_path,
@@ -443,15 +564,16 @@ def build_dataset_level(
                 url,
                 session,
                 check_index,
-            )
+            ),
+            gdb_path,
         )
 
     for dir_path in discover_loose_dirs(names):
         folder_vsi = f"{vsi_prefix}/{dir_path}" if dir_path else vsi_prefix
-        entries.extend(layers_from_vsi(folder_vsi, dir_path, None, url, session, check_index))
+        collect(layers_from_vsi(folder_vsi, dir_path, None, url, session, check_index), dir_path)
 
     for nested_zip in discover_nested_zips(names):
-        entries.extend(
+        collect(
             layers_from_vsi(
                 f"/vsizip/{vsi_prefix}/{nested_zip}",
                 nested_zip,
@@ -459,7 +581,8 @@ def build_dataset_level(
                 url,
                 session,
                 check_index,
-            )
+            ),
+            nested_zip,
         )
 
     for tabular_file in discover_tabular_files(names):
@@ -486,7 +609,7 @@ def build_dataset_level(
     apply_mappluto_sub_dataset(entries, sibling_has_unclipped)
     for entry in entries:
         entry["dataset"] = dataset_name
-    return entries
+    return entries, unreadable
 
 
 def inspect_zip(
@@ -500,6 +623,9 @@ def inspect_zip(
 
     The central directory is fetched once here and shared with both halves, which is what
     removes the duplicate structural fetch the old two-script pipeline paid for.
+
+    dataset_level is built first because zip_level's inventory names each .gdb's contents
+    from it, rather than opening the archive a second time.
     """
     result = get_zip_central_directory(url, session)
     if result is None:
@@ -507,6 +633,8 @@ def inspect_zip(
     infolist, total_size = result
     names = [info.filename for info in infolist]
 
-    zip_level = build_zip_level(url, infolist, total_size)
-    dataset_level = build_dataset_level(url, names, dataset_name, sibling_has_unclipped, session, check_index)
+    dataset_level, unreadable = build_dataset_level(
+        url, names, dataset_name, sibling_has_unclipped, session, check_index
+    )
+    zip_level = build_zip_level(url, infolist, total_size, dataset_level, unreadable)
     return zip_level, dataset_level

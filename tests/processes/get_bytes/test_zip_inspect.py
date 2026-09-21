@@ -172,52 +172,117 @@ def test_cells_mismatch_absorbs_boundary_noise_but_catches_real_corruption():
 # --- zip_level ----------------------------------------------------------------------------------
 
 
-def test_build_derived_file_list_synthesizes_missing_directory_entries():
-    infolist = [zipfile.ZipInfo("a/b/c.shp"), zipfile.ZipInfo("top.txt")]
-    for info in infolist:
-        info.file_size = 10
-    listing = zip_inspect.build_derived_file_list(infolist)
-
-    assert {e["path"]: e["type"] for e in listing} == {
-        "a/": "directory",
-        "a/b/": "directory",
-        "a/b/c.shp": "file",
-        "top.txt": "file",
-    }
-    assert all(e["size_bytes"] == 10 for e in listing if e["type"] == "file")
+def _infolist(*entries) -> list[zipfile.ZipInfo]:
+    """(path, size) pairs as ZipInfos; a trailing slash makes a directory entry."""
+    out = []
+    for path, size in entries:
+        info = zipfile.ZipInfo(path)
+        info.file_size = size
+        out.append(info)
+    return out
 
 
-def test_build_derived_file_list_keeps_explicit_directory_entries():
-    explicit_dir = zipfile.ZipInfo("empty_folder/")
-    listing = zip_inspect.build_derived_file_list([explicit_dir])
-    assert listing == [{"path": "empty_folder/", "type": "directory"}]
+def test_object_inventory_rolls_a_shapefile_up_and_records_its_extensions():
+    infolist = _infolist(
+        ("MapPLUTO.shp", 100),
+        ("MapPLUTO.dbf", 20),
+        ("MapPLUTO.prj", 1),
+        ("MapPLUTO.shp.xml", 5),
+        ("readme.pdf", 7),
+    )
+    objects = zip_inspect.build_object_inventory(infolist, [], set())
+
+    shapefile = next(o for o in objects if o["kind"] == "shapefile")
+    assert shapefile["path"] == "MapPLUTO.shp"
+    assert shapefile["size_bytes"] == 126  # every sidecar, not just the .shp
+    # .shp.xml groups with its shapefile rather than looking like a lone .xml
+    assert shapefile["parts"] == [".dbf", ".prj", ".shp", ".shp.xml"]
+    assert {"path": "readme.pdf", "kind": "file", "size_bytes": 7} in objects
 
 
-def test_build_zip_level_is_pure_and_flags_lock_files():
-    infolist = [
-        zipfile.ZipInfo("MapPLUTO.gdb/a00000001.gdbtable"),
-        zipfile.ZipInfo("MapPLUTO.gdb/_gdb.DCP-DELL.sr.lock"),
-        zipfile.ZipInfo("inner.zip"),
+def test_object_inventory_collapses_a_gdb_and_names_its_datasets():
+    infolist = _infolist(
+        ("MapPLUTO.gdb/", 0),
+        ("MapPLUTO.gdb/a00000001.gdbtable", 40),
+        ("MapPLUTO.gdb/a00000001.gdbtablx", 60),
+    )
+    dataset_level = [
+        {"path_in_zip": "MapPLUTO.gdb\\MapPLUTO_Clipped", "type": "gdb_fc"},
+        {"path_in_zip": "MapPLUTO.gdb\\NOT_MAPPED_LOTS", "type": "gdb_tb"},
+        {"path_in_zip": "MapPLUTO.gdb\\elevation", "type": "gdb_raster"},
+        # not a gdb member, so it must not appear under one
+        {"path_in_zip": "readme.pdf", "type": "pdf"},
+        # A gdb type whose path is not under a .gdb cannot be placed, so it is dropped rather
+        # than mangled - reachable only from a hand-edited or resumed report.
+        {"path_in_zip": "orphan_layer", "type": "gdb_fc"},
     ]
-    for info in infolist:
-        info.file_size = 1
+    (gdb,) = zip_inspect.build_object_inventory(infolist, dataset_level, set())
 
+    assert gdb["path"] == "MapPLUTO.gdb"
+    assert gdb["size_bytes"] == 100
+    # system files are not worth counting, let alone listing
+    assert "member_count" not in gdb
+    assert gdb["contents"] == [
+        {"name": "MapPLUTO_Clipped", "kind": "feature_class"},
+        {"name": "NOT_MAPPED_LOTS", "kind": "table"},
+        {"name": "elevation", "kind": "raster"},
+    ]
+
+
+def test_object_inventory_lists_lock_files_individually_not_inside_the_gdb():
+    infolist = _infolist(
+        ("MapPLUTO.gdb/a00000001.gdbtable", 40),
+        ("MapPLUTO.gdb/_gdb.DCP-DELL.sr.lock", 0),
+        ("MapPLUTO.gdb/MapPLUTO_Clipped.DCP-DELL.sr.lock", 0),
+    )
+    objects = zip_inspect.build_object_inventory(infolist, [], set())
+
+    locks = [o["path"] for o in objects if o["kind"] == "lock"]
+    assert locks == [
+        "MapPLUTO.gdb/MapPLUTO_Clipped.DCP-DELL.sr.lock",
+        "MapPLUTO.gdb/_gdb.DCP-DELL.sr.lock",
+    ]
+    gdb = next(o for o in objects if o["kind"] == "gdb")
+    assert gdb["size_bytes"] == 40  # locks are not counted into their container
+
+
+def test_object_inventory_unreadable_gdb_reports_null_contents():
+    # "GDAL could not open this" must not read as "this gdb is empty".
+    infolist = _infolist(("MapPLUTO.gdb/a00000001.gdbtable", 40))
+    (gdb,) = zip_inspect.build_object_inventory(infolist, [], {"MapPLUTO.gdb"})
+    assert gdb["contents"] is None
+
+    (readable,) = zip_inspect.build_object_inventory(infolist, [], set())
+    assert readable["contents"] == []
+
+
+def test_object_inventory_classifies_the_remaining_kinds():
+    infolist = _infolist(
+        ("data.csv", 3),
+        ("notes.txt", 4),
+        ("lookup.dbf", 5),
+        ("inner.zip", 6),
+        ("map.pdf", 7),
+    )
+    objects = zip_inspect.build_object_inventory(infolist, [], set())
+    kinds = {o["path"]: o["kind"] for o in objects}
+    assert kinds == {
+        "data.csv": "table",
+        "notes.txt": "table",
+        "lookup.dbf": "table",  # standalone, with no .shp sharing its basename
+        "inner.zip": "zip",
+        "map.pdf": "file",
+    }
+
+
+def test_build_zip_level_is_pure():
+    infolist = _infolist(("MapPLUTO.gdb/a00000001.gdbtable", 1))
     zip_level = zip_inspect.build_zip_level(
-        "https://x/nyc_mappluto_19v1_arc_fgdb.zip", infolist, 12345
+        "https://x/nyc_mappluto_19v1_arc_fgdb.zip", infolist, 12345, [], set()
     )
     assert zip_level["filename"] == "nyc_mappluto_19v1_arc_fgdb.zip"
     assert zip_level["obs_size_bytes"] == 12345
-    assert zip_level["has_lock_files"] is True
-    assert zip_level["nested_zip_paths"] == ["inner.zip"]
-
-
-def test_build_zip_level_no_lock_files():
-    info = zipfile.ZipInfo("clean.shp")
-    info.file_size = 1
-    assert (
-        zip_inspect.build_zip_level("https://x/a.zip", [info], 1)["has_lock_files"]
-        is False
-    )
+    assert [o["path"] for o in zip_level["objects"]] == ["MapPLUTO.gdb"]
 
 
 # --- tabular ---------------------------------------------------------------------------------------
@@ -341,9 +406,10 @@ def test_layers_from_vsi_one_bad_layer_keeps_the_others(monkeypatch, shp_zip_pat
     assert entries[0]["path_in_zip"] == "shapefile_nyzd_one_row.shp"
 
 
-def test_layers_from_vsi_layer_count_failure_returns_empty(
+def test_layers_from_vsi_layer_count_failure_returns_none(
     monkeypatch, shp_zip_path, capsys
 ):
+    # None, not [] - the inventory reports this datasource as unread rather than empty.
     class _Unscannable:
         def GetLayerCount(self):
             raise RuntimeError("cpl_unzOpenCurrentFile() failed")
@@ -353,21 +419,62 @@ def test_layers_from_vsi_layer_count_failure_returns_empty(
         zip_inspect.layers_from_vsi(
             vsi(shp_zip_path), "", None, FAKE_URL, None, check_index=False
         )
-        == []
+        is None
     )
     assert "could not list layers" in capsys.readouterr().out
 
 
-def test_layers_from_vsi_unopenable_path_warns_and_returns_empty(tmp_path, capsys):
+def test_layers_from_vsi_unopenable_path_warns_and_returns_none(tmp_path, capsys):
     bogus = tmp_path / "not_a_zip.zip"
     bogus.write_bytes(b"definitely not a zip")
     assert (
         zip_inspect.layers_from_vsi(
             vsi(bogus), "", None, FAKE_URL, None, check_index=False
         )
-        == []
+        is None
     )
     assert "could not open" in capsys.readouterr().out
+
+
+def test_layers_from_vsi_reports_gdb_rasters(monkeypatch, gdb_zip_path):
+    # No PLUTO archive has one, so the subdataset list is stubbed. Naming is deliberately
+    # loose about quoting, since only the trailing segment is the raster's name.
+    real_open = zip_inspect.gdal.OpenEx
+
+    class _WithRaster:
+        def __init__(self, inner):
+            self._inner = inner
+
+        def __getattr__(self, name):
+            return getattr(self._inner, name)
+
+        def GetSubDatasets(self):
+            return [('OpenFileGDB:"/vsizip/x.gdb":elevation', "elevation desc")]
+
+    monkeypatch.setattr(
+        zip_inspect.gdal, "OpenEx", lambda *a, **k: _WithRaster(real_open(*a, **k))
+    )
+    entries = zip_inspect.layers_from_vsi(
+        vsi(gdb_zip_path, "geodatabase_zoning_data.gdb"),
+        "geodatabase_zoning_data.gdb",
+        "geodatabase_zoning_data.gdb",
+        FAKE_URL,
+        None,
+        check_index=False,
+    )
+    raster = next(e for e in entries if e["type"] == "gdb_raster")
+    assert raster["path_in_zip"] == "geodatabase_zoning_data.gdb\\elevation"
+    assert raster["row_count"] is None
+
+
+def test_raster_entries_failure_keeps_the_vector_layers(capsys):
+    # A raster listing that blows up must not cost the layers already read.
+    class _Broken:
+        def GetSubDatasets(self):
+            raise RuntimeError("not recognized as being in a supported file format")
+
+    assert zip_inspect.raster_entries(_Broken(), "MapPLUTO.gdb", "/vsizip/x.zip") == []
+    assert "could not list rasters" in capsys.readouterr().out
 
 
 def test_spatial_index_check_on_real_fixture_with_sbn(monkeypatch, shp_zip_path):
@@ -633,9 +740,10 @@ def test_build_dataset_level_dispatches_each_discovery_kind(monkeypatch):
     )
     _install_ranged(monkeypatch, _zip_with("notes.csv", b"a,b\n1,2\n"))
 
-    entries = zip_inspect.build_dataset_level(
+    entries, unreadable = zip_inspect.build_dataset_level(
         FAKE_URL, names, "mappluto", False, make_session()
     )
+    assert unreadable == set()
 
     # the gdb open is the only one flagged as a gdb; the nested zip is opened via a second
     # /vsizip/ wrapper rather than byte-extracted
@@ -650,7 +758,7 @@ def test_build_dataset_level_dispatches_each_discovery_kind(monkeypatch):
 
 def test_build_dataset_level_pdf_entry_has_no_counts(monkeypatch):
     _stub_layers(monkeypatch, {})
-    entries = zip_inspect.build_dataset_level(
+    entries, _ = zip_inspect.build_dataset_level(
         FAKE_URL, ["pluto_datadictionary.pdf"], "mappluto", False, make_session()
     )
     assert len(entries) == 1
@@ -670,7 +778,7 @@ def test_build_dataset_level_applies_sub_dataset_across_the_whole_zip(monkeypatc
             ]
         },
     )
-    entries = zip_inspect.build_dataset_level(
+    entries, _ = zip_inspect.build_dataset_level(
         FAKE_URL, ["MapPLUTO_unclipped.shp", "MapPLUTO.shp"], "mappluto", False, None
     )
     assert {e["path_in_zip"]: e["sub_dataset"] for e in entries} == {
@@ -691,9 +799,42 @@ def test_inspect_zip_shares_one_central_directory_fetch(monkeypatch):
     assert zip_level is not None
     assert zip_level["filename"] == "fixture.zip"
     assert zip_level["obs_size_bytes"] == len(zip_bytes)
-    assert [e["path"] for e in zip_level["derived_file_list"]] == ["notes.csv"]
+    assert [o["path"] for o in zip_level["objects"]] == ["notes.csv"]
     assert [e["type"] for e in dataset_level] == ["csv"]
     assert dataset_level[0]["row_count"] == 2
+
+
+def test_build_dataset_level_records_what_gdal_could_not_read(monkeypatch):
+    def _fake(vsi_path, path_prefix, gdb_path, url, session, check_index):
+        if path_prefix == "Broken.gdb":
+            return None
+        return [_layer("Fine.gdb\\Lots", "gdb_fc")]
+
+    monkeypatch.setattr(zip_inspect, "layers_from_vsi", _fake)
+    names = ["Broken.gdb/a00000001.gdbtable", "Fine.gdb/a00000001.gdbtable"]
+    entries, unreadable = zip_inspect.build_dataset_level(
+        FAKE_URL, names, "mappluto", False, None
+    )
+
+    assert unreadable == {"Broken.gdb"}
+    assert [e["path_in_zip"] for e in entries] == ["Fine.gdb\\Lots"]
+
+
+def test_inspect_zip_unreadable_gdb_reaches_the_inventory_as_null(monkeypatch):
+    # The full path from a failed GDAL open to the JSON a reader sees: the archive still
+    # reports the gdb exists, without claiming to know what is in it.
+    zip_bytes = _zip_with("Broken.gdb/a00000001.gdbtable", b"\x00" * 8)
+    _install_ranged(monkeypatch, zip_bytes)
+    monkeypatch.setattr(zip_inspect, "layers_from_vsi", lambda *a, **k: None)
+
+    zip_level, dataset_level = zip_inspect.inspect_zip(
+        FAKE_URL, "pluto", False, make_session()
+    )
+    assert zip_level is not None
+    (gdb,) = zip_level["objects"]
+    assert gdb["path"] == "Broken.gdb"
+    assert gdb["contents"] is None
+    assert dataset_level == []
 
 
 def test_inspect_zip_unreadable_archive_returns_nothing(monkeypatch, capsys):
