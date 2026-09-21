@@ -1,5 +1,7 @@
 """Tests for common.py - fully offline (see conftest.block_network)."""
 
+import zipfile
+
 import pytest
 import requests
 
@@ -192,6 +194,26 @@ def test_get_zip_member_bytes_missing_member_returns_none(monkeypatch, capsys):
     monkeypatch.setattr(requests.Session, "head", head)
 
     assert get_zip_member_bytes(URL, "missing.csv", make_session()) is None
+    assert "could not read member" in capsys.readouterr().out
+
+
+def test_get_zip_member_bytes_unsupported_compression_returns_none(monkeypatch, capsys):
+    # Some older release archives use a compression method stdlib zipfile cannot decode. It
+    # raises NotImplementedError, which is not an OSError - left uncaught it escapes and the
+    # caller loses the entire zip rather than this one member.
+    zip_bytes = make_zip_bytes(["odd.csv"], content={"odd.csv": b"a,b\n1,2\n"})
+    get, head = mock_ranged_file_session(zip_bytes)
+    monkeypatch.setattr(requests.Session, "get", get)
+    monkeypatch.setattr(requests.Session, "head", head)
+    monkeypatch.setattr(
+        zipfile.ZipFile,
+        "read",
+        lambda self, name: (_ for _ in ()).throw(
+            NotImplementedError("That compression method is not supported")
+        ),
+    )
+
+    assert get_zip_member_bytes(URL, "odd.csv", make_session()) is None
     assert "could not read member" in capsys.readouterr().out
 
 

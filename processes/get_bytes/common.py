@@ -144,7 +144,15 @@ def get_zip_member_bytes(
     downloading the whole file."""
     try:
         return zipfile.ZipFile(_HTTPRangeFile(url, session)).read(member_name)
-    except (requests.RequestException, zipfile.BadZipFile, KeyError, OSError) as exc:
+    except (
+        requests.RequestException,
+        zipfile.BadZipFile,
+        KeyError,
+        OSError,
+        # Raised for compression methods stdlib zipfile cannot handle, which some older
+        # release archives use. Without it the failure escapes and costs the whole zip.
+        NotImplementedError,
+    ) as exc:
         print(f"WARNING: could not read member {member_name!r} from {url}: {exc}")
         return None
 
