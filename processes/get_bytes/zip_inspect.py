@@ -29,7 +29,8 @@ GRID_SIZE = 3
 CELL_MISMATCH_TOLERANCE = 0.01
 
 UNCLIPPED_PATTERN = re.compile(r"unclipped|water included|\bwi\b", re.IGNORECASE)
-BOROUGH_PATTERN = re.compile(r"^(bx|bk|mn|qn|si)(?=_|[A-Z]|$)", re.IGNORECASE)
+# Digits must follow too: pre-2018 tabular releases name borough files <boro><yy><ver> (MN05D).
+BOROUGH_PATTERN = re.compile(r"^(bx|bk|mn|qn|si)(?=[_\dA-Z]|$)", re.IGNORECASE)
 
 TABULAR_ENCODINGS = ("utf-8", "cp1252", "latin-1")
 

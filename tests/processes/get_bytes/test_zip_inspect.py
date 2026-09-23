@@ -46,6 +46,11 @@ def test_extent_from_filename():
     assert zip_inspect.extent_from_filename("BKMapPLUTO") == "bk"
     assert zip_inspect.extent_from_filename("bx_pluto") == "bx"
     assert zip_inspect.extent_from_filename("MapPLUTO_25v2_clipped") == "citywide"
+    # pre-2018 tabular releases: the borough code runs straight into a version number
+    assert zip_inspect.extent_from_filename("MN05D") == "mn"
+    assert zip_inspect.extent_from_filename("bx12v1") == "bx"
+    assert zip_inspect.extent_from_filename("BK2017V1") == "bk"
+    assert zip_inspect.extent_from_filename("version") == "citywide"
 
 
 def test_to_windows_path_drops_empty_parts():
