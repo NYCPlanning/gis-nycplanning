@@ -6,7 +6,8 @@ and impossible to drift out of sync with each other.
 """
 
 import csv
-import re
+import posixpath
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from processes.get_bytes import pluto_lineage
@@ -43,13 +44,17 @@ ERROR_SUMMARY_FIELDS = [
 ]
 
 # Types that carry geometry.
-# TODO: gdb_raster isn't included here yet - revisit once a raster-bearing product (e.g.
-# Zoning) actually exercises this path.
+# TODO: gdb_raster isn't included here yet - revisit once a product actually exercises this path.
 SPATIAL_TYPES = {"shp", "gdb_fc"}
 
-# Matches the deterministic 5-digit disambiguation suffix scrape.assign_identifiers appends
-# whenever two rows would otherwise share an identifier.
-DUPLICATE_IDENTIFIER_PATTERN = re.compile(r"_\d{5}$")
+TABULAR_TYPES = {"csv", "txt"}
+
+# zip_level object kinds that always yield dataset_level entries when readable. Loose files
+# (PDFs, xml sidecars) are listed but never read, so their absence proves nothing.
+READABLE_KINDS = {"table", "shapefile", "zip"}
+
+# Below this, a disagreeing sibling can't be told apart from a disagreeing majority.
+MIN_SIBLINGS_FOR_OUTLIER = 3
 
 
 def _write_csv(path: Path, fieldnames: list[str], rows: list[dict]) -> None:
@@ -137,10 +142,19 @@ def find_broken_links(entry: dict) -> list[dict]:
     return [_problem(entry, "url", "broken_link", detail=str(code))]
 
 
-def find_duplicate_identifier(entry: dict) -> list[dict]:
-    if not DUPLICATE_IDENTIFIER_PATTERN.search(entry["identifier"]):
+def find_incorrect_file(entry: dict) -> list[dict]:
+    """The page labels a link with one release but the file it serves names another.
+
+    Catches the page listing the same zip under two versions, flagging only the wrong one.
+    """
+    url_level = entry["url_level"]
+    filename = posixpath.splitext(posixpath.basename(url_level["url_actual"]))[0]
+    served = pluto_lineage.version_token(filename)
+    labelled = pluto_lineage.version_token(url_level["version"])
+    if served is None or labelled is None or served == labelled:
         return []
-    return [_problem(entry, "url", "duplicate_identifier")]
+    detail = f"labelled {url_level['version']}, file is {served}"
+    return [_problem(entry, "url", "incorrect_file", detail=detail)]
 
 
 def find_extra_zip_nesting(entry: dict) -> list[dict]:
@@ -173,6 +187,91 @@ def find_corrupted_spatial_indexes(entry: dict) -> list[dict]:
     return problems
 
 
+def find_corrupted_files(entry: dict) -> list[dict]:
+    return (
+        _unparseable_tables(entry)
+        + _column_count_outliers(entry)
+        + _unread_objects(entry)
+    )
+
+
+def _unparseable_tables(entry: dict) -> list[dict]:
+    return [
+        _problem(
+            entry,
+            "file",
+            "corrupted_file",
+            path_in_zip=dataset["path_in_zip"],
+            detail="rows could not be parsed",
+        )
+        for dataset in entry.get("dataset_level") or []
+        if dataset["type"] in TABULAR_TYPES and dataset["row_count"] is None
+    ]
+
+
+def _column_count_outliers(entry: dict) -> list[dict]:
+    """Members of one item within a zip - typically its borough splits - should agree on
+    their columns, so one that disagrees with a clear majority is suspect."""
+    groups: defaultdict[tuple[str, str], list[dict]] = defaultdict(list)
+    for dataset in entry.get("dataset_level") or []:
+        item = pluto_lineage.item_for(dataset["path_in_zip"])
+        # Unclassified files are unrelated to each other, so they have no siblings to agree with.
+        if dataset["col_count"] is None or item == pluto_lineage.NOT_CLASSIFIED:
+            continue
+        groups[(item, dataset["type"])].append(dataset)
+
+    problems = []
+    for members in groups.values():
+        if len(members) < MIN_SIBLINGS_FOR_OUTLIER:
+            continue
+        ((typical, votes),) = Counter(m["col_count"] for m in members).most_common(1)
+        if votes * 2 <= len(members):
+            continue
+        for member in members:
+            if member["col_count"] != typical:
+                detail = f"{member['col_count']} columns; siblings have {typical}"
+                problems.append(
+                    _problem(
+                        entry,
+                        "file",
+                        "corrupted_file",
+                        path_in_zip=member["path_in_zip"],
+                        detail=detail,
+                    )
+                )
+    return problems
+
+
+def _unread_objects(entry: dict) -> list[dict]:
+    """Data the archive lists but inspection never produced - a damaged member, or one in a
+    compression format the readers don't support."""
+    zip_level = entry.get("zip_level") or {}
+    read = [
+        d["path_in_zip"].replace("\\", "/").lower()
+        for d in entry.get("dataset_level") or []
+    ]
+    problems = []
+    for obj in zip_level.get("objects") or []:
+        if obj["kind"] == "gdb":
+            unread = obj.get("contents") is None
+        elif obj["kind"] in READABLE_KINDS:
+            path = obj["path"].lower()
+            unread = not any(p == path or p.startswith(f"{path}/") for p in read)
+        else:
+            continue
+        if unread:
+            problems.append(
+                _problem(
+                    entry,
+                    "file",
+                    "corrupted_file",
+                    path_in_zip=obj["path"],
+                    detail="listed in the zip but could not be read",
+                )
+            )
+    return problems
+
+
 def build_error_rows(observed: dict) -> list[dict]:
     """One row per detected problem instance, not one per subject. A clean dataset shrinks
     this report toward nothing rather than padding it with all-blank rows.
@@ -182,10 +281,11 @@ def build_error_rows(observed: dict) -> list[dict]:
     """
     finders = (
         find_broken_links,
-        find_duplicate_identifier,
+        find_incorrect_file,
         find_extra_zip_nesting,
         find_lock_files,
         find_corrupted_spatial_indexes,
+        find_corrupted_files,
     )
     problems = [
         row for entry in observed["entries"] for find in finders for row in find(entry)

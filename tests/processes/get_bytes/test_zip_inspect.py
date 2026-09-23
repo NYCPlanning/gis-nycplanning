@@ -643,8 +643,13 @@ def test_stale_index_reaches_the_error_summary(monkeypatch, stale_index_zip_path
     )
     entry = {
         "identifier": "nyc_nyzd_stale_shp",
-        "url_level": {"url_actual": FAKE_URL, "response_code": 200, "type": "shp"},
-        "zip_level": {"has_lock_files": False},
+        "url_level": {
+            "url_actual": FAKE_URL,
+            "response_code": 200,
+            "type": "shp",
+            "version": "",
+        },
+        "zip_level": {"objects": []},
         "dataset_level": entries,
     }
     (row,) = reports.build_error_rows({"entries": [entry]})

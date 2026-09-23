@@ -71,11 +71,35 @@ def test_find_broken_links_flags_only_real_failures():
     }
 
 
-def test_find_duplicate_identifier():
-    assert reports.find_duplicate_identifier(_entry("nyc_mappluto_25v2_arc_shp")) == []
-    (row,) = reports.find_duplicate_identifier(_entry("PLUTOChangeFile26v1_00673"))
-    assert row["problem"] == "duplicate_identifier"
+def test_find_incorrect_file_flags_label_filename_mismatch():
+    # The real case: one zip listed under two releases, and this is the wrong one.
+    entry = _entry(
+        "PLUTOChangeFile26v1_00673",
+        version="26v2",
+        url_actual="https://x/PLUTOChangeFile26v1.zip",
+    )
+    (row,) = reports.find_incorrect_file(entry)
+    assert row["problem"] == "incorrect_file"
     assert row["level"] == "url"
+    assert row["detail"] == "labelled 26v2, file is 26v1"
+
+
+def test_find_incorrect_file_ignores_formatting_differences():
+    # The page writes 25v2.1 where the filename has 25v2_1, and labels betas "18v2Beta".
+    dotted = _entry(
+        "a", version="25v2.1", url_actual="https://x/nyc_pluto_25v2_1_arc_csv.zip"
+    )
+    beta = _entry(
+        "b", version="18v2Beta", url_actual="https://x/nyc_mappluto_18v2_arc_shp.zip"
+    )
+    assert reports.find_incorrect_file(dotted) == []
+    assert reports.find_incorrect_file(beta) == []
+
+
+def test_find_incorrect_file_skips_versionless_filenames():
+    # Reference PDFs carry no version, so there is nothing to disagree with.
+    entry = _entry("pluto_readme", url_actual="https://x/pluto_readme.pdf")
+    assert reports.find_incorrect_file(entry) == []
 
 
 def test_find_extra_zip_nesting():
@@ -139,6 +163,74 @@ def test_find_corrupted_spatial_indexes_one_row_per_affected_layer():
     assert rows[0]["level"] == "file"
 
 
+def _corrupted(entry):
+    return [
+        (r["path_in_zip"], r["detail"]) for r in reports.find_corrupted_files(entry)
+    ]
+
+
+def test_find_corrupted_files_unparseable_table():
+    # nyc_pluto_20v5_arc_csv: the header parses, then a quoting defect stops the row count.
+    entry = _entry("nyc_pluto_20v5_arc_csv")
+    entry["dataset_level"] = [
+        _dataset("pluto_20v5.csv", "csv", row_count=None, col_count=3),
+        _dataset("pluto_readme.pdf", "pdf", row_count=None, col_count=None),
+    ]
+    assert _corrupted(entry) == [("pluto_20v5.csv", "rows could not be parsed")]
+
+
+def test_find_corrupted_files_column_count_outlier():
+    # nyc_pluto_06c: one borough file has twice the columns of the other four.
+    entry = _entry("nyc_pluto_06c")
+    entry["dataset_level"] = [
+        _dataset(f"{boro}06C.TXT", "txt", col_count=165 if boro == "BK" else 83)
+        for boro in ("BK", "BX", "MN", "QN", "SI")
+    ]
+    assert _corrupted(entry) == [("BK06C.TXT", "165 columns; siblings have 83")]
+
+
+def test_find_corrupted_files_column_counts_need_a_clear_majority():
+    agreeing = _entry("agree")
+    agreeing["dataset_level"] = [
+        _dataset(f"{b}06C.TXT", "txt", col_count=83) for b in ("BK", "BX", "MN")
+    ]
+    pair = _entry("pair")
+    pair["dataset_level"] = [
+        _dataset("BK06C.TXT", "txt", col_count=165),
+        _dataset("BX06C.TXT", "txt", col_count=83),
+    ]
+    split = _entry("split")
+    split["dataset_level"] = [
+        _dataset(f"{boro}06C.TXT", "txt", col_count=cols)
+        for boro, cols in (("BK", 83), ("BX", 83), ("MN", 90), ("QN", 90))
+    ]
+    assert _corrupted(agreeing) == []
+    assert _corrupted(pair) == []  # with two, there is no telling which one is wrong
+    assert _corrupted(split) == []  # nor with an even split
+
+
+def test_find_corrupted_files_listed_but_unread():
+    # nyc_pluto_25v1_arc_csv: the CSV is in the central directory but could never be read.
+    entry = _entry("nyc_pluto_25v1_arc_csv")
+    entry["zip_level"] = {
+        "objects": [
+            {"path": "pluto_25v1.csv", "kind": "table"},
+            {"path": "Bronx/BXMapPLUTO.shp", "kind": "shapefile"},
+            {"path": "MapPLUTO.gdb", "kind": "gdb", "contents": [{"name": "MapPLUTO"}]},
+            {"path": "Broken.gdb", "kind": "gdb", "contents": None},
+            {"path": "pluto_readme.pdf", "kind": "file"},
+        ]
+    }
+    entry["dataset_level"] = [
+        _dataset("Bronx\\BXMapPLUTO.shp", "shp"),
+        _dataset("MapPLUTO.gdb\\MapPLUTO", "gdb_fc"),
+    ]
+    assert _corrupted(entry) == [
+        ("pluto_25v1.csv", "listed in the zip but could not be read"),
+        ("Broken.gdb", "listed in the zip but could not be read"),
+    ]
+
+
 # --- aggregate -------------------------------------------------------------------------
 
 
@@ -152,13 +244,14 @@ def test_build_error_rows_is_empty_for_clean_data():
 def test_build_error_rows_at_depth_zero_finds_only_url_level_problems():
     # zip_level is null and dataset_level empty at depth 0, so the zip/file rules find
     # nothing without needing any explicit depth branching.
-    observed = _observed(
-        [_entry("gone", response_code=404), _entry("dup_00673")], depth=0
+    wrong = _entry(
+        "wrong_00673", version="26v2", url_actual="https://x/PLUTOChangeFile26v1.zip"
     )
+    observed = _observed([_entry("gone", response_code=404), wrong], depth=0)
     rows = reports.build_error_rows(observed)
     assert {(r["identifier"], r["problem"]) for r in rows} == {
         ("gone", "broken_link"),
-        ("dup_00673", "duplicate_identifier"),
+        ("wrong_00673", "incorrect_file"),
     }
     assert all(r["level"] == "url" for r in rows)
 

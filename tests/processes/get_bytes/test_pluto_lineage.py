@@ -75,6 +75,24 @@ def test_item_for_unlisted_files_are_not_classified(path_in_zip):
     assert pluto_lineage.item_for(path_in_zip) == pluto_lineage.NOT_CLASSIFIED
 
 
+@pytest.mark.parametrize(
+    "text, token",
+    [
+        ("PLUTOChangeFile26v1", "26v1"),
+        ("25v2.1", "25v2_1"),  # page label
+        ("nyc_mappluto_25v2_1_arc_fgdb", "25v2_1"),  # its filename
+        ("PLUTOChangeFile_23v1_2", "23v1_2"),
+        ("05D", "05d"),
+        ("mappluto_05d", "05d"),
+        ("18v2Beta", "18v2"),
+        ("pluto_datadictionary", None),
+        (None, None),
+    ],
+)
+def test_version_token(text, token):
+    assert pluto_lineage.version_token(text) == token
+
+
 def test_item_for_does_not_let_a_family_prefix_swallow_its_neighbours():
     # "mappluto" contains "pluto", and the metadata PDF starts with "mappluto" - whole-stem
     # matching is what keeps these apart.
