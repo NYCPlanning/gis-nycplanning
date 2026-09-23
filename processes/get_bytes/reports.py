@@ -9,6 +9,8 @@ import csv
 import re
 from pathlib import Path
 
+from processes.get_bytes import pluto_lineage
+
 URL_REPORT_FIELDS = [
     "identifier",
     "dataset_name",
@@ -20,11 +22,14 @@ URL_REPORT_FIELDS = [
 DATASET_REPORT_FIELDS = [
     "identifier",
     "product",
-    "dataset",
+    "dataset_name",
+    "item",
     "sub_dataset",
     "extent",
     "spatial",
     "row_count",
+    "column_count",
+    "type",
     "path_in_zip",
     "has_lock_files",
 ]
@@ -82,21 +87,27 @@ def lock_objects(entry: dict) -> list[dict]:
 
 
 def build_dataset_rows(observed: dict) -> list[dict]:
-    """One row per dataset_level item. `spatial` and `has_lock_files` are derived here rather
-    than stored in the JSON"""
+    """One row per dataset_level entry. `item`, `spatial` and `has_lock_files` are derived here
+    rather than stored in the JSON"""
     rows = []
     for entry in observed["entries"]:
         has_lock_files = bool(lock_objects(entry)) if entry.get("zip_level") else ""
         for dataset in entry.get("dataset_level") or []:
+            item = pluto_lineage.item_for(dataset["path_in_zip"])
             rows.append(
                 {
                     "identifier": entry["identifier"],
                     "product": entry["url_level"]["product"],
-                    "dataset": dataset["dataset"],
-                    "sub_dataset": dataset["sub_dataset"],
+                    "dataset_name": entry["url_level"]["dataset_name"],
+                    "item": item,
+                    "sub_dataset": dataset["sub_dataset"]
+                    if item in pluto_lineage.CLIPPED_ITEMS
+                    else "",
                     "extent": dataset["geog_extent"],
                     "spatial": dataset["type"] in SPATIAL_TYPES,
                     "row_count": dataset["row_count"],
+                    "column_count": dataset["col_count"],
+                    "type": dataset["type"],
                     "path_in_zip": dataset["path_in_zip"],
                     "has_lock_files": has_lock_files,
                 }

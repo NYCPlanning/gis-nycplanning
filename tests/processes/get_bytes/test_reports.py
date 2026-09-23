@@ -175,41 +175,64 @@ def test_build_error_rows_sorted_and_carries_url():
 # --- dataset report ----------------------------------------------------------------------
 
 
+def _dataset(path_in_zip, type_, sub_dataset="", row_count=1, col_count=1):
+    return {
+        "dataset": "mappluto",
+        "sub_dataset": sub_dataset,
+        "path_in_zip": path_in_zip,
+        "geog_extent": "citywide",
+        "type": type_,
+        "row_count": row_count,
+        "col_count": col_count,
+    }
+
+
 def test_build_dataset_rows_derives_spatial_from_type():
     entry = _entry("nyc_mappluto_26v2_fgdb")
     entry["zip_level"] = {"objects": [{"path": "a.shp", "kind": "shapefile"}]}
     entry["dataset_level"] = [
-        {
-            "dataset": "mappluto",
-            "sub_dataset": "unclipped",
-            "path_in_zip": "MapPLUTO.gdb\\MapPLUTO",
-            "geog_extent": "citywide",
-            "type": "gdb_fc",
-            "row_count": 857932,
-        },
-        {
-            "dataset": "mappluto",
-            "sub_dataset": "",
-            "path_in_zip": "NOT_MAPPED_LOTS",
-            "geog_extent": "citywide",
-            "type": "gdb_tb",
-            "row_count": 412,
-        },
-        {
-            "dataset": "mappluto",
-            "sub_dataset": "",
-            "path_in_zip": "notes.csv",
-            "geog_extent": "citywide",
-            "type": "csv",
-            "row_count": 9,
-        },
+        _dataset("MapPLUTO.gdb\\MapPLUTO", "gdb_fc", "unclipped", 857932, 94),
+        _dataset("MapPLUTO.gdb\\NOT_MAPPED_LOTS", "gdb_tb", row_count=412),
+        _dataset("notes.csv", "csv", row_count=9),
     ]
     rows = reports.build_dataset_rows(_observed([entry], depth=1))
 
     assert [r["spatial"] for r in rows] == [True, False, False]
     assert rows[0]["extent"] == "citywide"  # geog_extent is renamed on the way out
+    assert rows[0]["column_count"] == 94  # and col_count
     assert all(r["product"] == "pluto" for r in rows)
     assert all(r["has_lock_files"] is False for r in rows)
+
+
+def test_build_dataset_rows_classifies_items_and_scopes_sub_dataset():
+    # The inference stamps the clip label on everything sharing a zip with MapPLUTO; only the
+    # MapPLUTO layer itself should keep it.
+    entry = _entry("nyc_mappluto_25v1_arc_fgdb")
+    entry["zip_level"] = {"objects": []}
+    entry["dataset_level"] = [
+        _dataset("MapPLUTO25v1.gdb\\MapPLUTO_25v1_clipped", "gdb_fc", "clipped"),
+        _dataset("pluto_datadictionary.pdf", "pdf", "clipped", None, None),
+        _dataset("MapPLUTO25v1.gdb\\NOT_MAPPED_LOTS", "gdb_tb", "clipped"),
+    ]
+    rows = reports.build_dataset_rows(_observed([entry], depth=1))
+
+    assert [(r["item"], r["sub_dataset"]) for r in rows] == [
+        ("mappluto", "clipped"),
+        ("pluto_datadictionary", ""),
+        ("not_classified", ""),
+    ]
+    assert [r["type"] for r in rows] == ["gdb_fc", "pdf", "gdb_tb"]
+
+
+def test_build_dataset_rows_dataset_name_comes_from_url_level():
+    # url_level is the page's own name for the dataset; dataset_level's copy is only a stamp.
+    entry = _entry("PLUTOChangeFile25v4", dataset_name="pluto_change_file")
+    entry["zip_level"] = {"objects": []}
+    entry["dataset_level"] = [_dataset("pluto_changes_applied.csv", "csv")]
+    (row,) = reports.build_dataset_rows(_observed([entry], depth=1))
+
+    assert row["dataset_name"] == "pluto_change_file"
+    assert row["item"] == "pluto_changes_applied"
 
 
 def test_build_dataset_rows_empty_at_depth_zero():
@@ -248,7 +271,7 @@ def test_write_url_report_creates_missing_output_dir(tmp_path):
     assert path.exists()
 
 
-def test_write_dataset_report_matches_legacy_column_order(tmp_path):
+def test_write_dataset_report_column_order(tmp_path):
     entry = _entry("nyc_mappluto_26v2_shp")
     entry["zip_level"] = {"objects": [{"path": "a.shp", "kind": "shapefile"}]}
     entry["dataset_level"] = [
@@ -271,19 +294,23 @@ def test_write_dataset_report_matches_legacy_column_order(tmp_path):
         assert reader.fieldnames == [
             "identifier",
             "product",
-            "dataset",
+            "dataset_name",
+            "item",
             "sub_dataset",
             "extent",
             "spatial",
             "row_count",
+            "column_count",
+            "type",
             "path_in_zip",
             "has_lock_files",
         ]
         rows = list(reader)
 
+    assert rows[0]["item"] == "mappluto"
+    assert rows[0]["sub_dataset"] == "clipped"
     assert rows[0]["spatial"] == "True"
     assert rows[0]["extent"] == "bx"
     assert rows[0]["row_count"] == "89684"
-    # JSON-only fields stay out of this CSV, which deliberately keeps the legacy shape
-    assert "col_count" not in rows[0]
-    assert "spatial_index" not in rows[0]
+    assert rows[0]["column_count"] == "86"
+    assert "spatial_index" not in rows[0]  # stays JSON-only
