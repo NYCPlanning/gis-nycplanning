@@ -1,6 +1,9 @@
 """Tests for common.py - fully offline (see conftest.block_network)."""
 
+import io
+import lzma
 import zipfile
+import zlib
 
 import pytest
 import requests
@@ -197,10 +200,20 @@ def test_get_zip_member_bytes_missing_member_returns_none(monkeypatch, capsys):
     assert "could not read member" in capsys.readouterr().out
 
 
-def test_get_zip_member_bytes_unsupported_compression_returns_none(monkeypatch, capsys):
-    # Some older release archives use a compression method stdlib zipfile cannot decode. It
-    # raises NotImplementedError, which is not an OSError - left uncaught it escapes and the
-    # caller loses the entire zip rather than this one member.
+@pytest.mark.parametrize(
+    "error",
+    [
+        # a compression method stdlib zipfile cannot decode (older release archives)
+        NotImplementedError("That compression method is not supported"),
+        # damaged or truncated compressed data, raised by the decompressor itself
+        zlib.error("Error -3 while decompressing data: invalid block type"),
+        EOFError("Compressed file ended before the end-of-stream marker was reached"),
+        lzma.LZMAError("Corrupt input data"),
+    ],
+)
+def test_get_zip_member_bytes_undecodable_member_returns_none(monkeypatch, capsys, error):
+    # None of these is an OSError - left uncaught, each escapes and the caller loses the
+    # entire zip rather than this one member.
     zip_bytes = make_zip_bytes(["odd.csv"], content={"odd.csv": b"a,b\n1,2\n"})
     get, head = mock_ranged_file_session(zip_bytes)
     monkeypatch.setattr(requests.Session, "get", get)
@@ -208,12 +221,26 @@ def test_get_zip_member_bytes_unsupported_compression_returns_none(monkeypatch, 
     monkeypatch.setattr(
         zipfile.ZipFile,
         "read",
-        lambda self, name: (_ for _ in ()).throw(
-            NotImplementedError("That compression method is not supported")
-        ),
+        lambda self, name: (_ for _ in ()).throw(error),
     )
 
     assert get_zip_member_bytes(URL, "odd.csv", make_session()) is None
+    assert "could not read member" in capsys.readouterr().out
+
+
+def test_get_zip_member_bytes_real_corrupt_deflate_returns_none(monkeypatch, capsys):
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("data.csv", b"a,b\n" + b"1,2\n" * 5000)
+    damaged = bytearray(buf.getvalue())
+    info = zipfile.ZipFile(io.BytesIO(bytes(damaged))).getinfo("data.csv")
+    # first byte of the compressed data, just past the 30-byte local header and the name
+    damaged[info.header_offset + 30 + len("data.csv")] = 0xFF
+    get, head = mock_ranged_file_session(bytes(damaged))
+    monkeypatch.setattr(requests.Session, "get", get)
+    monkeypatch.setattr(requests.Session, "head", head)
+
+    assert get_zip_member_bytes(URL, "data.csv", make_session()) is None
     assert "could not read member" in capsys.readouterr().out
 
 

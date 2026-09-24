@@ -4,7 +4,9 @@ Product agnostic - nothing here is specific to any single DCP product.
 """
 
 import io
+import lzma
 import zipfile
+import zlib
 
 import requests
 
@@ -148,6 +150,10 @@ def get_zip_member_bytes(
         # Some older archives use compression stdlib zipfile can't decode; without this the
         # failure escapes and costs the whole zip instead of just this member.
         NotImplementedError,
+        # Damaged compressed data surfaces as the decompressor's own error, not BadZipFile.
+        zlib.error,
+        EOFError,
+        lzma.LZMAError,
     ) as exc:
         print(f"WARNING: could not read member {member_name!r} from {url}: {exc}")
         return None
