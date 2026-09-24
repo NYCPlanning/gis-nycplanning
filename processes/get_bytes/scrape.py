@@ -19,6 +19,7 @@ from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup, Tag
 
+from processes.get_bytes import pluto_lineage
 from processes.get_bytes.common import get_zip_namelist
 
 CONTENT_API_TEMPLATE = (
@@ -31,6 +32,12 @@ ARCHIVE_JSON_TEMPLATE = (
 
 PRODUCT = "pluto"
 TM_SYMBOL = "™"
+
+# Shares the filename version grammar so a point release keeps its suffix (25v3.1, not 25v3).
+# The raw label is kept, unnormalized - `version` must be what the page says.
+LATEST_RELEASE_PATTERN = re.compile(
+    rf"Latest Release:\s*({pluto_lineage.VERSION_PATTERN.pattern})", re.IGNORECASE
+)
 
 LABEL_FORMAT_PATTERNS = [
     (re.compile(r"file geodatabase|fgdb", re.IGNORECASE), "fgdb"),
@@ -140,7 +147,7 @@ def parse_archive(entries: list[dict], session: requests.Session) -> list[dict]:
 
 
 def parse_recent_release(html_fragment: str, session: requests.Session) -> list[dict]:
-    version_match = re.search(r"Latest Release:\s*([0-9]+v[0-9]+)", html_fragment)
+    version_match = LATEST_RELEASE_PATTERN.search(html_fragment)
     version = version_match.group(1) if version_match else ""
 
     soup = BeautifulSoup(html_fragment, "html.parser")

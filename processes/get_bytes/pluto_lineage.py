@@ -55,7 +55,7 @@ _COMPILED_RULES = [
 _FILE_EXTENSION = re.compile(r"\.(shp|dbf|csv|txt|pdf)$", re.IGNORECASE)
 
 # Pre-2009 releases are lettered (05D); later ones are numbered (26v2, 25v2.1 / 25v2_1).
-_VERSION = re.compile(r"\d{2}v\d+(?:[._]\d+)?|\d{2}[a-d](?![a-z])", re.IGNORECASE)
+VERSION_PATTERN = re.compile(r"\d{2}v\d+(?:[._]\d+)?|\d{2}[a-d](?![a-z])", re.IGNORECASE)
 
 
 def version_token(text: str | None) -> str | None:
@@ -64,7 +64,7 @@ def version_token(text: str | None) -> str | None:
     Normalized so the page's "25v2.1" matches the filename's "25v2_1", and a label suffix like
     "18v2Beta" reduces to "18v2".
     """
-    match = _VERSION.search(text or "")
+    match = VERSION_PATTERN.search(text or "")
     return match.group(0).replace(".", "_").lower() if match else None
 
 

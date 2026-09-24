@@ -4,7 +4,7 @@ import json
 
 import requests
 
-from processes.get_bytes import scrape
+from processes.get_bytes import reports, scrape
 from tests.processes.get_bytes.conftest import (
     MockResponse,
     make_zip_bytes,
@@ -226,6 +226,28 @@ def test_parse_recent_release_version_comes_from_label_not_url():
     """
     rows = scrape.parse_recent_release(html, requests.Session())
     assert rows[0]["version"] == "26v2"
+
+
+def test_parse_recent_release_keeps_a_point_release_suffix():
+    # Truncated to 25v3, the label would disagree with every 25v3_1 filename and raise a
+    # false incorrect_file row for each current-release link.
+    html = """
+    <p>Latest Release: 25v3.1</p>
+    <div id="recent-release">
+      <div class="sub-section">
+        <h3>MapPLUTO</h3>
+        <table><tr><td><a class="download" href="https://x/nyc_mappluto_25v3_1_shp.zip">Download</a></td></tr></table>
+      </div>
+    </div>
+    """
+    (row,) = scrape.parse_recent_release(html, requests.Session())
+    assert row["version"] == "25v3.1"
+
+    entry = {
+        "identifier": "nyc_mappluto_25v3_1_shp",
+        "url_level": {"version": row["version"], "url_actual": row["url"]},
+    }
+    assert reports.find_incorrect_file(entry) == []
 
 
 def test_parse_archive(monkeypatch, mocked_responses_path):
