@@ -211,6 +211,26 @@ def test_parse_recent_release_skips_non_zip_pdf_links():
     assert scrape.parse_recent_release(html, requests.Session()) == []
 
 
+def test_parse_recent_release_strips_cache_buster_before_the_extension_check():
+    # Checked on the raw href, ".zip?r=3" doesn't end in .zip and the link vanished silently.
+    html = """
+    <div id="recent-release">
+      <div class="sub-section">
+        <h3>MapPLUTO</h3>
+        <table><tr><td>
+          <a class="download" href="https://x/nyc_mappluto_26v2_shp.zip?r=3">Download</a>
+          <a href="https://x/pluto_datadictionary.pdf?r=1">View Data Dictionary</a>
+        </td></tr></table>
+      </div>
+    </div>
+    """
+    rows = scrape.parse_recent_release(html, requests.Session())
+    assert [(r["url"], r["type"]) for r in rows] == [
+        ("https://x/nyc_mappluto_26v2_shp.zip", "shp"),
+        ("https://x/pluto_datadictionary.pdf", "pdf"),
+    ]
+
+
 def test_parse_recent_release_version_comes_from_label_not_url():
     # The page-level "Latest Release" label is the only version signal that exists in this
     # section (confirmed by inspecting the real page - no per-dataset label exists there), so

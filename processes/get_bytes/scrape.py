@@ -171,8 +171,9 @@ def parse_recent_release(html_fragment: str, session: requests.Session) -> list[
                 current_label = th.get_text(strip=True)
                 continue
             for a in tr.find_all("a", href=True):
-                href = a["href"].strip()
-                if not href.lower().endswith((".zip", ".pdf")):
+                # Stripped first so a cache-busting query string can't hide the extension.
+                url = strip_cache_buster(a["href"].strip())
+                if not url.lower().endswith((".zip", ".pdf")):
                     continue  # e.g. the MapPLUTO "View REST" ArcGIS service link
                 if "download" in a.get("class", []):
                     dataset_name = base_name
@@ -184,9 +185,9 @@ def parse_recent_release(html_fragment: str, session: requests.Session) -> list[
                 rows.append(
                     {
                         "dataset_name": dataset_name,
-                        "type": infer_type(current_label, href, session),
+                        "type": infer_type(current_label, url, session),
                         "version": version,
-                        "url": href,
+                        "url": url,
                     }
                 )
     return rows
