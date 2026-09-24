@@ -271,6 +271,32 @@ def check_layer_spatial_index(layer, url: str, posix_path: str, session) -> dict
 # --- dataset-level entries --------------------------------------------------------------
 
 
+def dataset_entry(
+    path_in_zip: str,
+    name: str,
+    type_: str,
+    *,
+    encoding: "str | None" = None,
+    row_count: "int | None" = None,
+    col_count: "int | None" = None,
+) -> dict:
+    """One dataset_level entry, its extent taken from `name` (the dataset's own name).
+
+    `dataset` and `sub_dataset` are placeholders here: build_dataset_level fills both in once
+    the whole zip has been seen, since sub_dataset depends on the zip's other entries.
+    """
+    return {
+        "dataset": None,
+        "sub_dataset": "",
+        "path_in_zip": path_in_zip,
+        "geog_extent": extent_from_filename(name),
+        "type": type_,
+        "encoding": encoding,
+        "row_count": row_count,
+        "col_count": col_count,
+    }
+
+
 def read_tabular_entry(url: str, member_name: str, session) -> "dict | None":
     """One standalone .csv/.txt member, via ranged HTTP and stdlib csv - no GDAL here.
 
@@ -307,16 +333,14 @@ def read_tabular_entry(url: str, member_name: str, session) -> "dict | None":
             print(f"WARNING: could not parse {member_name!r} in {url}: {exc}")
 
     stem = posixpath.splitext(posixpath.basename(member_name))[0]
-    return {
-        "dataset": None,  # filled in by build_dataset_level
-        "sub_dataset": "",
-        "path_in_zip": to_windows_path(member_name),
-        "geog_extent": extent_from_filename(stem),
-        "type": "txt" if member_name.lower().endswith(".txt") else "csv",
-        "encoding": encoding,
-        "row_count": row_count,
-        "col_count": col_count,
-    }
+    return dataset_entry(
+        to_windows_path(member_name),
+        stem,
+        "txt" if member_name.lower().endswith(".txt") else "csv",
+        encoding=encoding,
+        row_count=row_count,
+        col_count=col_count,
+    )
 
 
 def layers_from_vsi(
@@ -379,16 +403,7 @@ def layers_from_vsi(
             type_ = "shp" if spatial else "dbf"
             path_in_zip = to_windows_path(path_prefix, f"{name}{'.shp' if spatial else '.dbf'}")
 
-        entry = {
-            "dataset": None,  # filled in by build_dataset_level
-            "sub_dataset": "",
-            "path_in_zip": path_in_zip,
-            "geog_extent": extent_from_filename(name),
-            "type": type_,
-            "encoding": None,
-            "row_count": row_count,
-            "col_count": col_count,
-        }
+        entry = dataset_entry(path_in_zip, name, type_, row_count=row_count, col_count=col_count)
         # .gdb layers use .spx, a different mechanism that this check does not cover.
         if check_index and type_ == "shp":
             entry["spatial_index"] = check_layer_spatial_index(layer, url, path_in_zip.replace("\\", "/"), session)
@@ -415,18 +430,7 @@ def raster_entries(dataset, gdb_path: str, vsi_path: str) -> list[dict]:
     entries = []
     for name, _description in subdatasets:
         raster = name.rsplit(":", 1)[-1].strip('"')
-        entries.append(
-            {
-                "dataset": None,
-                "sub_dataset": "",
-                "path_in_zip": to_windows_path(gdb_path, raster),
-                "geog_extent": extent_from_filename(raster),
-                "type": "gdb_raster",
-                "encoding": None,
-                "row_count": None,
-                "col_count": None,
-            }
-        )
+        entries.append(dataset_entry(to_windows_path(gdb_path, raster), raster, "gdb_raster"))
     return entries
 
 
@@ -608,18 +612,8 @@ def build_dataset_level(
     # No counts to report, but recorded anyway so PDFs aren't silently dropped from the
     # inventory.
     for pdf_file in discover_pdf_files(names):
-        entries.append(
-            {
-                "dataset": None,
-                "sub_dataset": "",
-                "path_in_zip": to_windows_path(pdf_file),
-                "geog_extent": extent_from_filename(posixpath.splitext(posixpath.basename(pdf_file))[0]),
-                "type": "pdf",
-                "encoding": None,
-                "row_count": None,
-                "col_count": None,
-            }
-        )
+        stem = posixpath.splitext(posixpath.basename(pdf_file))[0]
+        entries.append(dataset_entry(to_windows_path(pdf_file), stem, "pdf"))
 
     apply_mappluto_sub_dataset(entries, sibling_has_unclipped)
     for entry in entries:
