@@ -32,7 +32,9 @@ CELL_MISMATCH_TOLERANCE = 0.01
 POINT_SHAPE_TYPES = {1, 11, 21}
 
 UNCLIPPED_PATTERN = re.compile(r"unclipped|water included|\bwi\b", re.IGNORECASE)
-# Digits must follow too: pre-2018 tabular releases name borough files <boro><yy><ver> (MN05D).
+# The code runs straight into a name (BKMapPLUTO) or a version (MN05D), so under IGNORECASE any
+# letter, digit or underscore may follow and only punctuation rules a match out. An unrelated
+# stem that merely starts with a code (e.g. "sidewalk") would therefore read as a borough.
 BOROUGH_PATTERN = re.compile(r"^(bx|bk|mn|qn|si)(?=[_\dA-Z]|$)", re.IGNORECASE)
 
 TABULAR_ENCODINGS = ("utf-8", "cp1252", "latin-1")
@@ -234,8 +236,8 @@ def indexed_count(layer, cell: tuple[float, float, float, float]) -> int:
 def cells_mismatch(indexed: int, truth: int) -> bool:
     """Tolerant rather than exact: GDAL filters by real geometry while the truth baseline only
     has bounding boxes, so a polygon whose bbox straddles a grid line lands in a neighbouring
-    cell's truth count. Measured on real data, that noise stays under 1% per cell, while
-    genuine corruption drops counts by 90%+ - the two regimes don't overlap.
+    cell's truth count. Measured on real data, that noise stays within CELL_MISMATCH_TOLERANCE
+    per cell, while genuine corruption drops counts by 90%+ - the two regimes don't overlap.
     """
     return abs(indexed - truth) > max(2, CELL_MISMATCH_TOLERANCE * max(indexed, truth))
 
