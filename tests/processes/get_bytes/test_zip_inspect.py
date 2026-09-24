@@ -9,6 +9,8 @@ This file is the coverage that spatial_index_report.py never had: it lived in a 
 interpreter than the test suite, so none of this was reachable until the environments merged.
 """
 
+import struct
+import threading
 import zipfile
 
 import pytest
@@ -698,6 +700,51 @@ def test_read_shp_bboxes_matches_gdal_envelopes(monkeypatch, shp_zip_path):
 def test_read_shp_bboxes_missing_member_returns_none(monkeypatch, shp_zip_path):
     _install_ranged(monkeypatch, shp_zip_path.read_bytes())
     assert zip_inspect.read_shp_bboxes(FAKE_URL, "gone.shp", make_session()) is None
+
+
+def _shp_record(shape_type: int, payload: bytes, content_length: "int | None" = None) -> bytes:
+    """One .shp record: big-endian number + content length in 16-bit words, then content."""
+    content = struct.pack("<i", shape_type) + payload
+    words = len(content) // 2 if content_length is None else content_length // 2
+    return struct.pack(">ii", 1, words) + content
+
+
+def _read_bboxes(monkeypatch, records: bytes):
+    shp = b"\x00" * 100 + records
+    monkeypatch.setattr(zip_inspect, "get_zip_member_bytes", lambda url, name, session: shp)
+    return zip_inspect.read_shp_bboxes(FAKE_URL, "x.shp", None)
+
+
+def test_read_shp_bboxes_points_become_degenerate_boxes(monkeypatch):
+    # Point records store x, y where other types store a bbox - read as one, they would
+    # yield garbage and throw the truth count off.
+    records = (
+        _shp_record(1, struct.pack("<dd", 5.0, 7.0))
+        + _shp_record(11, struct.pack("<dddd", 1.0, 2.0, 3.0, 4.0))  # PointZ: x, y, z, m
+        + _shp_record(0, b"")
+        + _shp_record(5, struct.pack("<dddd", 0.0, 0.0, 9.0, 9.0) + b"\x00" * 8)
+    )
+    assert _read_bboxes(monkeypatch, records) == [
+        (5.0, 7.0, 5.0, 7.0),
+        (1.0, 2.0, 1.0, 2.0),
+        None,
+        (0.0, 0.0, 9.0, 9.0),
+    ]
+
+
+@pytest.mark.parametrize("content_length", [0, -8, -1000])
+def test_read_shp_bboxes_corrupt_record_length_returns_none(monkeypatch, capsys, content_length):
+    # A length this small would stop the read position advancing, so the parser would spin
+    # forever. The thread is only there so a regression fails instead of hanging the suite.
+    records = _shp_record(5, struct.pack("<dddd", 0.0, 0.0, 1.0, 1.0), content_length)
+    result: list = []
+    worker = threading.Thread(target=lambda: result.append(_read_bboxes(monkeypatch, records)), daemon=True)
+    worker.start()
+    worker.join(timeout=5)
+
+    assert not worker.is_alive(), "read_shp_bboxes did not terminate"
+    assert result == [None]
+    assert "malformed .shp record length" in capsys.readouterr().out
 
 
 # --- orchestration ----------------------------------------------------------------------------

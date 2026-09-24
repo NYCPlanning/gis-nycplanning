@@ -28,6 +28,9 @@ GRID_SIZE = 3
 
 CELL_MISMATCH_TOLERANCE = 0.01
 
+# Point, PointZ and PointM records store a bare coordinate where every other type has a bbox.
+POINT_SHAPE_TYPES = {1, 11, 21}
+
 UNCLIPPED_PATTERN = re.compile(r"unclipped|water included|\bwi\b", re.IGNORECASE)
 # Digits must follow too: pre-2018 tabular releases name borough files <boro><yy><ver> (MN05D).
 BOROUGH_PATTERN = re.compile(r"^(bx|bk|mn|qn|si)(?=[_\dA-Z]|$)", re.IGNORECASE)
@@ -172,9 +175,17 @@ def read_shp_bboxes(url: str, member_name: str, session) -> "list[tuple[float, f
     try:
         while pos < len(data):
             content_length = struct.unpack(">i", data[pos + 4 : pos + 8])[0] * 2
+            # Every record holds at least its shape type; a corrupt length below that would
+            # stop pos advancing and loop forever.
+            if content_length < 4:
+                print(f"WARNING: malformed .shp record length {content_length} at byte {pos} in {member_name!r} from {url}")
+                return None
             shape_type = struct.unpack("<i", data[pos + 8 : pos + 12])[0]
             if shape_type == 0:
                 bboxes.append(None)
+            elif shape_type in POINT_SHAPE_TYPES:
+                x, y = struct.unpack("<dd", data[pos + 12 : pos + 28])
+                bboxes.append((x, y, x, y))
             else:
                 bboxes.append(struct.unpack("<dddd", data[pos + 12 : pos + 44]))
             pos += 8 + content_length
