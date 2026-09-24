@@ -759,7 +759,7 @@ def _stub_layers(monkeypatch, entries_by_prefix: dict):
     calls = []
 
     def _fake(vsi_path, path_prefix, gdb_path, url, session, check_index):
-        calls.append({"vsi_path": vsi_path, "gdb_path": gdb_path})
+        calls.append({"vsi_path": vsi_path, "gdb_path": gdb_path, "check_index": check_index})
         return [dict(e) for e in entries_by_prefix.get(path_prefix, [])]
 
     monkeypatch.setattr(zip_inspect, "layers_from_vsi", _fake)
@@ -806,6 +806,9 @@ def test_build_dataset_level_dispatches_each_discovery_kind(monkeypatch):
     # /vsizip/ wrapper rather than byte-extracted
     assert [c["gdb_path"] for c in calls] == ["MapPLUTO.gdb", None, None]
     assert any(c["vsi_path"].startswith("/vsizip//vsizip//vsicurl/") for c in calls)
+    # the index check's truth read cannot reach inside the nested zip, so it isn't attempted
+    # there - it would otherwise report ERROR, which reaches error_summary as corrupted_file
+    assert [c["check_index"] for c in calls] == [True, True, False]
 
     by_type = {e["type"] for e in entries}
     assert by_type == {"gdb_fc", "shp", "csv", "pdf"}

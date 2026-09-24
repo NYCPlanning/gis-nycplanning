@@ -252,6 +252,20 @@ def test_find_corrupted_files_column_counts_need_a_clear_majority():
     assert _corrupted(split) == []  # nor with an even split
 
 
+def test_find_corrupted_files_spatial_index_check_that_could_not_run():
+    # The .shp could be listed but not read back, so its index was never verified - that must
+    # not pass as clean.
+    entry = _entry("nyc_mappluto_20v1_shp")
+    entry["dataset_level"] = [
+        _dataset("MapPLUTO.shp", "shp") | {"spatial_index": {"present": None, "status": "ERROR"}},
+        _dataset("BXMapPLUTO.shp", "shp") | {"spatial_index": {"present": True, "status": "CONSISTENT"}},
+        _dataset("MNMapPLUTO.shp", "shp") | {"spatial_index": {"present": False, "status": None}},
+    ]
+    assert _corrupted(entry) == [("MapPLUTO.shp", "spatial index could not be checked")]
+    # an index check that errored is not evidence the index itself is corrupt
+    assert reports.find_corrupted_spatial_indexes(entry) == []
+
+
 def test_find_corrupted_files_listed_but_unread():
     # nyc_pluto_25v1_arc_csv: the CSV is in the central directory but could never be read.
     entry = _entry("nyc_pluto_25v1_arc_csv")

@@ -203,7 +203,24 @@ def find_corrupted_files(entry: dict) -> list[dict]:
         _unparseable_tables(entry)
         + _column_count_outliers(entry)
         + _unread_objects(entry)
+        + _failed_spatial_index_checks(entry)
     )
+
+
+def _failed_spatial_index_checks(entry: dict) -> list[dict]:
+    """Shapefiles GDAL could list but whose records could not be read back to check the index
+    against - left out, they would pass as clean."""
+    return [
+        _problem(
+            entry,
+            "file",
+            "corrupted_file",
+            path_in_zip=dataset["path_in_zip"],
+            detail="spatial index could not be checked",
+        )
+        for dataset in entry.get("dataset_level") or []
+        if (dataset.get("spatial_index") or {}).get("status") == "ERROR"
+    ]
 
 
 def _unparseable_tables(entry: dict) -> list[dict]:

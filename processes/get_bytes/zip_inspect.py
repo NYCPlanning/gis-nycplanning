@@ -593,7 +593,9 @@ def build_dataset_level(
                 None,
                 url,
                 session,
-                check_index,
+                # The index check's truth read goes over ranged HTTP, which only reaches members
+                # of the outer zip, so it would report ERROR for every shapefile in here.
+                check_index=False,
             ),
             nested_zip,
         )
