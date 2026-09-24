@@ -184,6 +184,32 @@ def test_parse_args_accepts_depth_one():
     assert get_bytes.parse_args([PAGE_URL, "--depth", "1"]).depth == 1
 
 
+def test_parse_args_resume_writes_beside_the_resumed_report(tmp_path, monkeypatch):
+    # Run from anywhere else, a resume must still rewrite the report it started from rather
+    # than leaving a second, diverging copy in cwd.
+    report = tmp_path / "runs" / "observed_report_p_20260919T000000Z.json"
+    monkeypatch.chdir(tmp_path)
+    args = get_bytes.parse_args(["--resume", str(report)])
+    assert args.output_dir == report.parent
+    assert get_bytes.observed_path({"page": "p", "initiated_timestamp": "20260919T000000Z"}, args.output_dir) == report
+
+
+def test_parse_args_resume_implies_depth_one(tmp_path):
+    assert get_bytes.parse_args(["--resume", str(tmp_path / "r.json")]).depth == 1
+
+
+def test_parse_args_resume_rejects_depth_zero(tmp_path):
+    # Depth 0 has nothing to resume; silently running it would drop the inspection entirely.
+    with pytest.raises(SystemExit):
+        get_bytes.parse_args(["--resume", str(tmp_path / "r.json"), "--depth", "0"])
+
+
+def test_parse_args_explicit_output_dir_wins_over_resume(tmp_path):
+    out = tmp_path / "elsewhere"
+    args = get_bytes.parse_args(["--resume", str(tmp_path / "r.json"), "--output-dir", str(out)])
+    assert args.output_dir == out
+
+
 # --- depth 1 orchestration ------------------------------------------------------------------
 #
 # inspect_zip is stubbed: it needs real GDAL against remote paths, which is covered in

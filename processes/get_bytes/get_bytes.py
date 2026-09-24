@@ -2,16 +2,17 @@
 derive the CSV reports from it.
 
     python get_bytes.py <page url> [--depth {0,1}] [--output-dir DIR]
-    python get_bytes.py --resume <prior report> --depth 1
+    python get_bytes.py --resume <prior report> [--output-dir DIR]
 
     depth 0 (default)  url-level only: observed JSON, url report, error summary
     depth 1            adds zip-level and dataset-level inspection, plus the dataset report
 
 For PLUTO, depth 1 takes about an hour, so it flushes the observed report as it goes and --resume picks
 up where a previous run stopped, skipping entries already inspected. A finished depth-0 report
-is therefore a valid starting point for depth 1.
+is therefore a valid starting point for depth 1, and --resume always runs at depth 1.
 
-Reports are written to the current directory unless --output-dir says otherwise.
+Reports are written to the current directory, or beside the report being resumed, unless
+--output-dir says otherwise.
 
 "Observed" means anything that took a network call to learn. Everything else - format
 inference, identifier disambiguation, the spatial flag, every problem rule - is derived from
@@ -187,24 +188,36 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--depth",
         type=int,
         choices=(0, 1),
-        default=0,
-        help="0 = url-level only (default); 1 = also inspect zip and dataset levels",
+        help="0 = url-level only (default); 1 = also inspect zip and dataset levels (implied by --resume)",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        # Resolved per call rather than at import, so it tracks the caller's actual cwd.
-        default=Path.cwd(),
-        help="where to write reports (default: the current directory)",
+        help="where to write reports (default: the resumed report's folder, else the current directory)",
     )
     parser.add_argument(
         "--resume",
         type=Path,
-        help=("continue from an existing report instead of rescraping; entries already inspected are skipped"),
+        help=(
+            "continue an existing report at depth 1 instead of rescraping; entries already "
+            "inspected are skipped, ones that failed are retried"
+        ),
     )
     args = parser.parse_args(argv)
     if not args.url and not args.resume:
         parser.error("a url is required unless --resume points at an existing report")
+
+    if args.resume:
+        if args.depth == 0:
+            parser.error("--resume continues a depth-1 inspection; it cannot run at depth 0")
+        args.depth = 1
+    elif args.depth is None:
+        args.depth = 0
+
+    # Resolved here rather than as an argparse default: it depends on --resume, and it must
+    # track the caller's cwd at call time, not at import.
+    if args.output_dir is None:
+        args.output_dir = args.resume.parent if args.resume else Path.cwd()
     return args
 
 
