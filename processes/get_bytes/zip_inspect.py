@@ -519,6 +519,21 @@ def build_zip_level(
     }
 
 
+def failed_zip_level(url: str, reason: str) -> dict:
+    """zip_level for an archive whose inspection could not finish.
+
+    `objects` is None rather than [] for the same reason an unreadable .gdb's `contents` is:
+    "could not look" must stay distinguishable from "empty". The `error` key is what reports
+    and --resume key off.
+    """
+    return {
+        "filename": posixpath.basename(url),
+        "obs_size_bytes": None,
+        "objects": None,
+        "error": reason,
+    }
+
+
 def build_dataset_level(
     url: str,
     names: list[str],
@@ -605,7 +620,7 @@ def inspect_zip(
     sibling_has_unclipped: bool,
     session,
     check_index: bool = True,
-) -> "tuple[dict | None, list[dict]]":
+) -> "tuple[dict, list[dict]]":
     """One zip's (zip_level, dataset_level).
 
     The central directory is fetched once here and shared with both halves.
@@ -615,7 +630,7 @@ def inspect_zip(
     """
     result = get_zip_central_directory(url, session)
     if result is None:
-        return None, []
+        return failed_zip_level(url, "central directory could not be read"), []
     infolist, total_size = result
     names = [info.filename for info in infolist]
 

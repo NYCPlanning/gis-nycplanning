@@ -847,7 +847,7 @@ def test_inspect_zip_unreadable_gdb_reaches_the_inventory_as_null(monkeypatch):
     assert dataset_level == []
 
 
-def test_inspect_zip_unreadable_archive_returns_nothing(monkeypatch, capsys):
+def test_inspect_zip_unreadable_archive_returns_an_error_marker(monkeypatch, capsys):
     monkeypatch.setattr(
         requests.Session,
         "get",
@@ -858,5 +858,11 @@ def test_inspect_zip_unreadable_archive_returns_nothing(monkeypatch, capsys):
     zip_level, dataset_level = zip_inspect.inspect_zip(
         FAKE_URL, "pluto", False, make_session()
     )
-    assert zip_level is None
+    # None would read as "not yet inspected", hiding the failure from every report
+    assert zip_level == {
+        "filename": "fixture.zip",
+        "obs_size_bytes": None,
+        "objects": None,
+        "error": "central directory could not be read",
+    }
     assert dataset_level == []

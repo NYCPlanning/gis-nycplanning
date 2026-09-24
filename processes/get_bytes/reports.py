@@ -157,6 +157,17 @@ def find_incorrect_file(entry: dict) -> list[dict]:
     return [_problem(entry, "url", "incorrect_file", detail=detail)]
 
 
+def find_unreadable_zips(entry: dict) -> list[dict]:
+    """Zips whose inspection failed outright, so none of their contents were checked.
+
+    Skipped when the link itself is broken: the url-level row already names that cause.
+    """
+    error = (entry.get("zip_level") or {}).get("error")
+    if not error or find_broken_links(entry):
+        return []
+    return [_problem(entry, "zip", "unreadable_zip", detail=error)]
+
+
 def find_extra_zip_nesting(entry: dict) -> list[dict]:
     if entry["url_level"]["type"] != "unknown":
         return []
@@ -282,6 +293,7 @@ def build_error_rows(observed: dict) -> list[dict]:
     finders = (
         find_broken_links,
         find_incorrect_file,
+        find_unreadable_zips,
         find_extra_zip_nesting,
         find_lock_files,
         find_corrupted_spatial_indexes,

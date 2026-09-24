@@ -103,6 +103,11 @@ def load_observed(path: Path, depth: int) -> dict:
     return observed
 
 
+def needs_inspection(entry: dict) -> bool:
+    zip_level = entry.get("zip_level")
+    return zip_level is None or "error" in zip_level
+
+
 def add_zip_and_dataset_levels(observed: dict, session, out_dir: "Path | None" = None) -> None:
     """Fill in zip_level/dataset_level for every in-scope entry, in place.
 
@@ -111,15 +116,18 @@ def add_zip_and_dataset_levels(observed: dict, session, out_dir: "Path | None" =
 
     With out_dir, the observed report is flushed every OBSERVED_WRITE_BATCH entries so an
     hour-long run leaves usable partial output if it dies, and can be resumed rather than
-    restarted. Entries already carrying a zip_level are skipped, which is what makes --resume
-    work: depth 0 sets zip_level to None explicitly, so "still None" means "not yet inspected".
+    restarted. That is what makes --resume work: depth 0 sets zip_level to None explicitly,
+    so None means "not yet inspected" and an `error` key means "failed last time". Both are
+    (re)inspected; every other entry is skipped.
+
+    A zip that fails is recorded with an error marker rather than aborting the run.
     """
     from processes.get_bytes import zip_inspect
 
     zip_inspect.configure_gdal()
 
     in_scope = [e for e in observed["entries"] if e["url_level"]["type"] in IN_SCOPE_ZIP_TYPES]
-    pending = [e for e in in_scope if e.get("zip_level") is None]
+    pending = [e for e in in_scope if needs_inspection(e)]
     unclipped_siblings = zip_inspect.find_versions_with_unclipped_sibling(observed["entries"])
 
     already_done = len(in_scope) - len(pending)
@@ -139,11 +147,12 @@ def add_zip_and_dataset_levels(observed: dict, session, out_dir: "Path | None" =
                 sibling_has_unclipped,
                 session,
             )
-        except (RuntimeError, OSError) as exc:
-            # One unreadable archive must never abort the run - there are known upstream
-            # defects (a bad central-directory offset, a compression quirk) that would.
+        except Exception as exc:
+            # Broad on purpose: anything that escapes aborts the run, and --resume would then
+            # crash on this same zip again.
             print(f"WARNING: failed inspecting {entry['identifier']}: {exc}")
-            continue
+            zip_level = zip_inspect.failed_zip_level(url_level["url_actual"], f"{type(exc).__name__}: {exc}")
+            dataset_level = []
 
         entry["zip_level"] = zip_level
         entry["dataset_level"] = dataset_level

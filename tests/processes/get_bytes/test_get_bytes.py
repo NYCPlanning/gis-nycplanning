@@ -7,6 +7,7 @@ unmockable surface, so the whole path from CLI args to written files is testable
 
 import csv
 import json
+import zlib
 from pathlib import Path
 
 import pytest
@@ -348,12 +349,41 @@ def test_parse_args_requires_url_unless_resuming(tmp_path):
     assert args.depth == 1
 
 
-def test_depth_one_one_bad_archive_does_not_abort_the_run(monkeypatch, capsys):
+@pytest.mark.parametrize(
+    "error",
+    [
+        OSError("malformed central directory"),
+        # not an OSError or RuntimeError - damaged DEFLATE data in a member GDAL is reading
+        zlib.error("Error -3 while decompressing data: invalid block type"),
+    ],
+)
+def test_depth_one_one_bad_archive_does_not_abort_the_run(monkeypatch, capsys, error):
     observed = {"entries": [_entry("bad_shp"), _entry("also_bad_shp")]}
-    _stub_inspect(monkeypatch, raises=OSError("malformed central directory"))
+    _stub_inspect(monkeypatch, raises=error)
 
     get_bytes.add_zip_and_dataset_levels(observed, session=None)
 
-    # both were attempted and both left untouched, rather than the first killing the run
-    assert all(e["zip_level"] is None for e in observed["entries"])
+    # both were attempted and both recorded as failed, rather than the first killing the run
+    for entry in observed["entries"]:
+        assert entry["zip_level"]["error"] == f"{type(error).__name__}: {error}"
+        assert entry["zip_level"]["objects"] is None
+        assert entry["dataset_level"] == []
     assert capsys.readouterr().out.count("WARNING: failed inspecting") == 2
+
+
+def test_depth_one_resume_retries_failed_entries(monkeypatch):
+    # A failure may be transient (a network blip), so resume gives it another go - while a
+    # cleanly inspected entry is still skipped.
+    observed = {
+        "entries": [
+            _entry("done_shp") | {"zip_level": {"objects": []}},
+            _entry("failed_shp") | {"zip_level": {"objects": None, "error": "OSError: reset"}},
+        ]
+    }
+    inspected = _stub_inspect(monkeypatch, result=({"objects": []}, [{"type": "shp"}]))
+
+    get_bytes.add_zip_and_dataset_levels(observed, session=None)
+
+    assert [i["url"].rsplit("/", 1)[1] for i in inspected] == ["failed_shp.zip"]
+    assert "error" not in observed["entries"][1]["zip_level"]
+    assert observed["entries"][1]["dataset_level"] == [{"type": "shp"}]

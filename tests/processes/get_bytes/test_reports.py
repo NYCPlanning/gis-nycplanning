@@ -102,6 +102,49 @@ def test_find_incorrect_file_skips_versionless_filenames():
     assert reports.find_incorrect_file(entry) == []
 
 
+def _failed(identifier, **url_level):
+    entry = _entry(identifier, **url_level)
+    entry["zip_level"] = {
+        "filename": f"{identifier}.zip",
+        "obs_size_bytes": None,
+        "objects": None,
+        "error": "central directory could not be read",
+    }
+    return entry
+
+
+def test_find_unreadable_zips_reports_a_failed_inspection():
+    (row,) = reports.find_unreadable_zips(_failed("nyc_mappluto_20v1_shp"))
+    assert row == {
+        "identifier": "nyc_mappluto_20v1_shp",
+        "level": "zip",
+        "path_in_zip": "",
+        "problem": "unreadable_zip",
+        "detail": "central directory could not be read",
+        "url": "https://x/nyc_mappluto_20v1_shp.zip",
+    }
+
+
+def test_find_unreadable_zips_defers_to_a_broken_link():
+    # A 404 zip is always unreadable too; the url-level row already names the cause.
+    entry = _failed("gone", response_code=404)
+    assert reports.find_unreadable_zips(entry) == []
+    assert [r["problem"] for r in reports.build_error_rows(_observed([entry]))] == ["broken_link"]
+
+
+def test_find_unreadable_zips_ignores_inspected_and_uninspected_zips():
+    inspected = _entry("ok")
+    inspected["zip_level"] = {"objects": []}
+    assert reports.find_unreadable_zips(inspected) == []
+    assert reports.find_unreadable_zips(_entry("depth_zero")) == []
+
+
+def test_failed_zip_raises_no_file_level_rows():
+    # objects is None, not a list, so there is nothing to call "listed but unread"
+    rows = reports.build_error_rows(_observed([_failed("bad")], depth=1))
+    assert [(r["level"], r["problem"]) for r in rows] == [("zip", "unreadable_zip")]
+
+
 def test_find_extra_zip_nesting():
     assert reports.find_extra_zip_nesting(_entry("fine", type="shp")) == []
     (row,) = reports.find_extra_zip_nesting(_entry("mappluto_16v2", type="unknown"))
