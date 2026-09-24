@@ -63,6 +63,7 @@ def test_find_broken_links_flags_only_real_failures():
     (row,) = reports.find_broken_links(_entry("missing", response_code=404))
     assert row == {
         "identifier": "missing",
+        "version": "26v2",
         "level": "url",
         "path_in_zip": "",
         "problem": "broken_link",
@@ -117,6 +118,7 @@ def test_find_unreadable_zips_reports_a_failed_inspection():
     (row,) = reports.find_unreadable_zips(_failed("nyc_mappluto_20v1_shp"))
     assert row == {
         "identifier": "nyc_mappluto_20v1_shp",
+        "version": "26v2",
         "level": "zip",
         "path_in_zip": "",
         "problem": "unreadable_zip",
@@ -406,6 +408,7 @@ def test_writers_name_files_by_page_and_timestamp(tmp_path):
     assert rows == [
         {
             "identifier": "a",
+            "version": "26v2",
             "level": "url",
             "path_in_zip": "",
             "problem": "broken_link",

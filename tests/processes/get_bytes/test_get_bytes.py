@@ -157,6 +157,7 @@ def test_main_depth_zero_error_summary_catches_the_404(
     assert rows == [
         {
             "identifier": "mappluto_18v1",
+            "version": "18v1",
             "level": "url",
             "path_in_zip": "",
             "problem": "broken_link",

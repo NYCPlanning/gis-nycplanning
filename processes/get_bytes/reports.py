@@ -36,6 +36,7 @@ DATASET_REPORT_FIELDS = [
 ]
 ERROR_SUMMARY_FIELDS = [
     "identifier",
+    "version",
     "level",
     "path_in_zip",
     "problem",
@@ -125,6 +126,7 @@ def _problem(
 ) -> dict:
     return {
         "identifier": entry["identifier"],
+        "version": entry["url_level"]["version"],
         "level": level,
         "path_in_zip": path_in_zip,
         "problem": problem,
