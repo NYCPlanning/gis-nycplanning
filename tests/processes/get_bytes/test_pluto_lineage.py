@@ -45,7 +45,11 @@ from processes.get_bytes import pluto_lineage
         ("PLUTOChangeFileReadme23v3_1.pdf", "plutochangefile_readme"),
         ("meta_mappluto.pdf", "meta_mappluto"),
         ("MapPLUTO_UNCLIPPED_Metadata.pdf", "meta_mappluto"),
+        ("MapPLUTO25v1.gdb\\NOT_MAPPED_LOTS", "not_mapped_lots"),
+        ("MapPLUTO20v3_unclipped.gdb\\NOT_MAPPED_LOTS_UNCLIPPED", "not_mapped_lots"),
         # change file members
+        ("PLUTOChangeFile22v1.csv", "plutochangefile"),
+        ("pluto_removed_records.csv", "pluto_removed_records"),
         ("pluto_changes_applied.csv", "pluto_changes_applied"),
         ("pluto_changes_not_applied.csv", "pluto_changes_not_applied"),
         ("pluto_corrections.csv", "pluto_corrections"),
@@ -60,9 +64,6 @@ def test_item_for_real_release_filenames(path_in_zip, item):
 @pytest.mark.parametrize(
     "path_in_zip",
     [
-        "pluto_removed_records.csv",
-        "MapPLUTO.gdb\\NOT_MAPPED_LOTS",
-        "PLUTOChangeFile22v1.csv",
         "Plutolay16v1.pdf",
         "Dates of Data 12v2.pdf",
         "PLUTO05D.pdf",

@@ -39,6 +39,11 @@ ITEM_RULES = [
         "plutochangefile_readme",
     ),
     (r"meta_mappluto|mappluto(_unclipped)?_metadata", "meta_mappluto"),
+    # No geometry, so not a CLIPPED_ITEM although it ships in clipped and unclipped gdbs.
+    (r"not_mapped_lots(_unclipped)?", "not_mapped_lots"),
+    # The single change file shipped before the applied / not-applied split.
+    (r"plutochangefile\d{2}v\d+", "plutochangefile"),
+    (r"pluto_removed_records", "pluto_removed_records"),
     (r"pluto_changes_applied", "pluto_changes_applied"),
     (r"pluto_changes_not_applied", "pluto_changes_not_applied"),
     (r"pluto_corrections", "pluto_corrections"),
@@ -46,9 +51,7 @@ ITEM_RULES = [
     (r"pluto_corrections_not_applied", "pluto_corrections_not_applied"),
 ]
 
-_COMPILED_RULES = [
-    (re.compile(pattern, re.IGNORECASE), item) for pattern, item in ITEM_RULES
-]
+_COMPILED_RULES = [(re.compile(pattern, re.IGNORECASE), item) for pattern, item in ITEM_RULES]
 
 # Only real file extensions are stripped: .gdb layer names have none, and splitext would cut one
 # at any dot in the name.

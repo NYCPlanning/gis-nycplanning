@@ -371,7 +371,7 @@ def test_build_dataset_rows_classifies_items_and_scopes_sub_dataset():
     assert [(r["item"], r["sub_dataset"]) for r in rows] == [
         ("mappluto", "clipped"),
         ("pluto_datadictionary", ""),
-        ("not_classified", ""),
+        ("not_mapped_lots", ""),
     ]
     assert [r["type"] for r in rows] == ["gdb_fc", "pdf", "gdb_tb"]
 
