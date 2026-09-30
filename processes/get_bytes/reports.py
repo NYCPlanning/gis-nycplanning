@@ -44,8 +44,7 @@ ERROR_SUMMARY_FIELDS = [
     "url",
 ]
 
-# Types that carry geometry.
-# TODO: gdb_raster isn't included here yet - revisit once a product actually exercises this path.
+# Types that carry geometry. gdb_raster is left out for now, but can be added as necessary.
 SPATIAL_TYPES = {"shp", "gdb_fc"}
 
 TABULAR_TYPES = {"csv", "txt"}

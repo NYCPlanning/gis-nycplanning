@@ -31,6 +31,8 @@ ARCHIVE_JSON_TEMPLATE = (
 )
 
 PRODUCT = "pluto"
+# TODO: a repo-wide `ruff format` once corrupted this to U+FFFD, and test_scrape.py's copy with
+# it, so the tests stayed green. Find the cause before any repo-wide reformat.
 TM_SYMBOL = "™"
 
 # Shares the filename version grammar so a point release keeps its suffix (25v3.1, not 25v3).

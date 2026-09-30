@@ -1,6 +1,6 @@
 # get_bytes
 
-Audits a NYC DCP dataset page (built against the MapPLUTO/PLUTO page) for problems the hosted data: broken links, mislabeled files, damaged or unreadable zips, stray lock
+Audits a NYC DCP dataset page (built against the MapPLUTO/PLUTO page) for problems in the hosted data: broken links, mislabeled files, damaged or unreadable zips, stray lock
 files, and corrupted shapefile spatial indexes. It also inventories what each release zip
 actually contains.
 
@@ -50,9 +50,7 @@ Each file name ends in `_{page}_{timestamp}`.
 - **Performance.** Depth 1 is slow, mostly on the large citywide releases. Measure first,
   then read shapefiles through GDAL's own file access instead of a second download, stream
   CSVs instead of loading them whole, and try process-based parallelism across zips.
-- **Product-agnostic.** The scraper, file vocabulary and clipped/unclipped logic are still
-  PLUTO-specific. The aim is a per-product profile, so that supporting another DCP page is
-  configuration, not code.
+- **Product-agnostic.** There is some lingering PLUTO-specific artifact code that will need to be scrubbed, as well as the work required to slowly expand the scraper to handle additional product pages. Prioritize product expansion based on product page traffic.
 - **Migrate** into the `dcpgis` package.
 - **Pytest in CI**, as part of a repo-wide change.
 - **More error rules:**
