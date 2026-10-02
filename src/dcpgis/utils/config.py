@@ -16,7 +16,7 @@ class Config:
             with open(
                 # TODO: make path name less specific so that name can be injected on instantiation
                 #      while keeping env swap functionality as clean and clear as possible.
-                Path(self.config_file_path) / f"{self.app_env}_settings.yml",
+                Path(self.config_file_path) / f"{self.app_env}_config.yml",
                 mode="r",
                 encoding="utf-8",
             ) as config:
