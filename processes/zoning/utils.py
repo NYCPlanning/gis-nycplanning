@@ -2,6 +2,7 @@ import logging
 import os
 import zipfile
 from pathlib import Path
+from typing import Any
 
 import arcpy
 from arcpy import metadata as md
@@ -16,13 +17,13 @@ def utils_test():
 
 
 def export_feature_using_dict(
-    src: str,
-    dst: str,
-    feature_info: dict,
+    src: str | Path,
+    dst: str | Path,
+    feature_info: dict[str, Any],
     src_key: str,
     dst_key: str,
     src_prefix: str = "",
-    sql_key: str = None,
+    sql_key: str | None = None,
     export_as_shapefile: bool = False,
     drop_global_id: bool = False,
 ):
@@ -36,7 +37,7 @@ def export_feature_using_dict(
         src_key (str): The key in the dictionary that contains the source feature class name.
         dst_key (str): The key in the dictionary that contains the destination feature class name.
         src_prefix (str, optional): A prefix to be added to the source feature class names. Defaults to an empty string.
-        sql_key (str, optional): The key in the dictionary that contains an optional SQL expression for filtering features during export. Defaults to None.
+        sql_key (str | None, optional): The key in the dictionary that contains an optional SQL expression for filtering features during export. Defaults to None.
         export_as_shapefile (bool, optional): If True, exports the features as shapefiles. Defaults to False.
     """
     src_path = str(Path(src) / f"{src_prefix}{feature_info[src_key]}")
@@ -133,7 +134,7 @@ def dissolve_in_place(workspace: str, feature_class: str, dissolve_field: list, 
     arcpy.management.Delete(in_data=f"{feature_class}_UNDISSOLVED")
 
 
-def update_metadata_values(base_dict: dict, feature_info: dict, cycle_date: str, council_date: str) -> dict:
+def update_metadata_values(base_dict: dict, feature_info: dict[str, Any], cycle_date: str, council_date: str) -> dict:
     """
     Creates an updated metadata dictionary for a specific feature.
 
@@ -160,13 +161,13 @@ def update_metadata_values(base_dict: dict, feature_info: dict, cycle_date: str,
     return metadata_values
 
 
-def unpack_dict_into_string_file(input_str_path: str, output_str_path: str, value_dict: dict):
+def unpack_dict_into_string_file(input_str_path: str | Path, output_str_path: str | Path, value_dict: dict):
     """
     Updates an string file's elements based on a provided dictionary.
 
     Args:
-        input_str_path (str): Path to the text file template.
-        output_str_path (str): Path to the desired text output.
+        input_str_path (str | Path): Path to the text file template.
+        output_str_path (str | Path): Path to the desired text output.
         value_dict (dict): Dictionary containing values to insert.
     """
 
@@ -226,11 +227,11 @@ def import_and_clean_feature_metadata(in_feature: str, md_template_file: str):
 
 # TODO: consider adding decorators for ClearingworkspaseCache_management() + sleep to clear locks
 def archive_zipping(
-    parent_dir: str,
+    parent_dir: str | Path,
     archive_specs: dict,
     output_dir_name: str,
     dangerous_ignore_locks: bool = False,
-    product_version: str = None,
+    product_version: str | None = None,
 ):
     """
     Creates zip files in a sub-directory as defined in the archive_specs dictionary.
@@ -246,15 +247,15 @@ def archive_zipping(
     }
 
     Args:
-        parent_dir (str or Path): Root directory containing the source folders.
+        parent_dir (str | Path): Root directory containing the source folders.
         archive_specs (dict): Mapping of archive definitions, where each entry contains source_dirs, content, output_name, and output_dir.
         output_dir_name (str): Folder where zip files are written.
         dangerous_ignore_locks (bool, optional): if Ture, skips any files with .lock in the name. Default is False. False will raise clear exception when lock is encountered.
         product_version (str, optional): Value used to format output names.
 
     """
-    parent_dir = Path(parent_dir)
-    output_dir = parent_dir / output_dir_name
+    parent_path = Path(parent_dir)
+    output_dir = parent_path / output_dir_name
     output_dir.mkdir(parents=True, exist_ok=True)  # redundant but safe
 
     for archive_name, spec in archive_specs.items():

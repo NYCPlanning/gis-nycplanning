@@ -1,6 +1,6 @@
 import logging
 
-from dcpgis.utils.package import copy_metadata_to_folder
+from dcpgis.utils.package import copy_matching_files
 
 
 def test_copy_metadata_to_folder_copies_selected_files(tmp_path, caplog):
@@ -17,7 +17,7 @@ def test_copy_metadata_to_folder_copies_selected_files(tmp_path, caplog):
 
     caplog.set_level(logging.WARNING, logger="root")
 
-    copy_metadata_to_folder(
+    copy_matching_files(
         metadata_source_dir=metadata_source_dir,
         output_dir=output_dir,
         metadata_files=["product.xlsx", "missing.xlsx"],

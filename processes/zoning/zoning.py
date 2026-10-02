@@ -7,20 +7,20 @@ from datetime import datetime
 from pathlib import Path
 
 import arcpy
-import utils as zoning_utils
 from arcpy import metadata as md
-from constants import (
+
+from dcpgis.cli import CLI
+from dcpgis.constants import OPEN_DATA_SUB_DIRS
+from dcpgis.utils import config, date_logic, dir_mgmt, package
+from dcpgis.utils import logging as dcp_logging
+from zoning import utils as zoning_utils
+from zoning.constants import (
     GEOREF_CONVENTIONS,
     METADATA_XML_VALUES,
     ZONING_CONVENTIONS,
     ZONING_DATA_DICTS,
     ZONING_PACKAGING,
 )
-
-from dcpgis.cli import CLI
-from dcpgis.constants import OPEN_DATA_SUB_DIRS
-from dcpgis.utils import config, date_logic, dir_mgmt, package
-from dcpgis.utils import logging as dcp_logging
 
 CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
 PRODUCT_CONFIG_FILE_PARENT = Path(__file__).parent / "config"
@@ -74,12 +74,13 @@ def main():
 
     dcp_logging.override_log_level(LOG_LEVEL_OVERRIDE)
 
+    council_date_override = settings_global["city_council_date"]  # None if blank in config file
     COUNCIL_DATE = date_logic.get_latest_date_from_field(
         feature_class_path=str(
             SOURCE_SDE_DZM_PATH / f"{SOURCE_SDE_PREFIX}{ZONING_CONVENTIONS['nyzma']['trd_fc_name']}"
         ),
         date_field="EFFECTIVE",
-        override_config_value=settings_global["city_council_date"],  # defaults to None if blank in config file
+        override_config_value=None if council_date_override is None else str(council_date_override),
     )
 
     logger.debug(f"OPEN_DATA_STAGING_PATH: {OPEN_DATA_STAGING_PATH}")
@@ -163,15 +164,16 @@ def main():
             )
 
         logger.info("Exporting Zoning Georeferenced Map raster...")
-        src_raster_name = SOURCE_SDE_PREFIX + GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["trd_fc_name"]
+        trd_fc_name = GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["trd_fc_name"]
+        src_raster_name = SOURCE_SDE_PREFIX + str(trd_fc_name)
         src_raster_path = os.path.join(SOURCE_SDE_PATH, src_raster_name)
         dst_raster_gdb = os.path.join(
-            temp_cycle_dir,
+            str(temp_cycle_dir),
             "gdb",
-            GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["gdb_name"],
+            str(GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["gdb_name"]),
         )
         dst_raster_name = GEOREF_CONVENTIONS["zoning_georeferenced_maps"]["public_output_name"]
-        dst_raster_path = os.path.join(dst_raster_gdb, dst_raster_name)
+        dst_raster_path = os.path.join(str(dst_raster_gdb), str(dst_raster_name))
 
         arcpy.env.workspace = dst_raster_path
         arcpy.env.parallelProcessingFactor = "100%"
@@ -197,9 +199,9 @@ def main():
             fc_path = temp_cycle_dir / "gdb" / feature_info["gdb_name"] / f"{feature_info['public_output_name']}"
             shp_path = temp_cycle_dir / "shp" / f"{feature_info['public_output_name']}.shp"
 
-            fc_path = str(fc_path)
-            updated_xml_path = str(updated_xml_path)
-            shp_path = str(shp_path)
+            fc_str_path = str(fc_path)
+            updated_xml_str_path = str(updated_xml_path)
+            shp_str_path = str(shp_path)
 
             # Update XML template with feature-specific and cycle-specific metadata values
             zoning_utils.unpack_dict_into_string_file(
@@ -209,14 +211,18 @@ def main():
             )
 
             # Import updated metadata into feature class
-            zoning_utils.import_and_clean_feature_metadata(in_feature=fc_path, md_template_file=updated_xml_path)
+            zoning_utils.import_and_clean_feature_metadata(
+                in_feature=fc_str_path, md_template_file=updated_xml_str_path
+            )
 
             # Sync metadata outside of import_and_clean_feature_metadata() to ensure updates are applied correctly. Only for FCs
-            item_md = md.Metadata(fc_path)
+            item_md = md.Metadata(fc_str_path)
             item_md.synchronize("ALWAYS")
 
             # Import updated metadata into shapefile
-            zoning_utils.import_and_clean_feature_metadata(in_feature=shp_path, md_template_file=updated_xml_path)
+            zoning_utils.import_and_clean_feature_metadata(
+                in_feature=shp_str_path, md_template_file=updated_xml_str_path
+            )
 
         # Zoning Georeferenced Maps metadata
         """
@@ -238,8 +244,8 @@ def main():
             updated_xml_path = temp_cycle_dir / "metadata" / f"{feature_info['public_output_name']}.xml"
             fc_path = temp_cycle_dir / "gdb" / feature_info["gdb_name"] / f"{feature_info['public_output_name']}"
 
-            fc_path = str(fc_path)
-            updated_xml_path = str(updated_xml_path)
+            fc_str_path = str(fc_path)
+            updated_xml_str_path = str(updated_xml_path)
 
             # Update XML template with feature-specific and cycle-specific metadata values
             zoning_utils.unpack_dict_into_string_file(
@@ -249,10 +255,12 @@ def main():
             )
 
             # Import updated metadata into feature class
-            zoning_utils.import_and_clean_feature_metadata(in_feature=fc_path, md_template_file=updated_xml_path)
+            zoning_utils.import_and_clean_feature_metadata(
+                in_feature=fc_str_path, md_template_file=updated_xml_str_path
+            )
 
             # Sync metadata outside of import_and_clean_feature_metadata() to ensure updates are applied correctly. Only for FCs
-            item_md = md.Metadata(fc_path)
+            item_md = md.Metadata(fc_str_path)
             item_md.synchronize("ALWAYS")
 
         logger.info("Packaging data for web distribution...")

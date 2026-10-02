@@ -1,8 +1,10 @@
-import arcpy
 import logging
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
 
-def get_latest_date_from_field(feature_class_path: str, date_field: str, override_config_value: str = None) -> str:
+import arcpy
+
+
+def get_latest_date_from_field(feature_class_path: str, date_field: str, override_config_value: str | None) -> str:
     """
     Retrieve the latest date from a specified date field in an ArcGIS feature class.
 
@@ -12,7 +14,10 @@ def get_latest_date_from_field(feature_class_path: str, date_field: str, overrid
         override_config_value (str, optional): If provided, this value will be returned instead of querying the feature class.
 
     Returns:
-        str: The latest date in YYYYMMDD format, or None if no date is found.
+        str: The latest date in YYYYMMDD format.
+
+    Raises:
+        ValueError: If no override is provided and the date field contains no dates.
     """
     if override_config_value is None:
         latest_date = None
@@ -24,14 +29,16 @@ def get_latest_date_from_field(feature_class_path: str, date_field: str, overrid
                 if row[0] is not None:
                     if latest_date is None or row[0] > latest_date:
                         latest_date = row[0]
-        return latest_date.strftime("%Y%m%d") if latest_date else None
-    else: 
+        if latest_date is None:
+            raise ValueError(f"No dates found in field '{date_field}' of {feature_class_path}")
+        return str(latest_date.strftime("%Y%m%d"))
+    else:
         latest_date = override_config_value
         logging.debug(f"Using override date from config file: {latest_date}")
-        return str(latest_date) if latest_date else None
+        return str(latest_date)
 
 
-def calc_open_data_cycle_month(config_date: int) -> str:
+def calc_open_data_cycle_month(config_date: str | None) -> str:
     """
     Calculate a YYYYMM date string representing the open data cycle month
     Can override this calculation by entering a YYYYMM date string into the config file
@@ -42,12 +49,12 @@ def calc_open_data_cycle_month(config_date: int) -> str:
         today = date.today()
         first_of_this_month = today.replace(day=1)
         last_month = first_of_this_month - timedelta(days=1)
-        last_month = last_month.strftime("%Y%m")
-        return last_month
+        return str(last_month.strftime("%Y%m"))
     else:
         logging.debug("Pulling YYYYMM date from date field in config file")
         return str(config_date)
-    
+
+
 def reformat_date_str_to_written_month(date_string: str) -> str:
     """
     Reformats a date string in YYYYMMDD format to a written month format (e.g., 'January 1, 2020').

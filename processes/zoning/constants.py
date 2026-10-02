@@ -10,6 +10,8 @@ Key configuration dictionaries:
 - METADATA_XML_VALUES: standard metadata XML values to seed per-feature metadata
 """
 
+from typing import Any
+
 """
 ZONING_CONVENTIONS defines public output configuration for each zoning layer.
 Each entry maps a source feature to its export and metadata settings.
@@ -23,7 +25,7 @@ Keys:
   gdb_name: destination geodatabase name for this feature class
   apply_to_shapefile: whether to produce a shapefile copy in addition to the GDB feature class
   """
-ZONING_CONVENTIONS = {
+ZONING_CONVENTIONS: dict[str, dict[str, Any]] = {
     "nyco": {
         "trd_fc_name": "DZM_nyco",
         "public_output_name": "zoning_commercial_overlays",
@@ -117,7 +119,7 @@ Keys:
   gdb_name: target geodatabase name for raster exports
   apply_to_shapefile: whether a shapefile export is applicable (False for rasters)
   """
-GEOREF_CONVENTIONS = {
+GEOREF_CONVENTIONS: dict[str, dict[str, Any]] = {
     "zoning_georeferenced_maps": {
         "trd_fc_name": "NYC_Zoning_Maps",
         "public_output_name": "zoning_georeferenced_maps",
