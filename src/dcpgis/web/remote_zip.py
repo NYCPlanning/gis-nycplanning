@@ -76,6 +76,12 @@ def get_zip_namelist(url: str, session: requests.Session) -> list[str] | None:
     return None if result is None else [info.filename for info in result[0]]
 
 
+# Deliberately not an OSError: zipfile turns OSErrors raised while it looks for the end of
+# central directory into a generic "File is not a zip file", which would hide the cause.
+class _RangeNotHonoredError(Exception):
+    pass
+
+
 class _HTTPRangeFile:
     """Minimal seekable, readable file-like object over a remote file, backed by ranged GET
     requests - enough for zipfile.ZipFile's random-access needs (one seek to find the
@@ -83,7 +89,8 @@ class _HTTPRangeFile:
     ever downloading the whole remote file.
 
     Unlike get_zip_central_directory (which only fetches the zip's tail), reading an arbitrary
-    member's actual bytes needs real random access.
+    member's actual bytes needs real random access. Raises _RangeNotHonoredError if the
+    server answers a partial read with anything other than 206.
     """
 
     def __init__(self, url: str, session: requests.Session):
@@ -92,7 +99,10 @@ class _HTTPRangeFile:
         self._pos = 0
         resp = session.head(url, timeout=30)
         resp.raise_for_status()
-        self._size = int(resp.headers["Content-Length"])
+        length = resp.headers.get("Content-Length", "")
+        if not length.isdigit():
+            raise OSError(f"no usable Content-Length ({length!r}) for {url}")
+        self._size = int(length)
 
     def seek(self, offset: int, whence: int = 0) -> int:
         if whence == 0:
@@ -123,6 +133,12 @@ class _HTTPRangeFile:
             self._url, headers={"Range": f"bytes={self._pos}-{end}"}, timeout=60
         )
         resp.raise_for_status()
+        # A server ignoring Range sends the whole file with a 200, which is only the bytes
+        # asked for when the read covered the whole file anyway.
+        if resp.status_code != 206 and not (self._pos == 0 and end == self._size - 1):
+            raise _RangeNotHonoredError(
+                f"server ignored Range (status {resp.status_code}) for {self._url}"
+            )
         data = resp.content
         self._pos += len(data)
         return data
@@ -137,6 +153,7 @@ def get_zip_member_bytes(
         return zipfile.ZipFile(_HTTPRangeFile(url, session)).read(member_name)
     except (
         requests.RequestException,
+        _RangeNotHonoredError,
         zipfile.BadZipFile,
         KeyError,
         OSError,

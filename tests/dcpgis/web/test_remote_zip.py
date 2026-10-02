@@ -207,6 +207,52 @@ def test_get_zip_member_bytes_head_failure_returns_none(monkeypatch, caplog):
     assert "could not read member" in caplog.text
 
 
+def _range_ignoring_session(full_bytes: bytes):
+    """(get, head) for a server that answers every GET with the whole file and a 200."""
+
+    def _get(self, url, *args, **kwargs):
+        return MockResponse(200, full_bytes)
+
+    def _head(self, url, *args, **kwargs):
+        return MockResponse(200, headers={"Content-Length": str(len(full_bytes))})
+
+    return _get, _head
+
+
+def test_get_zip_member_bytes_range_ignored_returns_none(monkeypatch, caplog):
+    # Treating a 200's whole-file body as the requested slice would hand zipfile the wrong
+    # bytes at every offset.
+    zip_bytes = make_zip_bytes(["data.csv"], content={"data.csv": b"a,b\n1,2\n"})
+    get, head = _range_ignoring_session(zip_bytes)
+    monkeypatch.setattr(requests.Session, "get", get)
+    monkeypatch.setattr(requests.Session, "head", head)
+
+    assert get_zip_member_bytes(URL, "data.csv", make_session()) is None
+    assert "server ignored Range (status 200)" in caplog.text
+
+
+def test_http_range_file_whole_file_read_accepts_200(monkeypatch):
+    get, head = _range_ignoring_session(b"0123456789")
+    monkeypatch.setattr(requests.Session, "get", get)
+    monkeypatch.setattr(requests.Session, "head", head)
+
+    assert _HTTPRangeFile(URL, make_session()).read() == b"0123456789"
+
+
+@pytest.mark.parametrize("headers", [{}, {"Content-Length": "unknown"}])
+def test_get_zip_member_bytes_unusable_content_length_returns_none(
+    monkeypatch, caplog, headers
+):
+    monkeypatch.setattr(
+        requests.Session,
+        "head",
+        mock_session_call({URL: MockResponse(200, headers=headers)}),
+    )
+
+    assert get_zip_member_bytes(URL, "data.csv", make_session()) is None
+    assert "no usable Content-Length" in caplog.text
+
+
 def test_http_range_file_seek_whence_variants(monkeypatch):
     # Direct unit tests against _HTTPRangeFile's own seek/read logic, rather than relying on
     # zipfile happening to exercise every whence value - zipfile only calls whence=1 (SEEK_CUR)
