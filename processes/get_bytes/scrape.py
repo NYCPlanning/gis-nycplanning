@@ -19,8 +19,8 @@ from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup, Tag
 
+from dcpgis.web.remote_zip import get_zip_namelist
 from processes.get_bytes import pluto_lineage
-from processes.get_bytes.common import get_zip_namelist
 
 CONTENT_API_TEMPLATE = (
     "https://apps.nyc.gov/content-api/v1/content/planning/resources/datasets/{page}"
