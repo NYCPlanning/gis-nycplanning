@@ -1,26 +1,19 @@
-"""Shared HTTP/zip plumbing for the get_bytes tool.
-
-Product agnostic - nothing here is specific to any single DCP product.
-"""
+"""Read a remote zip's directory and individual members over ranged HTTP, without downloading
+the whole archive."""
 
 import io
+import logging
 import lzma
 import zipfile
 import zlib
 
 import requests
 
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+logger = logging.getLogger(__name__)
 
 # The zip central directory lives at the end of the file, so a suffix range this size is
 # enough to read it for every archive seen so far without downloading the whole thing.
 CENTRAL_DIRECTORY_TAIL_BYTES = 262144
-
-
-def make_session() -> requests.Session:
-    session = requests.Session()
-    session.headers.update({"User-Agent": USER_AGENT})
-    return session
 
 
 def _total_size_from_content_range(resp: requests.Response) -> int | None:
@@ -47,18 +40,18 @@ def get_zip_central_directory(
             url, headers={"Range": f"bytes=-{CENTRAL_DIRECTORY_TAIL_BYTES}"}, timeout=60
         )
     except requests.RequestException as exc:
-        print(f"WARNING: request failed for {url}: {exc}")
+        logger.warning(f"request failed for {url}: {exc}")
         return None
 
     if resp.status_code not in (200, 206):
-        print(f"WARNING: unexpected status {resp.status_code} for {url}")
+        logger.warning(f"unexpected status {resp.status_code} for {url}")
         return None
 
     try:
         infolist = zipfile.ZipFile(io.BytesIO(resp.content)).infolist()
     except zipfile.BadZipFile:
         if resp.status_code == 200:
-            print(f"WARNING: could not read zip contents for {url}")
+            logger.warning(f"could not read zip contents for {url}")
             return None
     else:
         total = (
@@ -73,7 +66,7 @@ def get_zip_central_directory(
         resp.raise_for_status()
         return zipfile.ZipFile(io.BytesIO(resp.content)).infolist(), len(resp.content)
     except (requests.RequestException, zipfile.BadZipFile) as exc:
-        print(f"WARNING: could not inspect zip contents for {url}: {exc}")
+        logger.warning(f"could not inspect zip contents for {url}: {exc}")
         return None
 
 
@@ -86,7 +79,7 @@ def get_zip_namelist(url: str, session: requests.Session) -> list[str] | None:
 class _HTTPRangeFile:
     """Minimal seekable, readable file-like object over a remote file, backed by ranged GET
     requests - enough for zipfile.ZipFile's random-access needs (one seek to find the
-    central directory, another per-member to its local header + compressed data), without 
+    central directory, another per-member to its local header + compressed data), without
     ever downloading the whole remote file.
 
     Unlike get_zip_central_directory (which only fetches the zip's tail), reading an arbitrary
@@ -155,26 +148,5 @@ def get_zip_member_bytes(
         EOFError,
         lzma.LZMAError,
     ) as exc:
-        print(f"WARNING: could not read member {member_name!r} from {url}: {exc}")
-        return None
-
-
-def get_response_code(url: str, session: requests.Session) -> int | None:
-    """Cheaply check a URL's HTTP status without downloading its body.
-
-    Tries a HEAD request first; if that fails outright, falls back to a minimal ranged GET. 
-    Returns the status code from whichever request actually completed - any code, 404 included, 
-    is a valid result, not a failure. None only if neither request could complete at all.
-    """
-    try:
-        resp = session.head(url, timeout=30)
-        return resp.status_code
-    except requests.RequestException:
-        pass
-
-    try:
-        resp = session.get(url, headers={"Range": "bytes=0-0"}, timeout=30)
-        return resp.status_code
-    except requests.RequestException as exc:
-        print(f"WARNING: could not check status for {url}: {exc}")
+        logger.warning(f"could not read member {member_name!r} from {url}: {exc}")
         return None

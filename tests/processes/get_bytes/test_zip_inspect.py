@@ -5,30 +5,23 @@ The GDAL-touching tests run against the real fixture zips over LOCAL /vsizip/ pa
 needs both halves at once (GDAL reading the layer *and* the truth parser reading the .shp
 bytes over HTTP), the ranged-session mock is fed the same fixture's bytes, so the two agree.
 
-This file is the coverage that spatial_index_report.py never had: it lived in a different
-interpreter than the test suite, so none of this was reachable until the environments merged.
+The product-agnostic pieces (discovery, inventory, the index check itself, table profiling)
+are tested in tests/dcpgis. What stays here is the PLUTO logic and the glue that feeds those
+pieces from a remote zip.
 """
 
 import struct
-import threading
 import zipfile
 
 import pytest
 import requests
 
+from dcpgis.web.http import make_session
 from processes.get_bytes import reports, zip_inspect
-from processes.get_bytes.common import make_session
-from tests.processes.get_bytes.conftest import mock_ranged_file_session
+from tests.conftest import STALE_NAME, mock_ranged_file_session
 
-SHP_ZIP = "shapefile_nyzd_one_row.zip"
 GDB_ZIP = "geodatabase_zoning_data.zip"
-STALE_NAME = "shapefile_nyzd_stale_index"
 FAKE_URL = "https://s-media.nyc.gov/fixture.zip"
-
-
-@pytest.fixture()
-def shp_zip_path(resources_path):
-    return resources_path / SHP_ZIP
 
 
 @pytest.fixture()
@@ -121,61 +114,6 @@ def test_find_versions_with_unclipped_sibling():
     }
 
 
-# --- discovery ------------------------------------------------------------------------------
-
-
-def test_discovery_partitions_a_realistic_namelist():
-    names = [
-        "MapPLUTO.gdb/a00000001.gdbtable",
-        "MapPLUTO.gdb/a00000002.gdbtable",
-        "Bronx/BXMapPLUTO.shp",
-        "Bronx/BXMapPLUTO.dbf",
-        "standalone_table.dbf",
-        "notes.csv",
-        "readme.txt",
-        "pluto_datadictionary.pdf",
-        "inner.zip",
-        "MapPLUTO.gdb/skipme.csv",
-    ]
-    assert zip_inspect.discover_gdb_folders(names) == ["MapPLUTO.gdb"]
-    assert zip_inspect.discover_loose_dirs(names) == ["", "Bronx"]
-    assert zip_inspect.discover_nested_zips(names) == ["inner.zip"]
-    # .gdb-internal and nested-zip members are excluded from every suffix-based scan
-    assert zip_inspect.discover_tabular_files(names) == ["notes.csv", "readme.txt"]
-    assert zip_inspect.discover_pdf_files(names) == ["pluto_datadictionary.pdf"]
-
-
-def test_discover_loose_dirs_ignores_pdf_only_directory():
-    # GDAL's Shapefile driver can never identify a directory of PDFs, so there is no point
-    # asking it to try - this gate is what stops a doomed open attempt per zip root.
-    assert zip_inspect.discover_loose_dirs(["docs/readme.pdf"]) == []
-
-
-# --- grid / tolerance -------------------------------------------------------------------------
-
-
-def test_make_grid_covers_extent_exactly():
-    cells = zip_inspect.make_grid(0, 0, 3, 3, n=3)
-    assert len(cells) == 9
-    assert cells[0] == (0, 0, 1, 1)
-    assert cells[-1] == (2, 2, 3, 3)
-
-
-def test_truth_count_counts_intersecting_bboxes_and_skips_nulls():
-    bboxes = [(0, 0, 1, 1), (5, 5, 6, 6), None]
-    assert zip_inspect.truth_count(bboxes, (0, 0, 2, 2)) == 1
-    assert zip_inspect.truth_count(bboxes, (0, 0, 10, 10)) == 2
-
-
-def test_cells_mismatch_absorbs_boundary_noise_but_catches_real_corruption():
-    # The bbox-vs-geometry artifact measured on a known-good file was off-by-one on a few
-    # thousand; real corruption was a 90%+ drop. These assertions pin both regimes.
-    assert not zip_inspect.cells_mismatch(19403, 19404)
-    assert not zip_inspect.cells_mismatch(0, 2)
-    assert zip_inspect.cells_mismatch(1401, 19102)
-    assert zip_inspect.cells_mismatch(0, 100)
-
-
 # --- zip_level ----------------------------------------------------------------------------------
 
 
@@ -189,30 +127,7 @@ def _infolist(*entries) -> list[zipfile.ZipInfo]:
     return out
 
 
-def test_object_inventory_rolls_a_shapefile_up_and_records_its_extensions():
-    infolist = _infolist(
-        ("MapPLUTO.shp", 100),
-        ("MapPLUTO.dbf", 20),
-        ("MapPLUTO.prj", 1),
-        ("MapPLUTO.shp.xml", 5),
-        ("readme.pdf", 7),
-    )
-    objects = zip_inspect.build_object_inventory(infolist, [], set())
-
-    shapefile = next(o for o in objects if o["kind"] == "shapefile")
-    assert shapefile["path"] == "MapPLUTO.shp"
-    assert shapefile["size_bytes"] == 126  # every sidecar, not just the .shp
-    # .shp.xml groups with its shapefile rather than looking like a lone .xml
-    assert shapefile["parts"] == [".dbf", ".prj", ".shp", ".shp.xml"]
-    assert {"path": "readme.pdf", "kind": "file", "size_bytes": 7} in objects
-
-
-def test_object_inventory_collapses_a_gdb_and_names_its_datasets():
-    infolist = _infolist(
-        ("MapPLUTO.gdb/", 0),
-        ("MapPLUTO.gdb/a00000001.gdbtable", 40),
-        ("MapPLUTO.gdb/a00000001.gdbtablx", 60),
-    )
+def test_gdb_contents_names_each_gdbs_datasets():
     dataset_level = [
         {"path_in_zip": "MapPLUTO.gdb\\MapPLUTO_Clipped", "type": "gdb_fc"},
         {"path_in_zip": "MapPLUTO.gdb\\NOT_MAPPED_LOTS", "type": "gdb_tb"},
@@ -223,62 +138,12 @@ def test_object_inventory_collapses_a_gdb_and_names_its_datasets():
         # than mangled - reachable only from a hand-edited or resumed report.
         {"path_in_zip": "orphan_layer", "type": "gdb_fc"},
     ]
-    (gdb,) = zip_inspect.build_object_inventory(infolist, dataset_level, set())
-
-    assert gdb["path"] == "MapPLUTO.gdb"
-    assert gdb["size_bytes"] == 100
-    # system files are not worth counting, let alone listing
-    assert "member_count" not in gdb
-    assert gdb["contents"] == [
-        {"name": "MapPLUTO_Clipped", "kind": "feature_class"},
-        {"name": "NOT_MAPPED_LOTS", "kind": "table"},
-        {"name": "elevation", "kind": "raster"},
-    ]
-
-
-def test_object_inventory_lists_lock_files_individually_not_inside_the_gdb():
-    infolist = _infolist(
-        ("MapPLUTO.gdb/a00000001.gdbtable", 40),
-        ("MapPLUTO.gdb/_gdb.DCP-DELL.sr.lock", 0),
-        ("MapPLUTO.gdb/MapPLUTO_Clipped.DCP-DELL.sr.lock", 0),
-    )
-    objects = zip_inspect.build_object_inventory(infolist, [], set())
-
-    locks = [o["path"] for o in objects if o["kind"] == "lock"]
-    assert locks == [
-        "MapPLUTO.gdb/MapPLUTO_Clipped.DCP-DELL.sr.lock",
-        "MapPLUTO.gdb/_gdb.DCP-DELL.sr.lock",
-    ]
-    gdb = next(o for o in objects if o["kind"] == "gdb")
-    assert gdb["size_bytes"] == 40  # locks are not counted into their container
-
-
-def test_object_inventory_unreadable_gdb_reports_null_contents():
-    # "GDAL could not open this" must not read as "this gdb is empty".
-    infolist = _infolist(("MapPLUTO.gdb/a00000001.gdbtable", 40))
-    (gdb,) = zip_inspect.build_object_inventory(infolist, [], {"MapPLUTO.gdb"})
-    assert gdb["contents"] is None
-
-    (readable,) = zip_inspect.build_object_inventory(infolist, [], set())
-    assert readable["contents"] == []
-
-
-def test_object_inventory_classifies_the_remaining_kinds():
-    infolist = _infolist(
-        ("data.csv", 3),
-        ("notes.txt", 4),
-        ("lookup.dbf", 5),
-        ("inner.zip", 6),
-        ("map.pdf", 7),
-    )
-    objects = zip_inspect.build_object_inventory(infolist, [], set())
-    kinds = {o["path"]: o["kind"] for o in objects}
-    assert kinds == {
-        "data.csv": "table",
-        "notes.txt": "table",
-        "lookup.dbf": "table",  # standalone, with no .shp sharing its basename
-        "inner.zip": "zip",
-        "map.pdf": "file",
+    assert zip_inspect.gdb_contents(dataset_level) == {
+        "MapPLUTO.gdb": [
+            {"name": "MapPLUTO_Clipped", "kind": "feature_class"},
+            {"name": "NOT_MAPPED_LOTS", "kind": "table"},
+            {"name": "elevation", "kind": "raster"},
+        ]
     }
 
 
@@ -290,6 +155,14 @@ def test_build_zip_level_is_pure():
     assert zip_level["filename"] == "nyc_mappluto_19v1_arc_fgdb.zip"
     assert zip_level["obs_size_bytes"] == 12345
     assert [o["path"] for o in zip_level["objects"]] == ["MapPLUTO.gdb"]
+
+
+def test_build_zip_level_names_a_gdbs_datasets_from_dataset_level():
+    infolist = _infolist(("MapPLUTO.gdb/a00000001.gdbtable", 1))
+    dataset_level = [{"path_in_zip": "MapPLUTO.gdb\\MapPLUTO", "type": "gdb_fc"}]
+    zip_level = zip_inspect.build_zip_level("https://x/a.zip", infolist, 1, dataset_level, set())
+    (gdb,) = zip_level["objects"]
+    assert gdb["contents"] == [{"name": "MapPLUTO", "kind": "feature_class"}]
 
 
 # --- tabular ---------------------------------------------------------------------------------------
@@ -318,7 +191,7 @@ def test_read_tabular_entry_records_fallback_encoding(monkeypatch):
     assert entry["row_count"] == 1
 
 
-def test_read_tabular_entry_txt_type_and_empty_content(monkeypatch, capsys):
+def test_read_tabular_entry_txt_type_and_empty_content(monkeypatch, caplog):
     zip_bytes = _zip_with("empty.txt", b"   ")
     _install_ranged(monkeypatch, zip_bytes)
 
@@ -327,7 +200,8 @@ def test_read_tabular_entry_txt_type_and_empty_content(monkeypatch, capsys):
     assert entry["type"] == "txt"
     assert entry["row_count"] is None
     assert entry["col_count"] is None
-    assert "is empty" in capsys.readouterr().out
+    # the warning names the member and its zip, as the printed one did before
+    assert f"'empty.txt' in {FAKE_URL} is empty" in caplog.text
 
 
 def test_read_tabular_entry_missing_member_returns_none(monkeypatch):
@@ -522,84 +396,6 @@ def test_spatial_index_absent_reports_present_false(
     assert index["status"] is None
 
 
-# Fractions of a grid cell, chosen to keep every square clear of a cell edge so no feature
-# is double-counted by the bbox-based truth pass.
-STALE_OFFSETS = ((0.15, 0.15), (0.35, 0.35), (0.55, 0.55), (0.75, 0.75), (0.35, 0.75))
-STALE_SQUARE_SIZE = 10.0
-
-
-def _square(x: float, y: float, size: float):
-    from osgeo import ogr
-
-    corners = ((x, y), (x + size, y), (x + size, y + size), (x, y + size), (x, y))
-    ring = ogr.Geometry(ogr.wkbLinearRing)
-    for corner in corners:
-        ring.AddPoint_2D(*corner)
-    polygon = ogr.Geometry(ogr.wkbPolygon)
-    polygon.AddGeometry(ring)
-    return polygon
-
-
-def _build_stale_index_zip(shp_zip_path, tmp_path):
-    """A shapefile carrying a real .sbn/.sbx that describes an earlier version of itself.
-
-    Reuses the checked-in fixture's genuine ESRI-written index rather than synthesizing or
-    byte-corrupting one, so the archive fails the same way the upstream ones do: features
-    were added and the index was never rebuilt. Feature 0 is the original polygon, so the
-    index's single entry stays truthful and the layer extent is unchanged - what makes this
-    INCONSISTENT is purely the 45 features the index has never heard of.
-    """
-    from osgeo import gdal, ogr
-
-    source = gdal.OpenEx(f"/vsizip/{shp_zip_path.as_posix()}", gdal.OF_VECTOR)
-    source_layer = source.GetLayer(0)
-    # Bound step by step, not chained: osgeo hands back borrowed views, so a chained call
-    # lets the owner be collected and the next call gets a dangling proxy.
-    source_feature = source_layer.GetNextFeature()
-    original = source_feature.GetGeometryRef().Clone()
-    source_srs = source_layer.GetSpatialRef()
-    minx, maxx, miny, maxy = source_layer.GetExtent()
-
-    work = tmp_path / "stale"
-    work.mkdir()
-    dataset = ogr.GetDriverByName("ESRI Shapefile").CreateDataSource(
-        str(work / f"{STALE_NAME}.shp")
-    )
-    layer = dataset.CreateLayer(STALE_NAME, source_srs, ogr.wkbPolygon)
-    layer.CreateField(ogr.FieldDefn("ZONEDIST", ogr.OFTString))
-
-    def add(geometry):
-        feature = ogr.Feature(layer.GetLayerDefn())
-        feature.SetGeometry(geometry)
-        layer.CreateFeature(feature)
-
-    add(original)
-    width, height = (maxx - minx) / 3, (maxy - miny) / 3
-    for row in range(3):
-        for col in range(3):
-            for fx, fy in STALE_OFFSETS:
-                x = minx + (col + fx) * width
-                y = miny + (row + fy) * height
-                add(_square(x, y, STALE_SQUARE_SIZE))
-    dataset = None  # flush to disk before zipping
-
-    with zipfile.ZipFile(shp_zip_path) as source_zip:
-        for suffix in (".sbn", ".sbx"):
-            member = f"{shp_zip_path.stem}{suffix}"
-            (work / f"{STALE_NAME}{suffix}").write_bytes(source_zip.read(member))
-
-    zip_path = tmp_path / f"{STALE_NAME}.zip"
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as out:
-        for member in sorted(work.iterdir()):
-            out.write(member, member.name)
-    return zip_path
-
-
-@pytest.fixture()
-def stale_index_zip_path(shp_zip_path, tmp_path):
-    return _build_stale_index_zip(shp_zip_path, tmp_path)
-
-
 def test_spatial_index_inconsistent_against_a_real_stale_sbn(
     monkeypatch, stale_index_zip_path
 ):
@@ -674,27 +470,10 @@ def test_gdb_layers_get_no_spatial_index_key(gdb_zip_path):
     assert all("spatial_index" not in e for e in entries)
 
 
-def test_read_shp_bboxes_matches_gdal_envelopes(monkeypatch, shp_zip_path):
-    # Cross-check the struct parser against GDAL's own geometry envelope - the same
-    # verification done by hand during design, now automated.
-    from osgeo import gdal
-
+def test_read_shp_bboxes_reads_the_member_over_ranged_http(monkeypatch, shp_zip_path):
     _install_ranged(monkeypatch, shp_zip_path.read_bytes())
-    bboxes = zip_inspect.read_shp_bboxes(
-        FAKE_URL, "shapefile_nyzd_one_row.shp", make_session()
-    )
+    bboxes = zip_inspect.read_shp_bboxes(FAKE_URL, "shapefile_nyzd_one_row.shp", make_session())
     assert bboxes is not None and len(bboxes) == 1
-
-    # Each step is bound to a name rather than chained: osgeo hands back borrowed views, so
-    # a chained call lets the owner be collected and the next call gets a dangling proxy.
-    dataset = gdal.OpenEx(vsi(shp_zip_path), gdal.OF_VECTOR)
-    layer = dataset.GetLayer(0)
-    feature = layer.GetNextFeature()
-    geometry = feature.GetGeometryRef()
-    envelope = geometry.GetEnvelope()  # minx, maxx, miny, maxy
-    parsed = bboxes[0]
-    assert parsed is not None
-    assert parsed == pytest.approx((envelope[0], envelope[2], envelope[1], envelope[3]))
 
 
 def test_read_shp_bboxes_missing_member_returns_none(monkeypatch, shp_zip_path):
@@ -702,49 +481,13 @@ def test_read_shp_bboxes_missing_member_returns_none(monkeypatch, shp_zip_path):
     assert zip_inspect.read_shp_bboxes(FAKE_URL, "gone.shp", make_session()) is None
 
 
-def _shp_record(shape_type: int, payload: bytes, content_length: "int | None" = None) -> bytes:
-    """One .shp record: big-endian number + content length in 16-bit words, then content."""
-    content = struct.pack("<i", shape_type) + payload
-    words = len(content) // 2 if content_length is None else content_length // 2
-    return struct.pack(">ii", 1, words) + content
-
-
-def _read_bboxes(monkeypatch, records: bytes):
-    shp = b"\x00" * 100 + records
+def test_read_shp_bboxes_malformed_warning_names_member_and_zip(monkeypatch, caplog):
+    # A zero content length, so the parser rejects the first record.
+    shp = b"\x00" * 100 + struct.pack(">ii", 1, 0) + struct.pack("<i", 5)
     monkeypatch.setattr(zip_inspect, "get_zip_member_bytes", lambda url, name, session: shp)
-    return zip_inspect.read_shp_bboxes(FAKE_URL, "x.shp", None)
 
-
-def test_read_shp_bboxes_points_become_degenerate_boxes(monkeypatch):
-    # Point records store x, y where other types store a bbox - read as one, they would
-    # yield garbage and throw the truth count off.
-    records = (
-        _shp_record(1, struct.pack("<dd", 5.0, 7.0))
-        + _shp_record(11, struct.pack("<dddd", 1.0, 2.0, 3.0, 4.0))  # PointZ: x, y, z, m
-        + _shp_record(0, b"")
-        + _shp_record(5, struct.pack("<dddd", 0.0, 0.0, 9.0, 9.0) + b"\x00" * 8)
-    )
-    assert _read_bboxes(monkeypatch, records) == [
-        (5.0, 7.0, 5.0, 7.0),
-        (1.0, 2.0, 1.0, 2.0),
-        None,
-        (0.0, 0.0, 9.0, 9.0),
-    ]
-
-
-@pytest.mark.parametrize("content_length", [0, -8, -1000])
-def test_read_shp_bboxes_corrupt_record_length_returns_none(monkeypatch, capsys, content_length):
-    # A length this small would stop the read position advancing, so the parser would spin
-    # forever. The thread is only there so a regression fails instead of hanging the suite.
-    records = _shp_record(5, struct.pack("<dddd", 0.0, 0.0, 1.0, 1.0), content_length)
-    result: list = []
-    worker = threading.Thread(target=lambda: result.append(_read_bboxes(monkeypatch, records)), daemon=True)
-    worker.start()
-    worker.join(timeout=5)
-
-    assert not worker.is_alive(), "read_shp_bboxes did not terminate"
-    assert result == [None]
-    assert "malformed .shp record length" in capsys.readouterr().out
+    assert zip_inspect.read_shp_bboxes(FAKE_URL, "x.shp", None) is None
+    assert f"malformed .shp record length 0 at byte 100 in 'x.shp' from {FAKE_URL}" in caplog.text
 
 
 # --- orchestration ----------------------------------------------------------------------------

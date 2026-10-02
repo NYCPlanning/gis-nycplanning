@@ -22,20 +22,22 @@ the observed data, recomputed on demand, and never persisted twice.
 
 import argparse
 import json
+import logging
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
-# sys.path[0] is this file's own directory when run by path, so the absolute imports
-# below need this to resolve.
-# TODO: find a cleaner solution to this path-editing import logic
+from dcpgis.web.http import get_response_code, make_session
+
+# sys.path[0] is this file's own directory when run by path, so the sibling imports below
+# need the repo root. dcpgis itself comes from the editable install.
+# TODO: drop this by running as `python -m processes.get_bytes.get_bytes` from the repo root
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from processes.get_bytes import reports, scrape  # noqa: E402
-from processes.get_bytes.common import get_response_code, make_session  # noqa: E402
 
 # Types worth opening at depth 1. pdf-typed entries are reference docs with no archive to
 # inspect, and unknown-typed ones are the zip-of-zips cases GDAL cannot reach single-level.
@@ -223,6 +225,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    # dcpgis logs its warnings; this format and stream keep them identical to this tool's own
+    # printed "WARNING: ..." lines.
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s", stream=sys.stdout)
     session = make_session()
 
     if args.resume:
