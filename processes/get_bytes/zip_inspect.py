@@ -1,9 +1,9 @@
 """Zip-level and dataset-level inspection - everything depth 1 adds over depth 0.
 
-One pass per zip. 
+One pass per zip.
 
 "zip_level" is the container's object inventory - one entry per shapefile, .gdb, lock file or
-loose file, rather than per zip member. "dataset_level" describes what is inside each of those datasets. 
+loose file, rather than per zip member. "dataset_level" describes what is inside each of those datasets.
 
 The two answer different questions, so a .gdb appears once in zip_level, naming its feature classes,
 and once per feature class in dataset_level.
@@ -162,7 +162,7 @@ def read_tabular_entry(url: str, member_name: str, session) -> "dict | None":
     if data is None:
         return None
 
-    profile = tabular.profile_table(data, label=f"{member_name!r} in {url}")
+    profile = tabular.get_table_profile(data, label=f"{member_name!r} in {url}")
     stem = posixpath.splitext(posixpath.basename(member_name))[0]
     return dataset_entry(
         to_windows_path(member_name),
