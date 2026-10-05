@@ -11,8 +11,8 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-# The zip central directory lives at the end of the file, so a suffix range this size is
-# enough to read it for every archive seen so far without downloading the whole thing.
+# The zip central directory lives at the end of the file. Bigger tails cover archives with
+# more members in one request; a directory that doesn't fit costs a full download instead.
 CENTRAL_DIRECTORY_TAIL_BYTES = 262144
 
 
@@ -22,23 +22,23 @@ def _total_size_from_content_range(resp: requests.Response) -> int | None:
     return int(total) if total.isdigit() else None
 
 
-def get_zip_central_directory(
-    url: str, session: requests.Session
-) -> tuple[list[zipfile.ZipInfo], int | None] | None:
+def get_zip_central_directory(url: str, session: requests.Session) -> tuple[list[zipfile.ZipInfo], int | None] | None:
     """Read a remote zip's central directory without downloading the whole file.
 
-    Returns (infolist, total_size_bytes). Prefer this over get_zip_namelist: the infolist
-    carries each member's uncompressed `file_size`, and the total size comes free from the
-    same response's Content-Range headers.
+    Returns (infolist, total_size_bytes), or None if the zip couldn't be fetched or read.
+    total_size is None only when the server answers 206 without a usable Content-Range.
 
-    Requests just the tail of the file via a suffix Range request, falling back to a full
-    download if Range isn't honored. total_size is None only when the server answers 206
-    without a usable Content-Range.
+    Requests just the tail of the file via a suffix Range request. A server that ignores
+    Range sends the whole file, which is read directly. If a 206 tail doesn't parse - the
+    central directory is larger than CENTRAL_DIRECTORY_TAIL_BYTES, or the archive is
+    damaged - it falls back to downloading the whole file.
+
+    Each ZipInfo's names, sizes and other central-directory fields are reliable, but its
+    `header_offset` is not: when only the tail was read, zipfile measures it from the start
+    of that tail rather than the real file, so it can't locate a member in the remote file.
     """
     try:
-        resp = session.get(
-            url, headers={"Range": f"bytes=-{CENTRAL_DIRECTORY_TAIL_BYTES}"}, timeout=60
-        )
+        resp = session.get(url, headers={"Range": f"bytes=-{CENTRAL_DIRECTORY_TAIL_BYTES}"}, timeout=60)
     except requests.RequestException as exc:
         logger.warning(f"request failed for {url}: {exc}")
         return None
@@ -54,11 +54,7 @@ def get_zip_central_directory(
             logger.warning(f"could not read zip contents for {url}")
             return None
     else:
-        total = (
-            len(resp.content)
-            if resp.status_code == 200
-            else _total_size_from_content_range(resp)
-        )
+        total = len(resp.content) if resp.status_code == 200 else _total_size_from_content_range(resp)
         return infolist, total
 
     try:
@@ -122,31 +118,21 @@ class _HTTPRangeFile:
         return True
 
     def read(self, size: int = -1) -> bytes:
-        end = (
-            self._size - 1
-            if size is None or size < 0
-            else min(self._pos + size, self._size) - 1
-        )
+        end = self._size - 1 if size is None or size < 0 else min(self._pos + size, self._size) - 1
         if end < self._pos:
             return b""
-        resp = self._session.get(
-            self._url, headers={"Range": f"bytes={self._pos}-{end}"}, timeout=60
-        )
+        resp = self._session.get(self._url, headers={"Range": f"bytes={self._pos}-{end}"}, timeout=60)
         resp.raise_for_status()
         # A server ignoring Range sends the whole file with a 200, which is only the bytes
         # asked for when the read covered the whole file anyway.
         if resp.status_code != 206 and not (self._pos == 0 and end == self._size - 1):
-            raise _RangeNotHonoredError(
-                f"server ignored Range (status {resp.status_code}) for {self._url}"
-            )
+            raise _RangeNotHonoredError(f"server ignored Range (status {resp.status_code}) for {self._url}")
         data = resp.content
         self._pos += len(data)
         return data
 
 
-def get_zip_member_bytes(
-    url: str, member_name: str, session: requests.Session
-) -> bytes | None:
+def get_zip_member_bytes(url: str, member_name: str, session: requests.Session) -> bytes | None:
     """Read one member's bytes out of a remote zip via ranged HTTP requests, without
     downloading the whole file."""
     try:
