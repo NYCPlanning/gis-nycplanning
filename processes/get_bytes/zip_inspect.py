@@ -154,9 +154,8 @@ def dataset_entry(
 
 def read_tabular_entry(url: str, member_name: str, session) -> "dict | None":
     """One standalone .csv/.txt member, via ranged HTTP and stdlib csv - no GDAL here.
-
-    PLUTO's pre-2015 files predate UTF-8, which is what profile_table's encoding fallback is
-    for.
+    PLUTO's pre-2015 files predate UTF-8, which is what get_table_profile's encoding
+    fallback is for.
     """
     data = get_zip_member_bytes(url, member_name, session)
     if data is None:
