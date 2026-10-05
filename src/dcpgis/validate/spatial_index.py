@@ -1,13 +1,4 @@
-"""Check a shapefile's .sbn/.sbx spatial index against the geometry it claims to index.
-
-GDAL reports a corrupted index as usable, so the only way to catch one is to compare indexed
-spatial-filter counts with a truth baseline built without the index: each record's bounding
-box, parsed straight out of the .shp binary.
-
-Works on an already-open OGR layer, duck-typed, so this module never imports osgeo itself.
-Callers must have enabled `gdal.UseExceptions()`, or GDAL failures won't surface as the
-RuntimeError that becomes an ERROR verdict here.
-"""
+"""Check a shapefile's .sbn/.sbx spatial index against the geometry it claims to index."""
 
 import logging
 import struct
@@ -92,9 +83,13 @@ def indexed_count(layer, cell: BBox) -> int:
 
 def cells_mismatch(indexed: int, truth: int) -> bool:
     """Tolerant rather than exact: GDAL filters by real geometry while the truth baseline only
-    has bounding boxes, so a polygon whose bbox straddles a grid line lands in a neighbouring
-    cell's truth count. Measured on real data, that noise stays within CELL_MISMATCH_TOLERANCE
-    per cell, while genuine corruption drops counts by 90%+ - the two regimes don't overlap.
+    has bounding boxes, so a feature whose bbox reaches into a cell its geometry doesn't
+    touch inflates that cell's truth count. With a healthy index, truth >= indexed.
+
+    CELL_MISMATCH_TOLERANCE was calibrated on MapPLUTO tax lots - small, dense polygons -
+    where that noise stayed within it per cell and a corrupted index dropped counts by 90%+.
+    Large polygons or long lines put far more bboxes across cell edges, so check the
+    threshold holds on such data before trusting an INCONSISTENT verdict.
     """
     return abs(indexed - truth) > max(2, CELL_MISMATCH_TOLERANCE * max(indexed, truth))
 
