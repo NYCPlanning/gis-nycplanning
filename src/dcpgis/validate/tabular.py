@@ -27,6 +27,9 @@ def get_table_profile(data: bytes, label: str = "table") -> dict:
 
     There's no delimiter sniffing. Other delimiters still get a row count, but `col_count`
     is then one more than the header's comma count - usually 1 for a tab- or pipe-delimited file.
+
+    Rows end only at `\\n` or `\\r\\n`. A bare `\\r` outside a quoted field - a stray one, or
+    classic Mac line endings - fails the parse rather than being counted as a row break.
     """
     text = ""
     encoding = None

@@ -35,6 +35,14 @@ def test_get_table_profile_empty_content_has_no_counts(caplog):
     assert "empty.txt is empty" in caplog.text
 
 
+def test_get_table_profile_stray_carriage_return_is_unparseable(caplog):
+    # Counting it as a row break instead would report 3 rows here without any warning.
+    profile = tabular.get_table_profile(b"a,b\n1,x\ry\n3,4\n", label="cr.csv")
+    assert profile["col_count"] == 2
+    assert profile["row_count"] is None
+    assert "could not parse cr.csv" in caplog.text
+
+
 def test_get_table_profile_unparseable_keeps_encoding_and_header(caplog):
     # An unbalanced quote swallows the rest of the file into one field, which csv.reader
     # rejects once it passes the field size limit. The header before it still counts.
