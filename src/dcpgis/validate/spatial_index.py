@@ -129,6 +129,7 @@ def check_spatial_index(
                 return {"present": True, "status": "INCONSISTENT"}
         return {"present": True, "status": "CONSISTENT"}
     except RuntimeError as exc:
-        # A compression quirk lands here: the layer lists fine, but reading its data fails.
+        # Includes layers that open but whose data can't be read, e.g. under /vsizip/ when the
+        # member uses a compression method GDAL doesn't support.
         logger.warning(f"spatial index check failed for {label}: {exc}")
         return {"present": None, "status": "ERROR"}

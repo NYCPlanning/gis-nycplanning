@@ -1,10 +1,3 @@
-"""What a zip archive holds, worked out from its member names alone - no GDAL, no reads.
-
-Discovery sorts a flat namelist into what each reader should open. The object inventory rolls
-members up into the things a person would name: one shapefile rather than its sidecars, one
-.gdb rather than its system files.
-"""
-
 import posixpath
 import zipfile
 
@@ -21,8 +14,8 @@ def discover_gdb_folders(names: list[str]) -> list[str]:
 def discover_loose_dirs(names: list[str]) -> list[str]:
     """Parent directories ('' for top level) holding at least one .shp or standalone .dbf.
 
-    Gated on those actually being present: a directory of only PDFs can never be identified
-    by the Shapefile driver, so there is no point asking GDAL to try.
+    Gated on those actually being present, so a caller opening each result as a shapefile
+    source never gets a directory with nothing in it to open (e.g. only PDFs).
     """
     dirs = set()
     for name in names:
@@ -63,8 +56,8 @@ def discover_pdf_files(names: list[str]) -> list[str]:
 def object_key(path: str, shp_bases: set[str]) -> tuple[str, str]:
     """Which object a zip member belongs to, and that object's kind.
 
-    Lock files are tested before the .gdb prefix so they stay top-level: whether an archive
-    ships one is the question being asked, and folding them into the gdb would hide it.
+    Lock files are tested before the .gdb prefix so they stay top-level objects; folded into
+    the gdb, callers couldn't see whether an archive ships them.
     """
     lower = path.lower()
     if lower.endswith(".lock"):

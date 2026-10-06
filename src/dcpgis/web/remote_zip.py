@@ -143,8 +143,8 @@ def get_zip_member_bytes(url: str, member_name: str, session: requests.Session) 
         zipfile.BadZipFile,
         KeyError,
         OSError,
-        # Some older archives use compression stdlib zipfile can't decode; without this the
-        # failure escapes and costs the whole zip instead of just this member.
+        # Some archives use compression stdlib zipfile can't decode (e.g. Deflate64); without
+        # this the failure escapes to the caller instead of returning None for this member.
         NotImplementedError,
         # Damaged compressed data surfaces as the decompressor's own error, not BadZipFile.
         zlib.error,
