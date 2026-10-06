@@ -3,6 +3,10 @@ import zipfile
 
 
 def discover_gdb_folders(names: list[str]) -> list[str]:
+    """File geodatabase folders - each path up to and including `.gdb` - one per gdb.
+
+    Matched case-insensitively but returned in the archive's own casing, so `a.gdb` and
+    `A.GDB` come back as two folders."""
     folders = set()
     for name in names:
         idx = name.lower().find(".gdb/")
@@ -28,6 +32,7 @@ def discover_loose_dirs(names: list[str]) -> list[str]:
 
 
 def discover_nested_zips(names: list[str]) -> list[str]:
+    """Members that are themselves zips. A namelist can't see inside them."""
     return sorted(n for n in names if n.lower().endswith(".zip"))
 
 
@@ -52,6 +57,7 @@ def discover_tabular_files(names: list[str]) -> list[str]:
 
 
 def discover_pdf_files(names: list[str]) -> list[str]:
+    """Standalone .pdf members, skipping .gdb-internal files and nested zips."""
     return _discover_by_suffix(names, (".pdf",))
 
 

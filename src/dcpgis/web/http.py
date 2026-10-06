@@ -13,6 +13,9 @@ _HEAD_UNSUPPORTED = (405, 501)
 
 
 def make_session() -> requests.Session:
+    """A requests session that sends a browser-like User-Agent with every request.
+
+    Pass one session to each call so they reuse its connections."""
     session = requests.Session()
     session.headers.update({"User-Agent": _USER_AGENT})
     return session
