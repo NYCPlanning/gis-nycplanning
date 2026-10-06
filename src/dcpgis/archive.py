@@ -45,7 +45,9 @@ def _discover_by_suffix(names: list[str], suffixes: tuple[str, ...]) -> list[str
 def discover_tabular_files(names: list[str]) -> list[str]:
     """Standalone .csv/.txt members.
 
-    Skips .gdb-internal files (a gdb's tabular data already arrives as layers) and nested zips."""
+    Skips .gdb-internal files (a gdb's tabular data already arrives as layers) and nested zips.
+    Every .txt counts, judged by suffix alone, so a README.txt or metadata .txt is returned
+    alongside real tables; callers whose archives carry those need to filter them out."""
     return _discover_by_suffix(names, (".csv", ".txt"))
 
 
@@ -58,6 +60,9 @@ def object_key(path: str, shp_bases: set[str]) -> tuple[str, str]:
 
     Lock files are tested before the .gdb prefix so they stay top-level objects; folded into
     the gdb, callers couldn't see whether an archive ships them.
+
+    Any standalone .csv, .txt or .dbf is kind "table", by suffix alone, so a README.txt is
+    a "table" too.
     """
     lower = path.lower()
     if lower.endswith(".lock"):
