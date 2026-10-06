@@ -199,6 +199,19 @@ def find_corrupted_spatial_indexes(entry: dict) -> list[dict]:
     return problems
 
 
+def find_empty_datasets(entry: dict) -> list[dict]:
+    """Layers and tables that read cleanly but hold no rows.
+
+    Its own problem rather than corrupted_file: an empty layer isn't necessarily damaged.
+    Only an exact 0 counts - None means unparseable, or a type that never has a count.
+    """
+    return [
+        _problem(entry, "file", "empty_dataset", path_in_zip=dataset["path_in_zip"])
+        for dataset in entry.get("dataset_level") or []
+        if dataset["row_count"] == 0
+    ]
+
+
 def find_corrupted_files(entry: dict) -> list[dict]:
     return (
         _unparseable_tables(entry)
@@ -315,6 +328,7 @@ def build_error_rows(observed: dict) -> list[dict]:
         find_extra_zip_nesting,
         find_lock_files,
         find_corrupted_spatial_indexes,
+        find_empty_datasets,
         find_corrupted_files,
     )
     problems = [

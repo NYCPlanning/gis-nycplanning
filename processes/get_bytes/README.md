@@ -1,7 +1,7 @@
 # get_bytes
 
 Audits a NYC DCP dataset page (built against the MapPLUTO/PLUTO page) for problems in the hosted data: broken links, mislabeled files, damaged or unreadable zips, stray lock
-files, and corrupted shapefile spatial indexes. It also inventories what each release zip
+files, empty layers and tables, and corrupted shapefile spatial indexes. It also inventories what each release zip
 actually contains.
 
 Everything the tool learns over the network is stored once, in a central JSON report. The

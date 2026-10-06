@@ -208,6 +208,38 @@ def test_find_corrupted_spatial_indexes_one_row_per_affected_layer():
     assert rows[0]["level"] == "file"
 
 
+def test_find_empty_datasets_flags_zero_rows_in_any_type():
+    entry = _entry("nyc_mappluto_26v2_fgdb")
+    entry["dataset_level"] = [
+        _dataset("pluto.csv", "csv", row_count=0, col_count=90),  # header only
+        _dataset("MapPLUTO.gdb\\NOT_MAPPED_LOTS", "gdb_tb", row_count=0),
+        _dataset("MapPLUTO.shp", "shp", row_count=857208),
+    ]
+    rows = reports.find_empty_datasets(entry)
+    assert [(r["path_in_zip"], r["level"], r["problem"], r["detail"]) for r in rows] == [
+        ("pluto.csv", "file", "empty_dataset", ""),
+        ("MapPLUTO.gdb\\NOT_MAPPED_LOTS", "file", "empty_dataset", ""),
+    ]
+
+
+def test_find_empty_datasets_ignores_missing_counts():
+    # None is an unparseable table, or a type with no count at all - not an empty one.
+    entry = _entry("nyc_pluto_20v5_arc_csv")
+    entry["dataset_level"] = [
+        _dataset("pluto_20v5.csv", "csv", row_count=None, col_count=3),
+        _dataset("MapPLUTO.gdb\\elevation", "gdb_raster", row_count=None, col_count=None),
+        _dataset("pluto_readme.pdf", "pdf", row_count=None, col_count=None),
+    ]
+    assert reports.find_empty_datasets(entry) == []
+
+
+def test_build_error_rows_includes_empty_datasets():
+    entry = _entry("nyc_pluto_26v2_arc_csv")
+    entry["dataset_level"] = [_dataset("pluto.csv", "csv", row_count=0)]
+    rows = reports.build_error_rows(_observed([entry], depth=1))
+    assert [(r["path_in_zip"], r["problem"]) for r in rows] == [("pluto.csv", "empty_dataset")]
+
+
 def _corrupted(entry):
     return [
         (r["path_in_zip"], r["detail"]) for r in reports.find_corrupted_files(entry)
