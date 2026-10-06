@@ -55,7 +55,7 @@ def discover_pdf_files(names: list[str]) -> list[str]:
     return _discover_by_suffix(names, (".pdf",))
 
 
-def object_key(path: str, shp_bases: set[str]) -> tuple[str, str]:
+def _object_key(path: str, shp_bases: set[str]) -> tuple[str, str]:
     """Which object a zip member belongs to, and that object's kind.
 
     Lock files are tested before the .gdb prefix so they stay top-level objects; folded into
@@ -75,7 +75,7 @@ def object_key(path: str, shp_bases: set[str]) -> tuple[str, str]:
     if lower.endswith(".zip"):
         return path, "zip"
 
-    base, ext = shapefile_split(path)
+    base, ext = _shapefile_split(path)
     if base in shp_bases:
         return f"{base}.shp", "shapefile"
     if ext in (".csv", ".txt", ".dbf"):
@@ -83,7 +83,7 @@ def object_key(path: str, shp_bases: set[str]) -> tuple[str, str]:
     return path, "file"
 
 
-def shapefile_split(path: str) -> tuple[str, str]:
+def _shapefile_split(path: str) -> tuple[str, str]:
     """(basename, extension), treating .shp.xml as one extension so the metadata sidecar
     groups with its shapefile rather than looking like a lone .xml."""
     lower = path.lower()
@@ -116,16 +116,16 @@ def build_object_inventory(
     open.
     """
     files = [i for i in infolist if not i.is_dir()]
-    shp_bases = {shapefile_split(i.filename)[0] for i in files if i.filename.lower().endswith(".shp")}
+    shp_bases = {_shapefile_split(i.filename)[0] for i in files if i.filename.lower().endswith(".shp")}
 
     objects: dict[str, dict] = {}
     parts: dict[str, set[str]] = {}
     for info in files:
-        key, kind = object_key(info.filename, shp_bases)
+        key, kind = _object_key(info.filename, shp_bases)
         obj = objects.setdefault(key, {"path": key, "kind": kind, "size_bytes": 0})
         obj["size_bytes"] += info.file_size
         if kind == "shapefile":
-            parts.setdefault(key, set()).add(shapefile_split(info.filename)[1])
+            parts.setdefault(key, set()).add(_shapefile_split(info.filename)[1])
 
     for key, obj in objects.items():
         if obj["kind"] == "shapefile":
