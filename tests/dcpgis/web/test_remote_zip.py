@@ -1,4 +1,4 @@
-"""Tests for common.py - fully offline (see conftest.block_network)."""
+"""Tests for dcpgis.web.remote_zip - fully offline (see conftest.block_network)."""
 
 import io
 import lzma
@@ -8,15 +8,14 @@ import zlib
 import pytest
 import requests
 
-from processes.get_bytes.common import (
+from dcpgis.web.http import make_session
+from dcpgis.web.remote_zip import (
     _HTTPRangeFile,
-    get_response_code,
     get_zip_central_directory,
     get_zip_member_bytes,
     get_zip_namelist,
-    make_session,
 )
-from tests.processes.get_bytes.conftest import (
+from tests.conftest import (
     MockResponse,
     make_zip_bytes,
     mock_ranged_file_session,
@@ -25,11 +24,6 @@ from tests.processes.get_bytes.conftest import (
 )
 
 URL = "https://s-media.nyc.gov/example.zip"
-
-
-def test_make_session_sets_user_agent():
-    session = make_session()
-    assert session.headers.get("User-Agent")
 
 
 def test_get_zip_namelist_ranged_success(monkeypatch):
@@ -83,12 +77,12 @@ def test_get_zip_central_directory_total_from_full_response_length(monkeypatch):
     assert result[1] == len(zip_bytes)
 
 
-def test_get_zip_namelist_unexpected_status_returns_none(monkeypatch, capsys):
+def test_get_zip_namelist_unexpected_status_returns_none(monkeypatch, caplog):
     routes = {URL: MockResponse(404)}
     monkeypatch.setattr(requests.Session, "get", mock_session_call(routes))
 
     assert get_zip_namelist(URL, make_session()) is None
-    assert "unexpected status 404" in capsys.readouterr().out
+    assert "unexpected status 404" in caplog.text
 
 
 def test_get_zip_namelist_ranged_200_corrupt_returns_none_without_fallback(monkeypatch):
@@ -126,54 +120,12 @@ def test_get_zip_namelist_fallback_get_also_fails_returns_none(monkeypatch):
     assert get_zip_namelist(URL, make_session()) is None
 
 
-def test_get_zip_namelist_request_exception_returns_none(monkeypatch, capsys):
+def test_get_zip_namelist_request_exception_returns_none(monkeypatch, caplog):
     routes = {URL: requests.RequestException("boom")}
     monkeypatch.setattr(requests.Session, "get", mock_session_call(routes))
 
     assert get_zip_namelist(URL, make_session()) is None
-    assert "request failed" in capsys.readouterr().out
-
-
-def test_get_response_code_head_200(monkeypatch):
-    monkeypatch.setattr(
-        requests.Session, "head", mock_session_call({URL: MockResponse(200)})
-    )
-    assert get_response_code(URL, make_session()) == 200
-
-
-def test_get_response_code_head_404_no_get_fallback(monkeypatch):
-    # A completed HEAD request is not a failure, even with a 404 - no GET should be attempted.
-    monkeypatch.setattr(
-        requests.Session, "head", mock_session_call({URL: MockResponse(404)})
-    )
-    assert get_response_code(URL, make_session()) == 404
-
-
-def test_get_response_code_head_fails_falls_back_to_get(monkeypatch):
-    monkeypatch.setattr(
-        requests.Session,
-        "head",
-        mock_session_call({URL: requests.RequestException("HEAD not allowed")}),
-    )
-    monkeypatch.setattr(
-        requests.Session, "get", mock_session_call({URL: MockResponse(200)})
-    )
-    assert get_response_code(URL, make_session()) == 200
-
-
-def test_get_response_code_both_fail_returns_none(monkeypatch, capsys):
-    monkeypatch.setattr(
-        requests.Session,
-        "head",
-        mock_session_call({URL: requests.RequestException("HEAD not allowed")}),
-    )
-    monkeypatch.setattr(
-        requests.Session,
-        "get",
-        mock_session_call({URL: requests.RequestException("connection reset")}),
-    )
-    assert get_response_code(URL, make_session()) is None
-    assert "could not check status" in capsys.readouterr().out
+    assert "request failed" in caplog.text
 
 
 def test_get_zip_member_bytes_reads_real_member_via_ranged_requests(monkeypatch):
@@ -190,14 +142,14 @@ def test_get_zip_member_bytes_reads_real_member_via_ranged_requests(monkeypatch)
     )
 
 
-def test_get_zip_member_bytes_missing_member_returns_none(monkeypatch, capsys):
+def test_get_zip_member_bytes_missing_member_returns_none(monkeypatch, caplog):
     zip_bytes = make_zip_bytes(["a.shp"])
     get, head = mock_ranged_file_session(zip_bytes)
     monkeypatch.setattr(requests.Session, "get", get)
     monkeypatch.setattr(requests.Session, "head", head)
 
     assert get_zip_member_bytes(URL, "missing.csv", make_session()) is None
-    assert "could not read member" in capsys.readouterr().out
+    assert "could not read member" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -211,7 +163,7 @@ def test_get_zip_member_bytes_missing_member_returns_none(monkeypatch, capsys):
         lzma.LZMAError("Corrupt input data"),
     ],
 )
-def test_get_zip_member_bytes_undecodable_member_returns_none(monkeypatch, capsys, error):
+def test_get_zip_member_bytes_undecodable_member_returns_none(monkeypatch, caplog, error):
     # None of these is an OSError - left uncaught, each escapes and the caller loses the
     # entire zip rather than this one member.
     zip_bytes = make_zip_bytes(["odd.csv"], content={"odd.csv": b"a,b\n1,2\n"})
@@ -225,10 +177,10 @@ def test_get_zip_member_bytes_undecodable_member_returns_none(monkeypatch, capsy
     )
 
     assert get_zip_member_bytes(URL, "odd.csv", make_session()) is None
-    assert "could not read member" in capsys.readouterr().out
+    assert "could not read member" in caplog.text
 
 
-def test_get_zip_member_bytes_real_corrupt_deflate_returns_none(monkeypatch, capsys):
+def test_get_zip_member_bytes_real_corrupt_deflate_returns_none(monkeypatch, caplog):
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("data.csv", b"a,b\n" + b"1,2\n" * 5000)
@@ -241,10 +193,10 @@ def test_get_zip_member_bytes_real_corrupt_deflate_returns_none(monkeypatch, cap
     monkeypatch.setattr(requests.Session, "head", head)
 
     assert get_zip_member_bytes(URL, "data.csv", make_session()) is None
-    assert "could not read member" in capsys.readouterr().out
+    assert "could not read member" in caplog.text
 
 
-def test_get_zip_member_bytes_head_failure_returns_none(monkeypatch, capsys):
+def test_get_zip_member_bytes_head_failure_returns_none(monkeypatch, caplog):
     monkeypatch.setattr(
         requests.Session,
         "head",
@@ -252,7 +204,53 @@ def test_get_zip_member_bytes_head_failure_returns_none(monkeypatch, capsys):
     )
 
     assert get_zip_member_bytes(URL, "data.csv", make_session()) is None
-    assert "could not read member" in capsys.readouterr().out
+    assert "could not read member" in caplog.text
+
+
+def _range_ignoring_session(full_bytes: bytes):
+    """(get, head) for a server that answers every GET with the whole file and a 200."""
+
+    def _get(self, url, *args, **kwargs):
+        return MockResponse(200, full_bytes)
+
+    def _head(self, url, *args, **kwargs):
+        return MockResponse(200, headers={"Content-Length": str(len(full_bytes))})
+
+    return _get, _head
+
+
+def test_get_zip_member_bytes_range_ignored_returns_none(monkeypatch, caplog):
+    # Treating a 200's whole-file body as the requested slice would hand zipfile the wrong
+    # bytes at every offset.
+    zip_bytes = make_zip_bytes(["data.csv"], content={"data.csv": b"a,b\n1,2\n"})
+    get, head = _range_ignoring_session(zip_bytes)
+    monkeypatch.setattr(requests.Session, "get", get)
+    monkeypatch.setattr(requests.Session, "head", head)
+
+    assert get_zip_member_bytes(URL, "data.csv", make_session()) is None
+    assert "server ignored Range (status 200)" in caplog.text
+
+
+def test_http_range_file_whole_file_read_accepts_200(monkeypatch):
+    get, head = _range_ignoring_session(b"0123456789")
+    monkeypatch.setattr(requests.Session, "get", get)
+    monkeypatch.setattr(requests.Session, "head", head)
+
+    assert _HTTPRangeFile(URL, make_session()).read() == b"0123456789"
+
+
+@pytest.mark.parametrize("headers", [{}, {"Content-Length": "unknown"}])
+def test_get_zip_member_bytes_unusable_content_length_returns_none(
+    monkeypatch, caplog, headers
+):
+    monkeypatch.setattr(
+        requests.Session,
+        "head",
+        mock_session_call({URL: MockResponse(200, headers=headers)}),
+    )
+
+    assert get_zip_member_bytes(URL, "data.csv", make_session()) is None
+    assert "no usable Content-Length" in caplog.text
 
 
 def test_http_range_file_seek_whence_variants(monkeypatch):
