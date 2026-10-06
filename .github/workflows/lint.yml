@@ -30,7 +30,7 @@ jobs:
       - name: Run mypy
         if: ${{ !cancelled() }}
         shell: bash -el {0}
-        run: mypy src tests
+        run: mypy src tests processes
 
       - name: Run PSScriptAnalyzer
         if: ${{ !cancelled() }}
