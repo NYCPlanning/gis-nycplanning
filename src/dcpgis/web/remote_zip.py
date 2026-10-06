@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # The zip central directory lives at the end of the file. Bigger tails cover archives with
 # more members in one request; a directory that doesn't fit costs a full download instead.
-CENTRAL_DIRECTORY_TAIL_BYTES = 262144
+_CENTRAL_DIRECTORY_TAIL_BYTES = 262144
 
 
 def _total_size_from_content_range(resp: requests.Response) -> int | None:
@@ -30,15 +30,15 @@ def get_zip_central_directory(url: str, session: requests.Session) -> tuple[list
 
     Requests just the tail of the file via a suffix Range request. A server that ignores
     Range sends the whole file, which is read directly. If a 206 tail doesn't parse - the
-    central directory is larger than CENTRAL_DIRECTORY_TAIL_BYTES, or the archive is
-    damaged - it falls back to downloading the whole file.
+    central directory is larger than the fetched tail, or the archive is damaged - it falls
+    back to downloading the whole file.
 
     Each ZipInfo's names, sizes and other central-directory fields are reliable, but its
     `header_offset` is not: when only the tail was read, zipfile measures it from the start
     of that tail rather than the real file, so it can't locate a member in the remote file.
     """
     try:
-        resp = session.get(url, headers={"Range": f"bytes=-{CENTRAL_DIRECTORY_TAIL_BYTES}"}, timeout=60)
+        resp = session.get(url, headers={"Range": f"bytes=-{_CENTRAL_DIRECTORY_TAIL_BYTES}"}, timeout=60)
     except requests.RequestException as exc:
         logger.warning(f"request failed for {url}: {exc}")
         return None

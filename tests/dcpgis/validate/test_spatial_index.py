@@ -47,7 +47,7 @@ def _without_index(zip_path, out_path, old: str, new: str):
 
 
 def test_make_grid_covers_extent_exactly():
-    cells = spatial_index.make_grid(0, 0, 3, 3, n=3)
+    cells = spatial_index._make_grid(0, 0, 3, 3, n=3)
     assert len(cells) == 9
     assert cells[0] == (0, 0, 1, 1)
     assert cells[-1] == (2, 2, 3, 3)
@@ -55,17 +55,17 @@ def test_make_grid_covers_extent_exactly():
 
 def test_truth_count_counts_intersecting_bboxes_and_skips_nulls():
     bboxes = [(0, 0, 1, 1), (5, 5, 6, 6), None]
-    assert spatial_index.truth_count(bboxes, (0, 0, 2, 2)) == 1
-    assert spatial_index.truth_count(bboxes, (0, 0, 10, 10)) == 2
+    assert spatial_index._truth_count(bboxes, (0, 0, 2, 2)) == 1
+    assert spatial_index._truth_count(bboxes, (0, 0, 10, 10)) == 2
 
 
 def test_cells_mismatch_absorbs_boundary_noise_but_catches_real_corruption():
     # The bbox-vs-geometry artifact measured on a known-good file was off-by-one on a few
     # thousand; real corruption was a 90%+ drop. These assertions pin both regimes.
-    assert not spatial_index.cells_mismatch(19403, 19404)
-    assert not spatial_index.cells_mismatch(0, 2)
-    assert spatial_index.cells_mismatch(1401, 19102)
-    assert spatial_index.cells_mismatch(0, 100)
+    assert not spatial_index._cells_mismatch(19403, 19404)
+    assert not spatial_index._cells_mismatch(0, 2)
+    assert spatial_index._cells_mismatch(1401, 19102)
+    assert spatial_index._cells_mismatch(0, 100)
 
 
 # --- .shp parsing -------------------------------------------------------------------------------

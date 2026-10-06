@@ -6,12 +6,12 @@ from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
-GRID_SIZE = 3
+_GRID_SIZE = 3
 
-CELL_MISMATCH_TOLERANCE = 0.01
+_CELL_MISMATCH_TOLERANCE = 0.01
 
 # Point, PointZ and PointM records store a bare coordinate where every other type has a bbox.
-POINT_SHAPE_TYPES = {1, 11, 21}
+_POINT_SHAPE_TYPES = {1, 11, 21}
 
 BBox = tuple[float, float, float, float]
 
@@ -38,7 +38,7 @@ def parse_shp_bboxes(data: bytes, label: str = ".shp") -> "list[BBox | None] | N
             shape_type = struct.unpack("<i", data[pos + 8 : pos + 12])[0]
             if shape_type == 0:
                 bboxes.append(None)
-            elif shape_type in POINT_SHAPE_TYPES:
+            elif shape_type in _POINT_SHAPE_TYPES:
                 x, y = struct.unpack("<dd", data[pos + 12 : pos + 28])
                 bboxes.append((x, y, x, y))
             else:
@@ -50,7 +50,7 @@ def parse_shp_bboxes(data: bytes, label: str = ".shp") -> "list[BBox | None] | N
     return bboxes
 
 
-def make_grid(minx: float, miny: float, maxx: float, maxy: float, n: int = GRID_SIZE) -> list[BBox]:
+def _make_grid(minx: float, miny: float, maxx: float, maxy: float, n: int = _GRID_SIZE) -> list[BBox]:
     """n x n cells over the extent - catches corruption localized to part of the extent that
     a single whole-extent query would miss."""
     width = (maxx - minx) / n
@@ -67,31 +67,31 @@ def make_grid(minx: float, miny: float, maxx: float, maxy: float, n: int = GRID_
     ]
 
 
-def truth_count(bboxes: "list[BBox | None]", cell: BBox) -> int:
+def _truth_count(bboxes: "list[BBox | None]", cell: BBox) -> int:
     cminx, cminy, cmaxx, cmaxy = cell
     return sum(
         1 for b in bboxes if b is not None and b[2] >= cminx and b[0] <= cmaxx and b[3] >= cminy and b[1] <= cmaxy
     )
 
 
-def indexed_count(layer, cell: BBox) -> int:
+def _indexed_count(layer, cell: BBox) -> int:
     layer.SetSpatialFilterRect(*cell)
     count = layer.GetFeatureCount(force=0)
     layer.SetSpatialFilter(None)
     return count
 
 
-def cells_mismatch(indexed: int, truth: int) -> bool:
+def _cells_mismatch(indexed: int, truth: int) -> bool:
     """Tolerant rather than exact: GDAL filters by real geometry while the truth baseline only
     has bounding boxes, so a feature whose bbox reaches into a cell its geometry doesn't
     touch inflates that cell's truth count. With a healthy index, truth >= indexed.
 
-    CELL_MISMATCH_TOLERANCE was calibrated on MapPLUTO tax lots - small, dense polygons -
+    _CELL_MISMATCH_TOLERANCE was calibrated on MapPLUTO tax lots - small, dense polygons -
     where that noise stayed within it per cell and a corrupted index dropped counts by 90%+.
     Large polygons or long lines put far more bboxes across cell edges, so check the
     threshold holds on such data before trusting an INCONSISTENT verdict.
     """
-    return abs(indexed - truth) > max(2, CELL_MISMATCH_TOLERANCE * max(indexed, truth))
+    return abs(indexed - truth) > max(2, _CELL_MISMATCH_TOLERANCE * max(indexed, truth))
 
 
 def check_spatial_index(
@@ -113,6 +113,10 @@ def check_spatial_index(
         INCONSISTENT or ERROR, and None when there is no index to check. `present` is
         informational only - GDAL reports a corrupted index as usable, which is why this
         comparison exists at all.
+
+    The mismatch tolerance behind INCONSISTENT was calibrated on small, dense polygons
+    (MapPLUTO tax lots). On large polygons or long lines, confirm it holds before trusting
+    that verdict; see _cells_mismatch.
     """
     try:
         present = bool(layer.TestCapability("FastSpatialFilter"))
@@ -124,8 +128,8 @@ def check_spatial_index(
         if bboxes is None:
             return {"present": True, "status": "ERROR"}
 
-        for cell in make_grid(minx, miny, maxx, maxy):
-            if cells_mismatch(indexed_count(layer, cell), truth_count(bboxes, cell)):
+        for cell in _make_grid(minx, miny, maxx, maxy):
+            if _cells_mismatch(_indexed_count(layer, cell), _truth_count(bboxes, cell)):
                 return {"present": True, "status": "INCONSISTENT"}
         return {"present": True, "status": "CONSISTENT"}
     except RuntimeError as exc:

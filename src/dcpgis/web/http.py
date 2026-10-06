@@ -6,7 +6,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 
 # What servers that don't implement HEAD answer, instead of failing the request.
 _HEAD_UNSUPPORTED = (405, 501)
@@ -14,7 +14,7 @@ _HEAD_UNSUPPORTED = (405, 501)
 
 def make_session() -> requests.Session:
     session = requests.Session()
-    session.headers.update({"User-Agent": USER_AGENT})
+    session.headers.update({"User-Agent": _USER_AGENT})
     return session
 
 
