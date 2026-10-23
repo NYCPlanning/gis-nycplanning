@@ -5,6 +5,19 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dcpgis"
 version = "0.0.1"
+# GDAL's Python bindings (osgeo.gdal/osgeo.ogr, used by dcpgis.utils.inspect_data) and
+# pandas are intentionally left out of `dependencies`: this project's supported
+# environment (e.g. ArcGIS Pro's conda distribution) already provides both, and letting
+# pip manage them risks it rebuilding or replacing packages other conda/Esri-channel
+# packages in that environment were built against. GDAL specifically also has no
+# Windows wheel on PyPI and falls back to a source build that currently fails outright
+# (broken `project.license` metadata in the gdal sdist). Install/verify both via conda
+# (`conda install -c conda-forge gdal pandas`) or your GIS environment's own packages
+# rather than pip.
+dependencies = []
+
+[project.scripts]
+dcpgis-compare-schema = "dcpgis.compare_schema:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
