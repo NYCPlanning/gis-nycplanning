@@ -5,7 +5,7 @@ import json
 import requests
 
 from processes.get_bytes import reports, scrape
-from tests.processes.get_bytes.conftest import (
+from tests.conftest import (
     MockResponse,
     make_zip_bytes,
     mock_session_call,
