@@ -7,20 +7,20 @@ from datetime import datetime
 from pathlib import Path
 
 import arcpy
+import utils as zoning_utils
 from arcpy import metadata as md
-
-from dcpgis.cli import CLI
-from dcpgis.constants import OPEN_DATA_SUB_DIRS
-from dcpgis.utils import config, date_logic, dir_mgmt, package
-from dcpgis.utils import logging as dcp_logging
-from zoning import utils as zoning_utils
-from zoning.constants import (
+from constants import (
     GEOREF_CONVENTIONS,
     METADATA_XML_VALUES,
     ZONING_CONVENTIONS,
     ZONING_DATA_DICTS,
     ZONING_PACKAGING,
 )
+
+from dcpgis.cli import CLI
+from dcpgis.constants import OPEN_DATA_SUB_DIRS
+from dcpgis.utils import config, date_logic, dir_mgmt, package
+from dcpgis.utils import logging as dcp_logging
 
 CONFIG_FILE_PARENT = Path(__file__).parent.parent.parent / "config"
 PRODUCT_CONFIG_FILE_PARENT = Path(__file__).parent / "config"
