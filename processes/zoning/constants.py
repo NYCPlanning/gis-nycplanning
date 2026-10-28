@@ -219,4 +219,5 @@ METADATA_XML_VALUES = {
     # "min_scale": "150000000",
     # "max_scale": "5000",
     "res_title": "",
+    "feature_name": "",
 }

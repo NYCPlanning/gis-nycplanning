@@ -155,6 +155,7 @@ def update_metadata_values(base_dict: dict, feature_info: dict[str, Any], cycle_
         "council_date": council_date if council_date else "",
         "item_name": feature_info["meta_res_title"],
         "res_title": feature_info["meta_res_title"],
+        "feature_name": feature_info["public_output_name"],
     }
 
     metadata_values.update(updates)
