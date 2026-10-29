@@ -1,1 +1,1 @@
-OPEN_DATA_SUB_DIRS = ["raw_data", "metadata", "shp", "gdb", 'web']
+OPEN_DATA_SUB_DIRS = ["raw_data", "metadata", "shp", "gdb", "web", "web/archive"]

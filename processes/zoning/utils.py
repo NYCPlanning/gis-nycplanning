@@ -250,14 +250,13 @@ def archive_zipping(
     Args:
         parent_dir (str | Path): Root directory containing the source folders.
         archive_specs (dict): Mapping of archive definitions, where each entry contains source_dirs, content, output_name, and output_dir.
-        output_dir_name (str): Folder where zip files are written.
+        output_dir_name (str): Default folder where zip files are written, used when a spec has no output_dir.
+            A spec's output_dir may be a nested relative path, e.g. "web/archive".
         dangerous_ignore_locks (bool, optional): if Ture, skips any files with .lock in the name. Default is False. False will raise clear exception when lock is encountered.
         product_version (str, optional): Value used to format output names.
 
     """
     parent_path = Path(parent_dir)
-    output_dir = parent_path / output_dir_name
-    output_dir.mkdir(parents=True, exist_ok=True)  # redundant but safe
 
     for archive_name, spec in archive_specs.items():
         source_dirs = spec.get("source_dirs")
@@ -272,10 +271,13 @@ def archive_zipping(
         if product_version is not None:
             output_name = output_name.format(cycle_date=product_version)
 
+        output_dir = parent_path / spec.get("output_dir", output_dir_name)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
         zip_path = output_dir / output_name
         with zipfile.ZipFile(zip_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
             for source_dir_name in source_dirs:
-                source_dir = parent_dir / source_dir_name
+                source_dir = parent_path / source_dir_name
                 if not source_dir.exists():
                     logging.warning(f"Source directory {source_dir} does not exist. Skipping.")
                     continue

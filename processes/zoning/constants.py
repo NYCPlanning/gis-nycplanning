@@ -137,7 +137,7 @@ Archive specifications are defined in a dictionary with the following keys:
 - source_dirs: one or more folders to search for input files
 - content: explicit file names to include from those folders
 - output_name: the zip file name to create
-- output_dir: the folder where the zip should be written
+- output_dir: the folder where the zip should be written, relative to the cycle directory (may be nested, e.g. "web/archive")
 
 This structure supports packaging both single-folder and multi-folder archives
 while keeping the file selection explicit.
@@ -172,7 +172,7 @@ ZONING_PACKAGING = {
         "source_dirs": ["gdb"],
         "content": ["nyc_zoning_features.gdb"],
         "output_name": "nyc_zoning_features_{cycle_date}_gdb.zip",
-        "output_dir": "web",
+        "output_dir": "web/archive",
     },
     "georeferenced_gdb_archive": {
         "source_dirs": ["gdb"],
@@ -180,7 +180,7 @@ ZONING_PACKAGING = {
             "nyc_zoning_georeferenced_maps.gdb",
         ],
         "output_name": "nyc_zoning_georeferenced_maps_{cycle_date}_gdb.zip",
-        "output_dir": "web",
+        "output_dir": "web/archive",
     },
     "zoning_features_shp_archive": {
         "source_dirs": ["shp"],
@@ -193,7 +193,7 @@ ZONING_PACKAGING = {
             "zoning_special_subdistricts.*",
         ],
         "output_name": "nyc_zoning_features_{cycle_date}_shp.zip",
-        "output_dir": "web",
+        "output_dir": "web/archive",
     },
 }
 

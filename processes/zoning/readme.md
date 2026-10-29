@@ -57,7 +57,7 @@ Config Files
  - Final staging to open data directories
  - Temp directory deleted
 
-Outputs are written to `<open_data_staging_path>/zoning/<YYYY>/<YYYYMM>/`, which contains `gdb/`, `shp/`, `metadata/` and `web/`. Re-running for the same cycle overwrites the existing files.
+Outputs are written to `<open_data_staging_path>/zoning/<YYYY>/<YYYYMM>/`, which contains `gdb/`, `shp/`, `metadata/` and `web/`. `web/` holds the current zips and data dictionaries; cycle-dated copies of the zips (e.g. `nyc_zoning_features_<YYYYMM>_gdb.zip`) are written to `web/archive/`. Re-running for the same cycle overwrites the existing files.
 
 - `prod_zoning.log` and/or `dev_zoning.log` are written to `processes/zoning/log/`. Logging defaults to `INFO` and can be overridden in the global config (e.g., `log_level_override: DEBUG`). `DEBUG` also logs the resolved paths.
 - Failures are logged with a full traceback under "Process failed".
@@ -73,7 +73,7 @@ Outputs are written to `<open_data_staging_path>/zoning/<YYYY>/<YYYYMM>/`, which
   - Metadata XMLs contain in-text `{variables}` defined in `METADATA_XML_VALUES` in `constants.py`. Values left as `""` are filled in at runtime from the product convention dictionaries (`ZONING_CONVENTIONS`, `GEOREF_CONVENTIONS`) and the cycle and council dates.
 
 - Updating naming conventions or incorporating a new output?
-  - File naming conventions can be updated in `constants.py`. Source, output, and schema information can be updated in the respective `{}_CONVENTIONS` dictionary; packaging outputs such as zipfile names and contents can be updated in `ZONING_PACKAGING`. 
+  - File naming conventions can be updated in `constants.py`. Source, output, and schema information can be updated in the respective `{}_CONVENTIONS` dictionary; packaging outputs such as zipfile names, contents, and destination folders (`output_dir`, e.g. `web` or `web/archive`) can be updated in `ZONING_PACKAGING`. 
   - Note: If a product's `public_output_name` is changed, rename the corresponding XML template to match
   - New zoning features can be added to outputs by updating `constants.py`. For example, if the Zoning Index were to be added as a desired output.
  
