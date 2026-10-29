@@ -2,11 +2,10 @@
 environment: template # change to dev or prod
 
 # Editable Values
-city_council_date: date of the most recent stated meeting #format: YYYYMMDD
+open_data_cycle_date: date of the most recent data cycle #format: YYYYMM; leave empty to auto-calculate based on current date
+city_council_date: date of the most recent stated meeting #format: YYYYMMDD; leave empty to auto-calculate based on latest DZM_nyzi.EFFECTIVE date
 log_level_override: # defaults to INFO when empty
 
 # Permanent Values
 open_data_staging_path: primary open data output location path 
 connection_file_path: path to SDE connection files
-primary_connection_file_name: primary SDE name #format: sde@SDE_NAME.sde
-trd_connection_file_name: secondary SDE name   #format: sde@SDE_NAME.sde

@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+    <Esri>
+        <ArcGISFormat>1.0</ArcGISFormat>
+        <ArcGISProfile>ISO19115_3</ArcGISProfile>
+        <scaleRange>
+            <minScale>1500000</minScale>
+            <maxScale>800</maxScale>
+        </scaleRange>
+    </Esri>
+    <dataIdInfo>
+        <idAbs>Special purpose districts for New York City. Special purpose districts have regulations that supplement and modify the underlying zoning for distinctive neighborhoods with particular issues and goals. The district designation is indicated in the SDNAME attribute. The abbreviation as shown on the zoning map is indicated in the SDLBL attribute. See also Special Purpose Subdistricts, which contains both the main special purpose district boundaries and the internal subdistricts. Subdistrict data has not been fully digitized and may be incomplete. See the Zoning Resolution for a complete description of the special purpose district. Where appropriate, the Zoning Resolution includes a district map showing subdistricts and subareas within the special purpose district. All previously released versions of this data are available on the <a href="https://www.nyc.gov/content/planning/pages/resources/datasets/gis-zoning-features">DCP Website: BYTES of the BIG APPLE</a>. </idAbs>
+        <idCitation>
+            <resTitle>{res_title}</resTitle>
+            <date>
+                <pubDate>{pub_date}</pubDate>
+            </date>
+            <citRespParty>
+                <rpIndName>NYC Department of City Planning (DCP)</rpIndName>
+                <rpCntInfo>
+                    <cntAddress>
+                        <eMailAdd>DCPOpendata@planning.nyc.gov</eMailAdd>
+                    </cntAddress>
+                </rpCntInfo>
+                <role>
+                    <RoleCd value="005"></RoleCd>
+                </role>
+            </citRespParty>
+        </idCitation>
+        <dataExt>
+            <geoEle>
+                <GeoBndBox esriExtentType="search">
+                    <westBL>-74.375189</westBL>
+                    <eastBL>-73.538031</eastBL>
+                    <northBL>41.095274</northBL>
+                    <southBL>40.432924</southBL>
+                </GeoBndBox>
+            </geoEle>
+        </dataExt>
+        <searchKeys>
+            <keyword>Zoning</keyword>
+            <keyword>New York City</keyword>
+            <keyword>NYC</keyword>
+            <keyword>Department of City Planning</keyword>
+            <keyword>DCP</keyword>
+            <keyword>Special Purpose Districts</keyword>
+            <keyword>nysp</keyword>
+        </searchKeys>
+        <themeKeys>
+            <keyword>Zoning</keyword>
+            <keyword>Department of City Planning</keyword>
+        </themeKeys>
+        <idPurp>Special purpose districts for New York City.</idPurp>
+        <idCredit>NYC Department of City Planning (DCP)</idCredit>
+        <resConst>
+            <Consts>
+                <useLimit>This dataset is being provided by the NYC Department of City Planning on NYC Planning's website for informational purposes only. NYC Planning does not warranty the completeness, accuracy, content, or fitness for any particular purpose or use of the dataset, nor are any such warranties to be implied or inferred with respect to the dataset  as furnished on the website. NYC Planning and the City are not liable for any deficiencies in the completeness, accuracy, content, or fitness for any particular purpose or use the dataset, or applications utilizing the dataset, provided by any third party. The data were developed using NYC Planning's Digital City Map Base Map Files, NYC Planning's Digital City Map street centerlines and 2024 orthophotos as reference sources. Measurements and dimensions for location of zoning features were obtained from DCP zoning maps. The estimated horizontal accuracy is +/- 20 feet.</useLimit>
+            </Consts>
+        </resConst>
+        <dataLang>
+            <languageCode value="eng"></languageCode>
+            <countryCode value="US" Sync="TRUE"></countryCode>
+        </dataLang>
+        <dataChar>
+            <CharSetCd value="004"></CharSetCd>
+        </dataChar>
+        <suppInfo>The date of the most recent City Council adoptions included in this data is {council_date}.</suppInfo>
+        <placeKeys>
+            <keyword>New York City</keyword>
+        </placeKeys>
+        <tpCat>
+            <TopicCatCd value="015"></TopicCatCd>
+        </tpCat>
+    </dataIdInfo>
+    <mdLang>
+        <languageCode value="eng"></languageCode>
+        <countryCode value="US" Sync="TRUE"></countryCode>
+    </mdLang>
+    <mdHrLv>
+        <ScopeCd value="005"></ScopeCd>
+    </mdHrLv>
+    <mdHrLvName>dataset</mdHrLvName>
+    <mdChar>
+        <CharSetCd value="004"></CharSetCd>
+    </mdChar>
+    <mdDateSt>{pub_date}</mdDateSt>
+    <mdContact>
+        <role>
+            <RoleCd value="010"></RoleCd>
+        </role>
+        <rpOrgName>NYC Department of City Planning (DCP)</rpOrgName>
+    </mdContact>
+    <distInfo>
+        <distTranOps>
+            <onLineSrc>
+                <linkage>https://www.nyc.gov/content/planning/pages/resources#datasets</linkage>
+            </onLineSrc>
+        </distTranOps>
+        <distributor>
+            <distorOrdPrc>
+                <resFees>Free</resFees>
+            </distorOrdPrc>
+            <distorCont>
+                <rpOrgName>NYC Department of City Planning (DCP)</rpOrgName>
+                <role>
+                    <RoleCd value="005"></RoleCd>
+                </role>
+            </distorCont>
+        </distributor>
+    </distInfo>
+    <refSysInfo>
+        <RefSystem>
+            <refSysID>
+                <identCode code="2263" Sync="TRUE"></identCode>
+                <idCodeSpace>EPSG</idCodeSpace>
+                <idVersion>5.3(9.0.0)</idVersion>
+            </refSysID>
+        </RefSystem>
+    </refSysInfo>
+    <eainfo>
+      <detailed Name="{feature_name}">
+         <enttyp>
+            <enttypl Sync="TRUE">{feature_name}</enttypl>
+            <enttypt Sync="TRUE">Feature Class</enttypt>
+            <enttypc Sync="TRUE">0</enttypc>
+         </enttyp>
+         <attr>
+            <attrlabl Sync="TRUE">OBJECTID</attrlabl>
+            <attalias Sync="TRUE">OBJECTID</attalias>
+            <attrtype Sync="TRUE">OID</attrtype>
+            <attwidth Sync="TRUE">4</attwidth>
+            <atprecis Sync="TRUE">0</atprecis>
+            <attscale Sync="TRUE">0</attscale>
+            <attrdef Sync="TRUE">Internal feature number.</attrdef>
+            <attrdefs Sync="TRUE">Esri</attrdefs>
+            <attrdomv>
+               <udom Sync="TRUE">Sequential unique whole numbers that are automatically generated.</udom>
+            </attrdomv>
+         </attr>
+         <attr>
+            <attrlabl Sync="TRUE">SDNAME</attrlabl>
+            <attalias Sync="TRUE">SDNAME</attalias>
+            <attrtype Sync="TRUE">String</attrtype>
+            <attwidth Sync="TRUE">255</attwidth>
+            <attrdef>Special District Name</attrdef>
+            <atprecis Sync="TRUE">0</atprecis>
+            <attscale Sync="TRUE">0</attscale>
+         </attr>
+         <attr>
+            <attrlabl>SHAPE</attrlabl>
+            <attrdef>Feature geometry.</attrdef>
+            <attrdefs>ESRI</attrdefs>
+            <attrdomv>
+               <udom>Coordinates defining the features.</udom>
+            </attrdomv>
+            <attalias Sync="TRUE">Shape</attalias>
+            <attrtype Sync="TRUE">Geometry</attrtype>
+            <attwidth Sync="TRUE">0</attwidth>
+            <atprecis Sync="TRUE">0</atprecis>
+            <attscale Sync="TRUE">0</attscale>
+         </attr>
+         <attr>
+            <attrlabl Sync="TRUE">SDLBL</attrlabl>
+            <attalias Sync="TRUE">SDLBL</attalias>
+            <attrtype Sync="TRUE">String</attrtype>
+            <attwidth Sync="TRUE">10</attwidth>
+            <attrdef>Special District Label as shown on DCP zoning maps</attrdef>
+            <atprecis Sync="TRUE">0</atprecis>
+            <attscale Sync="TRUE">0</attscale>
+         </attr>
+         <attr>
+            <attrlabl Sync="TRUE">Shape_Length</attrlabl>
+            <attalias Sync="TRUE">Shape_Length</attalias>
+            <attrtype Sync="TRUE">Double</attrtype>
+            <attwidth Sync="TRUE">8</attwidth>
+            <atprecis Sync="TRUE">0</atprecis>
+            <attscale Sync="TRUE">0</attscale>
+            <attrdef Sync="TRUE">Length of feature in internal units.</attrdef>
+            <attrdefs Sync="TRUE">Esri</attrdefs>
+            <attrdomv>
+               <udom Sync="TRUE">Positive real numbers that are automatically generated.</udom>
+            </attrdomv>
+         </attr>
+         <attr>
+            <attrlabl Sync="TRUE">SHAPE_area</attrlabl>
+            <attalias Sync="TRUE">Shape_Area</attalias>
+            <attrtype Sync="TRUE">Double</attrtype>
+            <attwidth Sync="TRUE">8</attwidth>
+            <attrdef Sync="TRUE">Area of feature in internal units squared.</attrdef>
+            <attrdefs Sync="TRUE">ESRI</attrdefs>
+            <attrdomv>
+               <udom Sync="TRUE">Positive real numbers that are automatically generated.</udom>
+            </attrdomv>
+            <atprecis Sync="TRUE">0</atprecis>
+            <attscale Sync="TRUE">0</attscale>
+         </attr>
+      </detailed>
+   </eainfo>
+    <spatRepInfo>
+        <VectSpatRep>
+            <topLvl>
+                <TopoLevCd value="001" Sync="TRUE"></TopoLevCd>
+            </topLvl>
+            <geometObjs Name="{feature_name}">
+                <geoObjTyp>
+                    <GeoObjTypCd value="002" Sync="TRUE"></GeoObjTypCd>
+                </geoObjTyp>
+                <geoObjCnt>0</geoObjCnt>
+            </geometObjs>
+        </VectSpatRep>
+    </spatRepInfo>
+    <DataProperties>
+        <itemProps>
+            <itemName Sync="TRUE"></itemName>
+            <nativeExtBox>
+                <westBL Sync="TRUE">914621.578222</westBL>
+                <eastBL Sync="TRUE">1067334.594645</eastBL>
+                <southBL Sync="TRUE">123986.456473</southBL>
+                <northBL Sync="TRUE">271422.628792</northBL>
+                <exTypeCode Sync="TRUE">1</exTypeCode>
+            </nativeExtBox>
+            <imsContentType></imsContentType>
+        </itemProps>
+        <coordRef></coordRef>
+    </DataProperties>
+    <spdoinfo>
+        <ptvctinf>
+            <esriterm Name="{feature_name}">
+                <efeatyp Sync="TRUE">Simple</efeatyp>
+                <efeageom code="4" Sync="TRUE"></efeageom>
+                <esritopo Sync="TRUE">FALSE</esritopo>
+                <efeacnt Sync="TRUE">0</efeacnt>
+                <spindex Sync="TRUE">TRUE</spindex>
+                <linrefer Sync="TRUE">FALSE</linrefer>
+            </esriterm>
+        </ptvctinf>
+    </spdoinfo>
+</metadata>

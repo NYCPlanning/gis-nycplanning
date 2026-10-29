@@ -12,6 +12,7 @@ include = ["dcpgis*"]
 
 [tool.mypy]
 ignore_missing_imports = false
+mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
 
 [[tool.mypy.overrides]]
 module = "arcpy"
