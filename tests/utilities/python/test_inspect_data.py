@@ -1,10 +1,12 @@
-from pytest import fixture
+import os
 import shutil
 import zipfile
-import os
-from utilities.python import inspect_data
+
 import pandas as pd
 from pandas.testing import assert_frame_equal
+from pytest import fixture
+
+from utilities.python import inspect_data
 
 GDB_ZIP = "geodatabase_zoning_data.zip"
 SHP_ZIP = "shapefile_nyzd_one_row.zip"

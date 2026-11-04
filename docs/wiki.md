@@ -57,6 +57,16 @@ A GitHub Actions workflow (`.github/workflows/lint.yml`) runs `ruff`, `mypy`, an
 
 Testing `arcpy`-dependent code and PowerShell 5.1 via Pester, is a separate set of challenges to tackle.
 
+#### Linting in your editor
+Lint and type-check rules live in [`pyproject.toml`](https://github.com/NYCPlanning/gis-nycplanning/blob/main/pyproject.toml). Tool versions are pinned in `conda-requirements-dev.txt`. To align CI and local IDE results, point local IDE ruff and mypy integrations at the copies installed in `gis-env`. Don't set rule or formatting options (line length, selected rules, etc.) in editor settings.
+
+For VS Code, in user `settings.json`:
+- Select `gis-env` as the Python interpreter, or set `ruff.interpreter` and `mypy-type-checker.interpreter` to its `python.exe`.
+- Set `"mypy-type-checker.importStrategy": "fromEnvironment"`. The mypy extension otherwise runs its own bundled mypy, not the pinned one.
+- Remove any `ruff.lineLength`, `ruff.lint.select`, or similar keys. By default the Ruff extension lets these override `pyproject.toml`.
+
+If `ruff` isn't installed in the selected environment, the Ruff extension silently falls back to its bundled version. Its output channel logs which executable it's using.
+
 ### SQL
 If SQL usage outside of ArcGIS Pro is desired, it is recommended to use SQL Server Management Studio (SSMS) for enterprise geodatabase management, with the optional additional usage of DBeaver to access the SQL Server databases, or any other databases such as DuckDB, SQLite, etc.
 

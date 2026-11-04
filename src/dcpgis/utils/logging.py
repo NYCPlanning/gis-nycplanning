@@ -7,7 +7,7 @@ def initialize_logging(
     log_filename: str,
     log_level: str = "INFO",
     format: str = "%(asctime)s :: %(levelname)s :: %(message)s",
-):
+) -> None:
     """Initialize logging. Output to file and console.
     source: https://stackoverflow.com/a/46098711
     source: https://github.com/NYCPlanning/db-template-repo/blob/main/python/run_logging.py
@@ -32,7 +32,7 @@ def initialize_logging(
     )
 
 
-def override_log_level(new_level: str):
+def override_log_level(new_level: str | None) -> None:
     if new_level is not None:
         log_level = getattr(logging, new_level.upper(), logging.INFO)
         logging.getLogger().setLevel(log_level)

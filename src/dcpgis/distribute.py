@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from dcpgis.cli import CLI, DISTRIBUTE_ARGS
 
 SETTINGS_FILE_PARENT = Path(__file__).parent.parent.parent.parent / "config"
