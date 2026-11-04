@@ -1,6 +1,6 @@
-import xml.etree.ElementTree as ET
-import sys
 import platform
+import sys
+import xml.etree.ElementTree as ET
 
 
 def part_c(item_path):
