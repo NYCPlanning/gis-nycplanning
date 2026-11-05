@@ -1,5 +1,3 @@
-"""HTTP sessions and cheap URL checks."""
-
 import logging
 
 import requests
