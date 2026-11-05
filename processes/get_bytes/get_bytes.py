@@ -25,7 +25,7 @@ import json
 import logging
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import requests
@@ -53,7 +53,7 @@ OBSERVED_WRITE_BATCH = 5
 
 
 def timestamp_now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
 def build_url_level(row: dict) -> dict:
@@ -82,7 +82,7 @@ def build_observed(input_url: str, depth: int, session: requests.Session) -> dic
 
     with ThreadPoolExecutor(max_workers=RESPONSE_CODE_WORKERS) as pool:
         codes = pool.map(lambda row: get_response_code(row["url"], session), rows)
-    for row, code in zip(rows, codes):
+    for row, code in zip(rows, codes, strict=True):
         row["response_code"] = code
 
     observed["entries"] = [

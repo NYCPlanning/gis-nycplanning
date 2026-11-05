@@ -1,11 +1,11 @@
 from pathlib import Path
-import pandas as pd
+
 import arcpy
-from typing import Union
+import pandas as pd
 
 
 # TODO - add to dcpgis package
-def get_dataset_schema(dataset: Union[Path, str]) -> pd.DataFrame:
+def get_dataset_schema(dataset: Path | str) -> pd.DataFrame:
     """Take a path to an Esri feature class or shapefile, and return a pandas dataframe
     showing the dataset schema.
 
@@ -23,5 +23,5 @@ def get_dataset_schema(dataset: Union[Path, str]) -> pd.DataFrame:
     flength = [f.length for f in fields]
 
     return pd.DataFrame(
-        list(zip(fnames, ftypes, flength)), columns=["name", "type", "length"]
+        list(zip(fnames, ftypes, flength, strict=True)), columns=["name", "type", "length"]
     )

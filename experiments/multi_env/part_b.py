@@ -1,7 +1,8 @@
-from dcpy.utils.geospatial import shapefile
-from pathlib import Path
-import sys
 import platform
+import sys
+from pathlib import Path
+
+from dcpy.utils.geospatial import shapefile
 
 
 def part_b():

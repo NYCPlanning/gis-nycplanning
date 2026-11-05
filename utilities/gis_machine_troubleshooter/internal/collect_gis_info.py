@@ -12,6 +12,7 @@ Usage:
 import json
 import platform
 import sys
+from typing import Any
 
 import arcpy
 
@@ -24,7 +25,7 @@ def get_signed_in_account() -> str:
     return description.get("user", {}).get("username", "Unknown")
 
 
-def _describe(map_name: str, name: str, item) -> dict:
+def _describe(map_name: str, name: str, item: Any) -> dict:
     try:
         data_source = item.dataSource
     except Exception:

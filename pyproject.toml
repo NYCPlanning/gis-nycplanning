@@ -5,13 +5,23 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dcpgis"
 version = "0.0.1"
+requires-python = ">=3.11"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["dcpgis*"]
 
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+extend-select = ["I", "B", "UP"]
+
 [tool.mypy]
 ignore_missing_imports = false
+disallow_incomplete_defs = true
+warn_unreachable = true
+enable_error_code = ["redundant-expr"]
 # processes/ holds standalone scripts rather than an installed package
 # Treating the repo root as the package base gives every file one 
 # unambiguous module name, matching how tests import them.
@@ -27,3 +37,7 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "osgeo.*"
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "experiments.*"
+ignore_errors = true
