@@ -7,6 +7,8 @@ same zip's .shp bytes, so the index read and the truth read agree without any ne
 import struct
 import threading
 import zipfile
+from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 from osgeo import gdal
@@ -18,13 +20,16 @@ from tests.conftest import STALE_NAME
 gdal.UseExceptions()
 
 
-def _shp_bytes(zip_path) -> bytes:
+def _shp_bytes(zip_path: Path) -> bytes:
     with zipfile.ZipFile(zip_path) as zf:
         (name,) = [n for n in zf.namelist() if n.lower().endswith(".shp")]
         return zf.read(name)
 
 
-def _check(zip_path, load_bboxes=None) -> dict:
+def _check(
+    zip_path: Path,
+    load_bboxes: Callable[[], list[spatial_index.BBox | None] | None] | None = None,
+) -> dict:
     # Bound step by step: osgeo hands back borrowed views, so the dataset must outlive the layer.
     dataset = gdal.OpenEx(f"/vsizip/{zip_path.as_posix()}", gdal.OF_VECTOR)
     layer = dataset.GetLayer(0)
@@ -34,7 +39,7 @@ def _check(zip_path, load_bboxes=None) -> dict:
     return spatial_index.check_spatial_index(layer, load_bboxes)
 
 
-def _without_index(zip_path, out_path, old: str, new: str):
+def _without_index(zip_path: Path, out_path: Path, old: str, new: str) -> Path:
     with zipfile.ZipFile(zip_path) as src, zipfile.ZipFile(out_path, "w") as dst:
         for info in src.infolist():
             if info.filename.lower().endswith((".sbn", ".sbx")):
@@ -183,3 +188,27 @@ def test_check_spatial_index_gdal_failure_is_an_error(caplog):
     result = spatial_index.check_spatial_index(_Unreadable(), lambda: [], label="Broken.shp")
     assert result == {"present": None, "status": "ERROR"}
     assert "spatial index check failed for Broken.shp" in caplog.text
+
+
+def test_check_spatial_index_uncountable_cell_is_an_error(caplog):
+    # Every cell holds real features, so treating -1 as a count would read as INCONSISTENT.
+    class _Uncountable:
+        def TestCapability(self, name):
+            return True
+
+        def GetExtent(self):
+            return (0.0, 3.0, 0.0, 3.0)
+
+        def SetSpatialFilterRect(self, *rect):
+            pass
+
+        def SetSpatialFilter(self, geom):
+            pass
+
+        def GetFeatureCount(self, force=1):
+            return -1
+
+    bboxes: list[spatial_index.BBox | None] = [(0.0, 0.0, 3.0, 3.0)] * 10
+    result = spatial_index.check_spatial_index(_Uncountable(), lambda: bboxes, label="Lazy.shp")
+    assert result == {"present": True, "status": "ERROR"}
+    assert "could not count features for Lazy.shp" in caplog.text

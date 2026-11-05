@@ -4,6 +4,7 @@ import io
 import lzma
 import zipfile
 import zlib
+from collections.abc import Callable
 
 import pytest
 import requests
@@ -207,7 +208,9 @@ def test_get_zip_member_bytes_head_failure_returns_none(monkeypatch, caplog):
     assert "could not read member" in caplog.text
 
 
-def _range_ignoring_session(full_bytes: bytes):
+def _range_ignoring_session(
+    full_bytes: bytes,
+) -> tuple[Callable[..., MockResponse], Callable[..., MockResponse]]:
     """(get, head) for a server that answers every GET with the whole file and a 200."""
 
     def _get(self, url, *args, **kwargs):

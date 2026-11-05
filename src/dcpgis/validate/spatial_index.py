@@ -1,5 +1,3 @@
-"""Check a shapefile's .sbn/.sbx spatial index against the geometry it claims to index."""
-
 import logging
 import struct
 from collections.abc import Callable
@@ -133,7 +131,12 @@ def check_spatial_index(
             return {"present": True, "status": "ERROR"}
 
         for cell in _make_grid(minx, miny, maxx, maxy):
-            if _cells_mismatch(_indexed_count(layer, cell), _truth_count(bboxes, cell)):
+            indexed = _indexed_count(layer, cell)
+            # force=0 lets GDAL decline to count rather than scan; -1 is that refusal, not a count.
+            if indexed < 0:
+                logger.warning(f"spatial index check could not count features for {label}")
+                return {"present": True, "status": "ERROR"}
+            if _cells_mismatch(indexed, _truth_count(bboxes, cell)):
                 return {"present": True, "status": "INCONSISTENT"}
         return {"present": True, "status": "CONSISTENT"}
     except RuntimeError as exc:
