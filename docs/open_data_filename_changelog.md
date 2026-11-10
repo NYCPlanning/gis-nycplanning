@@ -1,5 +1,5 @@
 # NYC Planning Open Data Change Log
-#### Last Updated: October 22, 2026
+#### Last Updated: November 10, 2026
 
 ## Description
 This change log records changes to download links, and file names for datasets published on [Bytes of the Big Apple](https://www.nyc.gov/content/planning/pages/resources#datasets). NYC Planning is updating its data pipeline and migrating datasets to a consistent naming convention. Datasets will be
@@ -19,6 +19,7 @@ Latest-data zip files no longer include a date in the file name, so the link to 
 - [Georeferenced Zoning Maps](#georeferenced-zoning-maps)
 - [Zoning Features](#zoning-features)
 - [Zoning Tax Lot Database (ZTLDB)](#zoning-tax-lot-database)
+- [Greater Transit Zone and Transit Zones](#greater-transit-zone-and-transit-zones)
 
 ## Georeferenced Zoning Maps
 - **Dataset page:** https://www.nyc.gov/content/planning/pages/resources/datasets/georeferenced-map
@@ -90,3 +91,42 @@ Effective mid to late-November 2026, NYC Zoning Tax Lot Database (ZTLDB) will ha
 | Old name | New name |
 |---|---|
 |NY_ZoningTaxLotDBYYYYMMDD.csv|zoning_tax_lot_database.csv|
+
+## Greater Transit Zone and Transit Zones
+- **Dataset page:** https://www.nyc.gov/content/planning/pages/resources/datasets/greater-transit-zone
+- **Download URL format:** To be confirmed 
+
+### November 10, 2026: New file names and URLs
+Effective November 10, 2026, Greater Transit Zone and Transit Zones have updated shapefile names and new file geodatabase downloads. There are no field or schema changes.
+
+#### Zip files and download URLs
+| Dataset | Release | Format | Old file name | New file name |
+|---|---|---|---|---|
+| Greater Transit Zone | Latest | Shapefile | `nyc_greater_transit_zone.zip` | `nyc_greater_transit_zone_shp.zip` |
+| Greater Transit Zone | Latest | File geodatabase | Not previously available | `nyc_greater_transit_zone_gdb.zip` |
+| Greater Transit Zone | Archive | Shapefile | `nyc_greater_transit_zone_YYYYMMDD.zip` | `nyc_greater_transit_zone_YYYYMM_shp.zip` |
+| Greater Transit Zone | Archive | File geodatabase | Not previously available | `nyc_greater_transit_zone_YYYYMM_gdb.zip` |
+| Transit Zones | Latest | Shapefile | `nyc_transit_zones.zip` | `nyc_transit_zones_shp.zip` |
+| Transit Zones | Latest | File geodatabase | Not previously available | `nyc_transit_zones_gdb.zip` |
+| Transit Zones | Archive | Shapefile | `nyc_transit_zones_YYYYMMDD.zip` | `nyc_transit_zones_YYYYMM_shp.zip` |
+| Transit Zones | Archive | File geodatabase | Not previously available | `nyc_transit_zones_YYYYMM_gdb.zip` |
+
+The new release uses `202610` for `YYYYMM` in archived zip file names. The December 5, 2024 shapefile releases remain available in the archive under their existing dated zip file names.
+
+#### Shapefiles
+| Dataset | Old name | New name |
+|---|---|---|
+| Greater Transit Zone | `greater_transit_zone_20241205.shp` | `greater_transit_zone.shp` |
+| Transit Zones | `transit_zones_20241205.shp` | `transit_zones.shp` |
+
+#### File geodatabases
+| Dataset | Old name | New name |
+|---|---|---|
+| Greater Transit Zone | Not previously available | `nyc_greater_transit_zone.gdb` |
+| Transit Zones | Not previously available | `nyc_transit_zones.gdb` |
+
+#### Geodatabase contents
+| Dataset | New feature class name |
+|---|---|
+| Greater Transit Zone | `greater_transit_zone` |
+| Transit Zones | `transit_zones` |
