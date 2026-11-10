@@ -1,0 +1,51 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor",
+  "elements": [
+    {
+      "id": "vZQVfzCkqrw1iaLHmqayI",
+      "type": "text",
+      "x": 332,
+      "y": 132.9223300970873,
+      "width": 656,
+      "height": 136.89320388349512,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "index": "a0",
+      "roundness": null,
+      "seed": 1496283135,
+      "version": 779,
+      "versionNonce": 571179057,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1787151490729,
+      "link": null,
+      "locked": false,
+      "text": "1. Paul (Zoning team) emails pdfs with new MIH areas to GIS\n2. GIS adds new features to the existing MIH FC in GISPROD.sde\n3. Use IHDA to erase overlaps in MIH features\n4. Process MIH using arcpy and export shpfiles, metadata to M\n5. Distribute FCs to GISPROD.sde\n",
+      "fontSize": 18.252427184466015,
+      "fontFamily": 5,
+      "textAlign": "left",
+      "verticalAlign": "top",
+      "containerId": null,
+      "originalText": "1. Paul (Zoning team) emails pdfs with new MIH areas to GIS\n2. GIS adds new features to the existing MIH FC in GISPROD.sde\n3. Use IHDA to erase overlaps in MIH features\n4. Process MIH using arcpy and export shpfiles, metadata to M\n5. Distribute FCs to GISPROD.sde\n",
+      "autoResize": false,
+      "lineHeight": 1.25
+    }
+  ],
+  "appState": {
+    "gridSize": 20,
+    "gridStep": 5,
+    "gridModeEnabled": false,
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}
