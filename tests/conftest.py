@@ -147,7 +147,7 @@ def mock_ranged_file_session(
         if range_header is None:
             return MockResponse(200, full_bytes)
         start, _, end = range_header.removeprefix("bytes=").partition("-")
-        if not start:  # suffix range, e.g. "bytes=-262144"
+        if not start:  # suffix range, e.g. "bytes=-N"
             chunk = full_bytes[-int(end) :]
             first = size - len(chunk)
         else:

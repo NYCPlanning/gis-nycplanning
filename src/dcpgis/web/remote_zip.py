@@ -11,9 +11,10 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-# The zip central directory lives at the end of the file. Bigger tails cover archives with
-# more members in one request; a directory that doesn't fit costs a full download instead.
-_CENTRAL_DIRECTORY_TAIL_BYTES = 262144
+# The zip central directory (member names and sizes) lives at the end of the file. This many
+# bytes are fetched from the end to read it; 256 KiB fits a few thousand members. A directory
+# that doesn't fit requires a full download to enumerate.
+_CENTRAL_DIRECTORY_TAIL_BYTES = 256 * 1024
 
 
 def _total_size_from_content_range(resp: requests.Response) -> int | None:
