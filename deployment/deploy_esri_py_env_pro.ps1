@@ -3,7 +3,8 @@
     Purpose:
         Clones the default Python environment, uses a standardized naming convention,
         and installs packages listed in conda-requirements.txt and conda-requirements-dev.txt
-        (in this same folder) to supplement the default packages.
+        (in this same folder) to supplement the default packages, then installs this repo's
+        dcpgis package in editable mode so edits to src/dcpgis are picked up without reinstalling.
     Author: J Rosacker
     Updated by: U Podder
     Date: _ongoing_
@@ -87,6 +88,19 @@ if ($LASTEXITCODE -ne 0) {
 else {
     Write-Output ">>> Successfully installed packages using conda"
 }
+
+# The editable install binds the env to this checkout, so run this script from your main clone, not a worktree.
+# --no-deps because pyproject.toml declares none; --no-build-isolation so pip uses the env's own
+# setuptools rather than fetching one through the proxy.
+$repoRoot = Split-Path $PSScriptRoot -Parent
+Write-Output "`r`n>>> Installing dcpgis from $repoRoot in editable mode..."
+& $defaultCondaExe run -n $newEnvName python -m pip install -e $repoRoot --no-deps --no-build-isolation
+if ($LASTEXITCODE -ne 0) {
+    Write-Output "`r`n>>> Editable install of dcpgis failed (exit code $LASTEXITCODE). To retry manually, from the repo root in $newEnvName run:"
+    Write-Output "    python -m pip install -e . --no-deps --no-build-isolation"
+    exit 1
+}
+Write-Output ">>> Successfully installed dcpgis"
 
 
 # List conda environments using explicit conda.exe path

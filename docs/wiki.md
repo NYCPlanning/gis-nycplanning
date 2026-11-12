@@ -25,7 +25,7 @@ The GIS team uses a default conda environment ("gis-env") that can be generated 
 
 We use plain `conda install --file` rather than an `environment.yml` file specifically because `conda env` subcommands (including `conda env create`/`update`) are broken on Pro 3.5+ (see Known Issues below) -- this is an intentional workaround, not a still-open wish.
 
-The default conda environment name is important to remain consistent across GIS Team member's environments, because the [PowerShell files used in Task Scheduler](https://github.com/NYCPlanning/gis-nycplanning/blob/main/processes/trigger_process.ps1) to call python scripts all call that default environment name.
+The default conda environment name is important to remain consistent across GIS Team member's environments, because the [PowerShell files used in Task Scheduler](https://github.com/NYCPlanning/gis-nycplanning/blob/main/processes/trigger_process.ps1) to call python scripts all look up that default environment name. They find the env by name via `conda run`, so where it lives on disk (which depends on your `.condarc`) doesn't matter, but the name must stay `gis-env`.
 
 Conda env setup (requires an active installation of ArcGIS Pro, and access to the deployment PowerShell script):
 - Initialize conda in PowerShell
@@ -43,6 +43,19 @@ Conda env setup (requires an active installation of ArcGIS Pro, and access to th
         & deployment\deploy_esri_py_env_pro.ps1
         ```
    4. In case of errors, read and follow any output messages carefully
+
+#### The dcpgis package in gis-env
+The deploy script also installs this repo's `dcpgis` package (`src/dcpgis`) into gis-env in editable mode, so `import dcpgis` works from anywhere (scripts, notebooks, `.pyt` toolboxes) and edits to the source are picked up without reinstalling.
+
+An editable install points at one checkout: whichever clone the deploy script was run from. **Run the deploy script from your main clone, not a git worktree.** If gis-env points at a worktree and that worktree is later deleted, `import dcpgis` fails everywhere gis-env is used, including scheduled tasks.
+
+To fix a broken or wrong pointer without rebuilding the env, run this from the root of your main clone with gis-env active:
+```powershell
+python -m pip install -e . --no-deps --no-build-isolation
+```
+`--no-deps` because `pyproject.toml` declares no dependencies; `--no-build-isolation` so pip uses gis-env's own setuptools instead of downloading one through the proxy.
+
+`pytest` always tests the checkout it's run from, wherever the editable install points, because `pyproject.toml` puts `src` on the test path.
 
 #### Using python outside of conda
 Python can be installed directly from [python.org](https://www.python.org/), at a per user level and without admin credentials. This is a valid approach to non-arcpy-based workflows, since it has so far proven impossible to pip install arcpy directly into a non-conda virtual environment.

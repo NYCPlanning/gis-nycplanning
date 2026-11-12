@@ -9,7 +9,8 @@
             $scriptName - (required) Absolute or relative path and file name of the Python
                 script that will be triggered.
             $envName - (optional) Defaults to the value defined below. Can be overridden by
-                a value provided by user. Should be name of env only, not the full path.
+                a value provided by user. Should be name of env only, not the full path;
+                conda resolves where the env lives.
         Task Scheduler Action settings:
             Program/script:
                 powershell
@@ -23,15 +24,14 @@
 
 #>
 # Get script name and conda env parameters from user input
-param ($scriptName, $envName='gis-team-default-env')
+param ($scriptName, $envName='gis-env')
 
-# Get name of current user
-$currentUser = (Get-ChildItem Env:USERNAME).Value
-# Use conda env name and username params to construct the path to the correct Esri python interpreter
-$interpreterPath = 'C:/Users/{0}/AppData/Local/ESRI/conda/envs/{1}/python.exe' -f $currentUser, $envName
+$condaExe = "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe"
 
-# Change directory to the location of this script
+# Relative script paths are resolved from this folder
 Set-Location $PSScriptRoot
 
-# Run specified Python file using specified Esri Python interpreter
-& $interpreterPath $scriptName
+# conda run looks the env up by name, since where it lives depends on each user's .condarc envs_dirs.
+# --no-capture-output streams the script's output live instead of dumping it when the script ends.
+& $condaExe run -n $envName --no-capture-output python $scriptName
+exit $LASTEXITCODE

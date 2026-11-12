@@ -11,6 +11,10 @@ requires-python = ">=3.11"
 where = ["src"]
 include = ["dcpgis*"]
 
+[tool.pytest.ini_options]
+# Tests import this checkout's dcpgis, not whichever checkout the env's editable install points at
+pythonpath = ["src"]
+
 [tool.ruff]
 line-length = 120
 
