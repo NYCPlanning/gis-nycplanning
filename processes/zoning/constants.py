@@ -130,12 +130,44 @@ GEOREF_CONVENTIONS: dict[str, dict[str, Any]] = {
 }
 
 """
+Data dictionaries (.xlsx) staged in the metadata staging directory.
+
+- ZONING_FEATURES_DATA_DICTS: bundled into the zoning features zips (gdb and shp)
+- ZONING_GEOREFERENCED_DATA_DICTS: bundled into the georeferenced maps zips
+- ZONING_DATA_DICTS: all of the above; copied to web/ and metadata/ before zipping
+"""
+ZONING_FEATURES_DATA_DICTS = [
+    "zoning_commercial_overlays_data_dictionary.xlsx",
+    "zoning_districts_data_dictionary.xlsx",
+    "zoning_limited_height_data_dictionary.xlsx",
+    "zoning_map_amendments_data_dictionary.xlsx",
+    "zoning_special_districts_data_dictionary.xlsx",
+    "zoning_special_subdistricts_data_dictionary.xlsx",
+]
+
+ZONING_GEOREFERENCED_DATA_DICTS = [
+    "zoning_georeferenced_maps_data_dictionary.xlsx",
+]
+
+ZONING_DATA_DICTS = ZONING_FEATURES_DATA_DICTS + ZONING_GEOREFERENCED_DATA_DICTS
+
+ZONING_SHP_CONTENT = [
+    "zoning_commercial_overlays.*",
+    "zoning_districts.*",
+    "zoning_limited_height.*",
+    "zoning_map_amendments.*",
+    "zoning_special_districts.*",
+    "zoning_special_subdistricts.*",
+]
+
+"""
 ZONING_PACKAGING defines archive packaging rules for output distribution.
 
-Each entry in the dictionary represents one archive to build. 
+Each entry in the dictionary represents one archive to build.
 Archive specifications are defined in a dictionary with the following keys:
-- source_dirs: one or more folders to search for input files
-- content: explicit file names to include from those folders
+- content: a mapping of {source_dir: [file names or glob patterns]}, where each pattern is only
+  searched for in its own source folder. Alternatively, a list of patterns combined with a
+  separate source_dirs list, in which case every pattern is searched for in every source folder.
 - output_name: the zip file name to create
 - output_dir: the folder where the zip should be written, relative to the cycle directory (may be nested, e.g. "web/archive")
 
@@ -144,67 +176,54 @@ while keeping the file selection explicit.
 """
 ZONING_PACKAGING = {
     "zoning_features_gdb": {
-        "source_dirs": ["gdb"],
-        "content": ["nyc_zoning_features.gdb"],
+        "content": {
+            "gdb": ["nyc_zoning_features.gdb"],
+            "metadata": ZONING_FEATURES_DATA_DICTS,
+        },
         "output_name": "nyc_zoning_features_gdb.zip",
         "output_dir": "web",
     },
     "georeferenced_gdb": {
-        "source_dirs": ["gdb"],
-        "content": ["nyc_zoning_georeferenced_maps.gdb"],
+        "content": {
+            "gdb": ["nyc_zoning_georeferenced_maps.gdb"],
+            "metadata": ZONING_GEOREFERENCED_DATA_DICTS,
+        },
         "output_name": "nyc_zoning_georeferenced_maps_gdb.zip",
         "output_dir": "web",
     },
     "zoning_features_shp": {
-        "source_dirs": ["shp"],
-        "content": [
-            "zoning_commercial_overlays.*",
-            "zoning_districts.*",
-            "zoning_limited_height.*",
-            "zoning_map_amendments.*",
-            "zoning_special_districts.*",
-            "zoning_special_subdistricts.*",
-        ],
+        "content": {
+            "shp": ZONING_SHP_CONTENT,
+            "metadata": ZONING_FEATURES_DATA_DICTS,
+        },
         "output_name": "nyc_zoning_features_shp.zip",
         "output_dir": "web",
     },
     "zoning_features_gdb_archive": {
-        "source_dirs": ["gdb"],
-        "content": ["nyc_zoning_features.gdb"],
+        "content": {
+            "gdb": ["nyc_zoning_features.gdb"],
+            "metadata": ZONING_FEATURES_DATA_DICTS,
+        },
         "output_name": "nyc_zoning_features_{cycle_date}_gdb.zip",
         "output_dir": "web/archive",
     },
     "georeferenced_gdb_archive": {
-        "source_dirs": ["gdb"],
-        "content": [
-            "nyc_zoning_georeferenced_maps.gdb",
-        ],
+        "content": {
+            "gdb": ["nyc_zoning_georeferenced_maps.gdb"],
+            "metadata": ZONING_GEOREFERENCED_DATA_DICTS,
+        },
         "output_name": "nyc_zoning_georeferenced_maps_{cycle_date}_gdb.zip",
         "output_dir": "web/archive",
     },
     "zoning_features_shp_archive": {
-        "source_dirs": ["shp"],
-        "content": [
-            "zoning_commercial_overlays.*",
-            "zoning_districts.*",
-            "zoning_limited_height.*",
-            "zoning_map_amendments.*",
-            "zoning_special_districts.*",
-            "zoning_special_subdistricts.*",
-        ],
+        "content": {
+            "shp": ZONING_SHP_CONTENT,
+            "metadata": ZONING_FEATURES_DATA_DICTS,
+        },
         "output_name": "nyc_zoning_features_{cycle_date}_shp.zip",
         "output_dir": "web/archive",
     },
 }
-
-ZONING_DATA_DICTS = [
-    "zoning_commercial_overlays_data_dictionary.xlsx",
-    "zoning_districts_data_dictionary.xlsx",
-    "zoning_limited_height_data_dictionary.xlsx",
-    "zoning_map_amendments_data_dictionary.xlsx",
-    "zoning_special_districts_data_dictionary.xlsx",
-    "zoning_special_subdistricts_data_dictionary.xlsx",
-]
 
 # TODO: Confirm all zoning features have the same crea_date
 """

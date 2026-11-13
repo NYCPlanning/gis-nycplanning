@@ -53,18 +53,19 @@ Config Files
 - Dropping internal-only fields (`desired_fields`) and dissolving Special Districts on `SDNAME`
  - Copying and packaging raster/map products
  - Metadata generation and application
-- Copying data dictionaries from `_metadata_staging/` into `web/` and `metadata/`
+- Copying data dictionaries from `_metadata_staging/` into `web/` and `metadata/` (before zipping, so they can be bundled into the zips)
+ - Zipping outputs into `web/` and `web/archive/`; each zip also contains its product's data dictionaries
  - Final staging to open data directories
  - Temp directory deleted
 
-Outputs are written to `<open_data_staging_path>/zoning/<YYYY>/<YYYYMM>/`, which contains `gdb/`, `shp/`, `metadata/` and `web/`. `web/` holds the current zips and data dictionaries; cycle-dated copies of the zips (e.g. `nyc_zoning_features_<YYYYMM>_gdb.zip`) are written to `web/archive/`. Re-running for the same cycle overwrites the existing files.
+Outputs are written to `<open_data_staging_path>/zoning/<YYYY>/<YYYYMM>/`, which contains `gdb/`, `shp/`, `metadata/` and `web/`. `web/` holds the current zips and data dictionaries. The data dictionaries are also bundled inside the zips: the zoning features zips get `ZONING_FEATURES_DATA_DICTS` and the georeferenced maps zips get `ZONING_GEOREFERENCED_DATA_DICTS`. Cycle-dated copies of the zips (e.g. `nyc_zoning_features_<YYYYMM>_gdb.zip`) are written to `web/archive/`. Re-running for the same cycle overwrites the existing files.
 
 - `prod_zoning.log` and/or `dev_zoning.log` are written to `processes/zoning/log/`. Logging defaults to `INFO` and can be overridden in the global config (e.g., `log_level_override: DEBUG`). `DEBUG` also logs the resolved paths.
 - Failures are logged with a full traceback under "Process failed".
  
  ## Troubleshooting
 - **File lock errors during zipping or the final copy:** close ArcGIS Pro and any Catalog windows that have the output open, then re-run. As a last resort, set `dangerous_ignore_locks=True` in the `archive_zipping()` call in `zoning.py`.
-- **Missing data dictionaries:** check that every file in `ZONING_DATA_DICTS` is in `_metadata_staging/`.
+- **Missing data dictionaries (in `web/` or inside the zips):** check that every file in `ZONING_DATA_DICTS` is in `_metadata_staging/`. Missing files are logged as warnings and skipped, not raised as errors.
 
 
 ## Contributing / Extending

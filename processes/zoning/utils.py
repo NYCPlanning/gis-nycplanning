@@ -240,16 +240,23 @@ def archive_zipping(
     Expected archive spec dictionary shape:
     {
         "archive_name": {
-            "source_dirs": ["source_folder"],
-            "content": ["file_one.shp", "file_two.shp.xml"],
+            "content": {
+                "shp": ["file_one.*"],
+                "metadata": ["file_one_data_dictionary.xlsx"],
+            },
             "output_name": "product_package_shp.zip",
             "output_dir": "web",
         }
     }
 
+    With a dict, each pattern is only searched for in its own source folder. content may instead be a
+    list of patterns alongside a "source_dirs" list, in which case every pattern is searched for in every
+    source folder. Files are stored in the zip relative to their source folder.
+
     Args:
         parent_dir (str | Path): Root directory containing the source folders.
-        archive_specs (dict): Mapping of archive definitions, where each entry contains source_dirs, content, output_name, and output_dir.
+        archive_specs (dict): Mapping of archive definitions, where each entry contains content, output_name,
+            output_dir, and (when content is a list) source_dirs.
         output_dir_name (str): Default folder where zip files are written, used when a spec has no output_dir.
             A spec's output_dir may be a nested relative path, e.g. "web/archive".
         dangerous_ignore_locks (bool, optional): if Ture, skips any files with .lock in the name. Default is False. False will raise clear exception when lock is encountered.
@@ -259,13 +266,21 @@ def archive_zipping(
     parent_path = Path(parent_dir)
 
     for archive_name, spec in archive_specs.items():
-        source_dirs = spec.get("source_dirs")
-        if isinstance(source_dirs, str):
-            source_dirs = [source_dirs]
-
         content = spec.get("content", [])
         if isinstance(content, str):
             content = [content]
+
+        if isinstance(content, dict):
+            # {source_dir: [patterns]}: each pattern is only searched for in its own folder
+            dir_patterns = {
+                source_dir: [patterns] if isinstance(patterns, str) else list(patterns)
+                for source_dir, patterns in content.items()
+            }
+        else:
+            source_dirs = spec.get("source_dirs", [])
+            if isinstance(source_dirs, str):
+                source_dirs = [source_dirs]
+            dir_patterns = {source_dir: content for source_dir in source_dirs}
 
         output_name = spec.get("output_name", archive_name)
         if product_version is not None:
@@ -276,13 +291,13 @@ def archive_zipping(
 
         zip_path = output_dir / output_name
         with zipfile.ZipFile(zip_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-            for source_dir_name in source_dirs:
+            for source_dir_name, patterns in dir_patterns.items():
                 source_dir = parent_path / source_dir_name
                 if not source_dir.exists():
                     logging.warning(f"Source directory {source_dir} does not exist. Skipping.")
                     continue
 
-                for pattern in content:
+                for pattern in patterns:
                     matches = list(source_dir.glob(pattern))
                     if not matches:
                         logging.warning(f"No matches found for pattern '{pattern}' in {source_dir}.")

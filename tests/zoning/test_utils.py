@@ -61,6 +61,32 @@ def test_archive_zipping_writes_regular_files_and_nested_directories(package_tes
         assert "product.shp.xml" in names
 
 
+def test_archive_zipping_dict_content_only_searches_each_pattern_in_its_own_folder(package_test_tree):
+    (package_test_tree / "metadata" / "product_data_dictionary.xlsx").write_text("xlsx-content")
+
+    archive_specs = {
+        "bundle": {
+            "content": {
+                "shp": ["product.*"],
+                "metadata": ["product_data_dictionary.xlsx"],
+            },
+            "output_name": "product.zip",
+            "output_dir": "web",
+        }
+    }
+
+    archive_zipping(package_test_tree, archive_specs, output_dir_name="web")
+
+    with zipfile.ZipFile(package_test_tree / "web" / "product.zip") as zf:
+        names = zf.namelist()
+
+    assert "product.shp" in names
+    assert "product.shp.xml" in names
+    assert "product_data_dictionary.xlsx" in names
+    # metadata/product.xml matches "product.*" but that pattern only applies to shp/
+    assert "product.xml" not in names
+
+
 def test_archive_zipping_skips_lock_files_when_ignore_locks_true(package_test_tree_with_lock):
     archive_specs = {
         "bundle": {

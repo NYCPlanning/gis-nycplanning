@@ -264,6 +264,15 @@ def main():
             item_md.synchronize("ALWAYS")
 
         logger.info("Packaging data for web distribution...")
+        # Copy data dictionaries before zipping so archive_zipping can bundle them from metadata/
+        metadata_output_dirs = ["web", "metadata"]
+        for dir in metadata_output_dirs:
+            package.copy_matching_files(
+                source_dir=METADATA_STAGING_DIR,
+                output_dir=temp_cycle_dir / dir,
+                files=ZONING_DATA_DICTS,
+            )
+
         arcpy.ClearWorkspaceCache_management()
         time.sleep(5)
         zoning_utils.archive_zipping(
@@ -273,14 +282,6 @@ def main():
             dangerous_ignore_locks=False,  # Can be set to True if arcpy.ClearWorkspaceCache_management() doesn't work
             product_version=CYCLE_DATE,
         )
-
-        metadata_output_dirs = ["web", "metadata"]
-        for dir in metadata_output_dirs:
-            package.copy_matching_files(
-                source_dir=METADATA_STAGING_DIR,
-                output_dir=temp_cycle_dir / dir,
-                files=ZONING_DATA_DICTS,
-            )
 
         # Copy temporary cycle directory to open data staging area, overwriting if it already exists
         logger.info("Copying cycle directory to production location ...")
