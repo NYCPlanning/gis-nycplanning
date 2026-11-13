@@ -46,7 +46,7 @@ Effective mid to late-November 2026, NYC Georeferenced Zoning Maps will have upd
 
 ## Greater Transit Zone and Transit Zones
 - **Dataset page:** https://www.nyc.gov/content/planning/pages/resources/datasets/greater-transit-zone
-- **Download URL format:** To be confirmed
+- **Download URL format:** `https://s-media.nyc.gov/agencies/dcp/assets/files/zip/data-tools/bytes/greater-transit-zone/<file name>`
 
 ### November 10, 2026: New file names and URLs
 Effective November 10, 2026, Greater Transit Zone and Transit Zones have updated shapefile names and new file geodatabase downloads. There are no field or schema changes.
