@@ -23,15 +23,12 @@
 
 #>
 # Get script name and conda env parameters from user input
-param ($scriptName, $envName='gis-team-default-env')
+param ($scriptName, $envName='gis-env')
 
-# Get name of current user
-$currentUser = (Get-ChildItem Env:USERNAME).Value
-# Use conda env name and username params to construct the path to the correct Esri python interpreter
-$interpreterPath = 'C:/Users/{0}/AppData/Local/ESRI/conda/envs/{1}/python.exe' -f $currentUser, $envName
+$condaExe = "$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda.exe"
 
 # Change directory to the location of this script
 Set-Location $PSScriptRoot
 
-# Run specified Python file using specified Esri Python interpreter
-& $interpreterPath $scriptName
+& $condaExe run -n $envName --no-capture-output python $scriptName
+exit $LASTEXITCODE

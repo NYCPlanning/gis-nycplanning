@@ -11,6 +11,9 @@ requires-python = ">=3.11"
 where = ["src"]
 include = ["dcpgis*"]
 
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
 [tool.ruff]
 line-length = 120
 

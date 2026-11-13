@@ -25,7 +25,7 @@ The GIS team uses a default conda environment ("gis-env") that can be generated 
 
 We use plain `conda install --file` rather than an `environment.yml` file specifically because `conda env` subcommands (including `conda env create`/`update`) are broken on Pro 3.5+ (see Known Issues below) -- this is an intentional workaround, not a still-open wish.
 
-The default conda environment name is important to remain consistent across GIS Team member's environments, because the [PowerShell files used in Task Scheduler](https://github.com/NYCPlanning/gis-nycplanning/blob/main/processes/trigger_process.ps1) to call python scripts all call that default environment name.
+The default conda environment name is important to remain consistent across GIS Team member's environments, because the [PowerShell files used in Task Scheduler](https://github.com/NYCPlanning/gis-nycplanning/blob/main/processes/trigger_process.ps1) to call python scripts all look up that default environment name. They find the env by name via `conda run`, so where it lives on disk (which depends on your `.condarc`) doesn't matter, but the name must stay `gis-env`.
 
 Conda env setup (requires an active installation of ArcGIS Pro, and access to the deployment PowerShell script):
 - Initialize conda in PowerShell
@@ -44,12 +44,27 @@ Conda env setup (requires an active installation of ArcGIS Pro, and access to th
         ```
    4. In case of errors, read and follow any output messages carefully
 
+#### dcpgis, prod and dev envs
+The deploy script installs `dcpgis` (`src/dcpgis`) in editable mode from the checkout it's run from, so `import dcpgis` works anywhere (scripts, notebooks, `.pyt` toolboxes) and picks up source edits without reinstalling.
+
+- **gis-env (prod):** run the deploy script from your main clone. Scheduled tasks use this env. The script refuses to build it from a worktree, since deleting that worktree would break `import dcpgis`.
+- **gis-env-dev (shared dev):** `& deployment\deploy_esri_py_env_pro.ps1 -EnvName gis-env-dev`. To point it at the worktree you're working in, activate it and run from that worktree's root:
+  ```powershell
+  python -m pip install -e . --no-deps --no-build-isolation
+  ```
+- **gis-env-\<worktree\> (per worktree):** for worktrees that change the requirements files, run the deploy script from the worktree with no arguments. Remove it when the worktree is done: `conda remove -n gis-env-<worktree> --all`.
+
+`pytest` tests the checkout it's run from regardless of where the active env's install points, because `pyproject.toml` puts `src` on the test path.
+
+#### Upgrading ArcGIS Pro
+Packages in `conda-requirements.txt` are pinned so every deploy is identical. After a Pro upgrade, rerun the deploy script; if a pin no longer fits the new base, conda fails. Remove the failing pins, redeploy, and copy the versions the script prints at the end back into the file.
+
 #### Using python outside of conda
 Python can be installed directly from [python.org](https://www.python.org/), at a per user level and without admin credentials. This is a valid approach to non-arcpy-based workflows, since it has so far proven impossible to pip install arcpy directly into a non-conda virtual environment.
 
 #### Known issues
 - ArcGIS Pro notebooks do not work on GIS Team PCs, but do on other DCP staff machines. We have hypothesized that this has something to do with either firewall rules, or the fact that our machines have static IP addresses assigned.
-- `conda install` fails or freezes often, when using either the ArcGIS Pro GUI or PowerShell. This is likely due to our firewall rules. `pip install` is a viable alternative. This has become less common with the transition to Pro 3.5.
+- `conda install` fails or freezes often, when using either the ArcGIS Pro GUI or PowerShell. This is likely due to our firewall rules. `pip install` is a viable alternative for one-off packages in a dev env, but the deploy script deliberately has no pip fallback: pip can pull PyPI builds (e.g. fiona with its own GDAL) that conflict with Esri's. This has become less common with the transition to Pro 3.5.
 - With the upgrade to Pro 3.5, `conda env ...` commands have been failing. It seems like this has to do with an issue with our machines invoking the `$Env:ProgramFiles\ArcGIS\Pro\bin\Python\Scripts\conda-env.exe` executable. Root cause is unknown but is likely to do with our network environment. Workarounds involve calling alternative commands, e.g. replacing `conda env list` with `conda info --envs`
 
 #### Continuous Integration
