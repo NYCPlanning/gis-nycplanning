@@ -22,8 +22,8 @@ Latest-data zip files no longer include a date in the file name, so the link to 
 - [Zoning Tax Lot Database (ZTLDB)](#zoning-tax-lot-database)
 
 ## Georeferenced Zoning Maps
-- **Dataset page:** https://www.nyc.gov/content/planning/pages/resources/datasets/georeferenced-map
-- **Download URL format:** `https://s-media.nyc.gov/agencies/dcp/assets/files/zip/data-tools/bytes/gis-zoning-features/<file name>`
+- **Dataset page:** https://www.nyc.gov/content/planning/pages/resources/datasets/georeferenced-zoning-maps
+- **Download URL format:** `https://s-media.nyc.gov/agencies/dcp/assets/files/zip/data-tools/bytes/georeferenced-zoning-maps/<file name>`
 
 ### November 15th-30th, 2026: New file names and URLs (scheduled)
 Effective mid to late-November 2026, NYC Georeferenced Zoning Maps will have updated file names and URLs.
@@ -106,7 +106,7 @@ Effective mid to late-November 2026, NYC GIS Zoning Features will have updated f
 | Special purpose districts | `nysp` | `zoning_special_districts` |
 | Special purpose subdistricts | `nysp_sd` | `zoning_special_subdistricts` |
 | Zoning districts | `nyzd` | `zoning_districts` |
-| Zoning map amendments | `nyzma` | `zoning_map_ammendments` |
+| Zoning map amendments | `nyzma` | `zoning_map_amendments` |
 
 #### File geodatabase
 | Old name | New name |
@@ -123,10 +123,10 @@ Effective mid to late-November 2026, NYC Zoning Tax Lot Database (ZTLDB) will ha
 #### Zip files and download URLs
 | Release | Format | Old file name | New file name |
 |---|---|---|---|
-|Latest|csv|nyczoningtaxlotdb_YYYYMMDD.zip|nyc_zoning_tax_lot_database_csv.zip|
-|Archive|csv|nyczoningtaxlotdb_YYYYMMDD.zip|nyc_zoning_tax_lot_database_YYYYMM_csv.zip|
+|Latest|csv| `nyczoningtaxlotdb_YYYYMMDD.zip` | `nyc_zoning_tax_lot_database_csv.zip` |
+|Archive|csv| `nyczoningtaxlotdb_YYYYMMDD.zip` | `nyc_zoning_tax_lot_database_YYYYMM_csv.zip` |
 
 #### CSVs
 | Old name | New name |
 |---|---|
-|NY_ZoningTaxLotDBYYYYMMDD.csv|zoning_tax_lot_database.csv|
+| `NY_ZoningTaxLotDBYYYYMMDD.csv` | `zoning_tax_lot_database.csv` |
