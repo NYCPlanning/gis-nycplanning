@@ -45,7 +45,7 @@ Effective mid to late-November 2026, NYC Georeferenced Zoning Maps will have upd
 | `georeferencednyczoningmaps` | `zoning_georeferenced_maps` |
 
 ## Greater Transit Zone and Transit Zones
-- **Dataset page:** https://www.nyc.gov/content/planning/pages/resources/datasets/greater-transit-zone
+- **Dataset page:** https://www.nyc.gov/content/planning/pages/resources/datasets/greater-transit-zone-and-transit-zones
 - **Download URL format:** `https://s-media.nyc.gov/agencies/dcp/assets/files/zip/data-tools/bytes/greater-transit-zone/<file name>`
 
 ### November 10, 2026: New file names and URLs
