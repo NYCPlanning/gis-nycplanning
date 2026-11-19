@@ -1,5 +1,5 @@
 # Base packages installed on top of ArcGIS Pro's arcgispro-py3 clone.
-# Installed via: conda install -n gis-env --file conda-requirements.txt --file conda-requirements-dev.txt
+# Installed by deploy_esri_py_env_pro.ps1 from the esri and defaults channels only (never conda-forge).
 # Kept separate from conda-requirements-dev.txt so CI's lint job (ruff/mypy/PSScriptAnalyzer)
 # can skip installing these -- it never imports geopandas/fiona/numpy.
 geopandas==1.1.3

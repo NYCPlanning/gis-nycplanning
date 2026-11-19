@@ -84,10 +84,22 @@ foreach ($requirementsFile in @($baseRequirementsFile, $devRequirementsFile)) {
 Write-Output "`r`n>>> Cloning $baseEnvName into $EnvName..."
 & $defaultCondaExe create --name $EnvName --clone $baseEnvName --yes
 
-Write-Output "`r`n>>> Installing packages from $baseRequirementsFile and $devRequirementsFile with conda..."
-& $defaultCondaExe install -n $EnvName --file $baseRequirementsFile --file $devRequirementsFile --yes
+# Channels are overridden so a user's .condarc can't change the result. conda-forge is
+# excluded from the base solve, so it can't swap in its own gdal/fiona/numpy builds.
+Write-Output "`r`n>>> Installing base packages from $baseRequirementsFile (esri, defaults)..."
+& $defaultCondaExe install -n $EnvName --override-channels -c esri -c defaults --file $baseRequirementsFile --yes
 if ($LASTEXITCODE -ne 0) {
-    Write-Output "`r`n>>> conda install failed (exit code $LASTEXITCODE). If a pinned version in conda-requirements.txt no longer fits this ArcGIS Pro release, bump it (see docs/wiki.md). Otherwise see docs/wiki.md Known Issues."
+    Write-Output "`r`n>>> conda install of base packages failed (exit code $LASTEXITCODE). If a pinned version in conda-requirements.txt no longer fits this ArcGIS Pro release, bump it (see docs/wiki.md). Otherwise see docs/wiki.md Known Issues."
+    exit 1
+}
+
+# Some dev tools (mypy, types-*) exist only on conda-forge. Listing it last makes it a
+# fallback; listed first (plain -c conda-forge), it would replace Esri's openssl,
+# cryptography and vs2015_runtime with its own builds, breaking the environment.
+Write-Output "`r`n>>> Installing dev tooling from $devRequirementsFile (esri, defaults, then conda-forge)..."
+& $defaultCondaExe install -n $EnvName --override-channels -c esri -c defaults -c conda-forge --file $devRequirementsFile --yes
+if ($LASTEXITCODE -ne 0) {
+    Write-Output "`r`n>>> conda install of dev tooling failed (exit code $LASTEXITCODE). See docs/wiki.md Known Issues."
     exit 1
 }
 Write-Output ">>> Successfully installed packages using conda"
