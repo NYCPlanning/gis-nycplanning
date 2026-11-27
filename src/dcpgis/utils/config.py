@@ -15,14 +15,12 @@ class Config:
             with open(
                 # TODO: make path name less specific so that name can be injected on instantiation
                 #      while keeping env swap functionality as clean and clear as possible.
-                Path(self.config_file_path) / f"{self.app_env}_settings.yml",
+                Path(self.config_file_path) / f"{self.app_env}_config.yml",
                 encoding="utf-8",
             ) as config:
                 configs: dict = yaml.safe_load(config)
         except yaml.YAMLError as yaml_err:
-            logging.exception(
-                f"Error occurred while reading the file. Error: {yaml_err}"
-            )
+            logging.exception(f"Error occurred while reading the file. Error: {yaml_err}")
             raise
         logging.info("Configuration settings initialized")
         return configs
