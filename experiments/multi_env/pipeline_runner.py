@@ -1,13 +1,11 @@
-from pathlib import Path
-import subprocess
 import shutil
+import subprocess
 import time
+from pathlib import Path
 
 import arcpy
-
 from part_a import part_a
 from part_c import part_c
-
 
 VENV2_PYTHON = Path(__file__).parent / ".venv/python.exe"
 PART_B_PY = Path(__file__).parent / "part_b.py"

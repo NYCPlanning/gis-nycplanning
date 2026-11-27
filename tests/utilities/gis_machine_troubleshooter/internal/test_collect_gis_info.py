@@ -6,7 +6,6 @@ import sys
 
 from utilities.gis_machine_troubleshooter.internal import collect_gis_info
 
-
 # --- _describe() ---
 
 

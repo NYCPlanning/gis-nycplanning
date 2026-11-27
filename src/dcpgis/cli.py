@@ -1,7 +1,6 @@
 import argparse
 from dataclasses import dataclass
-from typing import Any, Optional
-
+from typing import Any
 
 ENV_CHOICES = ["dev", "prod"]
 PRODUCT_CHOICES = ["pluto", "mih", "template"]
@@ -15,9 +14,9 @@ class CLIArgument:
     name_or_flag: str
     required: bool
     help_msg: str
-    action: Optional[str] = "store"
-    choices: Optional[list[str]] = None
-    default: Optional[Any] = None
+    action: str | None = "store"
+    choices: list[str] | None = None
+    default: Any | None = None
 
 
 GLOBAL_ARGS: list = [
@@ -84,7 +83,7 @@ class CLI:
         for arg in self.default_args:
             self._add_argument(arg)
 
-    def _add_argument(self, arg: CLIArgument):
+    def _add_argument(self, arg: CLIArgument) -> None:
         """Add a single argument to the parser."""
         kwargs: dict[str, Any] = {
             "help": arg.help_msg,

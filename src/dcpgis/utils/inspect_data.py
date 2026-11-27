@@ -204,7 +204,7 @@ def get_dataset_schema(dataset: Path | str, layer: str | None = None) -> pd.Data
         ftypes.append(field_type)
         flength.append(_resolve_fallback_length(field_type, width))
 
-    return pd.DataFrame(list(zip(fnames, ftypes, flength)), columns=["name", "type", "length"])
+    return pd.DataFrame(list(zip(fnames, ftypes, flength, strict=True)), columns=["name", "type", "length"])
 
 
 def get_record_count_comparison(

@@ -1,7 +1,8 @@
-from pathlib import Path
+import platform
 import shutil
 import sys
-import platform
+from pathlib import Path
+
 import arcpy
 
 
