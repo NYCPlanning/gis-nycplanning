@@ -7,13 +7,30 @@ from typing import Any
 import arcpy
 from arcpy import metadata as md
 
-from dcpgis.utils import inspect_data
-
 logger = logging.getLogger(__name__)
 
 
 def utils_test():
     logger.debug("Utils test is functioning properly.")
+
+
+def get_record_count_comparison(dataset_1: str, dataset_2: str) -> tuple[int, int]:
+    """Return the record counts of two datasets via arcpy.
+
+    Kept here rather than in dcpgis.utils.inspect_data (which is GDAL-based) because the
+    zoning pipeline passes inputs only arcpy can resolve: SDE connection paths, gdb\\fc
+    paths, and bare names relative to arcpy.env.workspace.
+
+    Args:
+        dataset_1 (str): Path or workspace-relative name of the first dataset.
+        dataset_2 (str): Path or workspace-relative name of the second dataset.
+
+    Returns:
+        tuple[int, int]: Record counts for dataset_1 and dataset_2.
+    """
+    dataset_1_count = int(arcpy.management.GetCount(dataset_1)[0])
+    dataset_2_count = int(arcpy.management.GetCount(dataset_2)[0])
+    return dataset_1_count, dataset_2_count
 
 
 def export_feature_using_dict(
@@ -69,7 +86,7 @@ def export_feature_using_dict(
             field_mapping=fms,
         )
 
-    in_count, out_count = inspect_data.get_record_count_comparison(dataset_1=src_path, dataset_2=dst_path)
+    in_count, out_count = get_record_count_comparison(dataset_1=str(src_path), dataset_2=str(dst_path))
 
     if out_count != in_count:
         logger.debug(
@@ -114,7 +131,7 @@ def dissolve_in_place(workspace: str, feature_class: str, dissolve_field: list, 
         statistics_fields=statistics_fields,
     )
 
-    in_count, out_count = inspect_data.get_record_count_comparison(
+    in_count, out_count = get_record_count_comparison(
         dataset_1=f"{feature_class}_UNDISSOLVED", dataset_2=feature_class
     )
     if out_count != in_count:
