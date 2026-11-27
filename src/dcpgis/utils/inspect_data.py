@@ -5,6 +5,8 @@ from xml.etree import ElementTree
 import pandas as pd
 from osgeo import ogr
 
+from dcpgis.utils import rest_schema
+
 # Drivers whose ExecuteSQL("GetLayerDefinition ...") returns the geodatabase's own
 # internal schema catalog XML, containing literal esriFieldType* strings.
 _GDB_DRIVERS = ("OpenFileGDB", "FileGDB")
@@ -97,6 +99,13 @@ _GDB_FIXED_FIELD_LENGTHS = {
     "GUID": 38,
 }
 
+
+def _resolve_gdb_length(field_type: str, declared_length: int | None) -> int | None:
+    """Fixed byte width for non-string types; otherwise the declared length."""
+    fixed_length = _GDB_FIXED_FIELD_LENGTHS.get(field_type)
+    return fixed_length if fixed_length is not None else (declared_length or None)
+
+
 # For non-GDB sources (shapefiles, or a GDB whose native schema catalog is
 # unavailable), only OID/Geometry/Date have a confirmed Esri-fixed length regardless of
 # the field's declared DBF width -- confirmed against live arcpy.ListFields() output on
@@ -144,17 +153,23 @@ def get_dataset_schema(dataset: Path | str, layer: str | None = None) -> pd.Data
     field types fall back to GDAL's own generic type names.
 
     Args:
-        dataset (Union[Path, str]): Path to dataset to inspect. For a File Geodatabase,
-            this is the path to the .gdb directory; use `layer` to select the feature
-            class or table within it.
+        dataset (Union[Path, str]): Dataset to inspect: a path to a shapefile or .gdb
+            directory, an ArcGIS REST layer or service URL, or an ArcGIS Online item ID.
         layer (Optional[str]): Name of the layer to inspect, required when `dataset`
-            contains multiple layers (e.g. a File Geodatabase). Ignored for
-            single-layer datasets like shapefiles.
+            contains multiple layers (a File Geodatabase, REST service URL or item ID;
+            a REST layer can also be given by numeric ID). Ignored for single-layer
+            datasets like shapefiles and REST layer URLs.
 
     Returns:
         pd.DataFrame: Dataframe of dataset schema information,
             listing column names, data types, and data lengths.
     """
+    if rest_schema.is_rest_url(dataset) or rest_schema.is_item_id(dataset):
+        rest_fields = rest_schema.get_rest_layer_fields(str(dataset), layer)
+        for f in rest_fields:
+            f["length"] = _resolve_gdb_length(f["type"], f["length"])
+        return pd.DataFrame(rest_fields, columns=["name", "type", "length"])
+
     ds, lyr = _open_layer(dataset, layer)
 
     if ds.GetDriver().GetName() in _GDB_DRIVERS:
@@ -166,8 +181,7 @@ def get_dataset_schema(dataset: Path | str, layer: str | None = None) -> pd.Data
                 for i in range(defn.GetFieldCount())
             }
             for f in esri_fields:
-                fixed_length = _GDB_FIXED_FIELD_LENGTHS.get(f["type"])
-                f["length"] = fixed_length if fixed_length is not None else (ogr_widths.get(f["name"]) or None)
+                f["length"] = _resolve_gdb_length(f["type"], ogr_widths.get(f["name"]))
             return pd.DataFrame(esri_fields, columns=["name", "type", "length"])
 
     oid_name = lyr.GetFIDColumn() or "FID"
@@ -221,16 +235,17 @@ def load_reference_schema(reference: Path | str, layer: str | None = None) -> pd
     """Load a reference schema to compare a dataset against.
 
     Args:
-        reference (Union[Path, str]): Path to either a CSV with "name", "type", and
-            "length" columns, or a vector dataset to inspect with `get_dataset_schema`.
+        reference (Union[Path, str]): A CSV with "name", "type", and "length" columns,
+            or any dataset `get_dataset_schema` accepts (including REST URLs).
         layer (Optional[str]): Layer name within `reference`, if it is a dataset.
 
     Returns:
         pd.DataFrame: Reference schema, in the same shape returned by
             `get_dataset_schema`.
     """
-    reference = Path(reference)
-    if reference.suffix.lower() == ".csv":
+    # Check for REST before Path(): on Windows, Path("https://...") turns the slashes into backslashes.
+    is_remote = rest_schema.is_rest_url(reference) or rest_schema.is_item_id(reference)
+    if not is_remote and Path(reference).suffix.lower() == ".csv":
         return pd.read_csv(reference)
 
     return get_dataset_schema(reference, layer=layer)

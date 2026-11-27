@@ -7,23 +7,25 @@ COMPARE_SCHEMA_ARGS: list[CLIArgument] = [
     CLIArgument(
         name_or_flag="--test",
         required=True,
-        help_msg="Path to the dataset being vetted.",
+        help_msg="Dataset being vetted: a shapefile or .gdb path, an ArcGIS REST layer or service URL, "
+        "or an ArcGIS Online item ID.",
     ),
     CLIArgument(
         name_or_flag="--reference",
         required=True,
-        help_msg="Path to the known-good schema to compare against: another dataset, "
+        help_msg="Known-good schema to compare against: any dataset --test accepts, "
         "or a CSV with name/type/length columns.",
     ),
     CLIArgument(
         name_or_flag="--test-layer",
         required=False,
-        help_msg="Layer name within --test, if it points at a multi-layer source such as a File Geodatabase.",
+        help_msg="Layer within --test, for a multi-layer source: a File Geodatabase, REST service URL "
+        "or item ID. REST layers also accept a numeric ID.",
     ),
     CLIArgument(
         name_or_flag="--reference-layer",
         required=False,
-        help_msg="Layer name within --reference, if it is a multi-layer dataset.",
+        help_msg="Layer within --reference, if it is a multi-layer dataset (same rules as --test-layer).",
     ),
     CLIArgument(
         name_or_flag="--strict-order",
